@@ -2,30 +2,32 @@ import { combineReducers } from '@reduxjs/toolkit';
 
 import authReducer from './auth/authSlice';
 import userReducer from './user/userSlice';
-import rolePermissionReducer from './rolePermission/rolePermissionSlice';
-import businessReducer from './business/businessSlice';
-import constructionActivityReducer from './constructionActivity/constructionActivitySlice';
-import loanReducer from './loan/loanSlice';
-import branchReducer from './branch/branchSlice';
-import branchAccessReducer from './branchAccess/branchAccessSlice';
-import constructionPlanConfigReducer from './constructionPlanConfig/constructionPlanConfigSlice';
-import constructionPlanActivityConfigReducer from './constructionPlanActivityConfig/constructionPlanActivityConfigSlice';
-import locationReducer from './location/locationSlice';
-import dashboardReducer from './dashboard/dashboardSlice';
+import iam from './iam/slice';
+import catalog from './catalog/slice';
+import attributes from './attributes/slice';
+import sellersStores from './sellersStores/slice';
+import listingsInventory from './listingsInventory/slice';
+import ordersPayments from './ordersPayments/slice';
+import logistics from './logistics/slice';
+import content from './content/slice';
+import geo from './geo/slice';
+import integrations from './integrations/slice';
+import audit from './audit/slice';
 
 const appReducer = combineReducers({
   auth: authReducer,
   user: userReducer,
-  rolePermission: rolePermissionReducer,
-  business: businessReducer,
-  constructionActivity: constructionActivityReducer,
-  loan: loanReducer,
-  branch: branchReducer,
-  branchAccess: branchAccessReducer,
-  constructionPlanConfig: constructionPlanConfigReducer,
-  constructionPlanActivityConfig: constructionPlanActivityConfigReducer,
-  location: locationReducer,
-  dashboard: dashboardReducer
+  iam,
+  catalog,
+  attributes,
+  sellersStores,
+  listingsInventory,
+  ordersPayments,
+  logistics,
+  content,
+  geo,
+  integrations,
+  audit
 });
 
 export const rootReducer = (state, action) => {

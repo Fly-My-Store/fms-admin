@@ -1,7 +1,7 @@
-import BranchAccess from 'views/branchAccess';
+import View from 'views/products';
 
 // ==============================|| PAGE ||============================== //
 
-export default function BranchAccessPage() {
-  return <BranchAccess />;
+export default function Page() {
+  return <View />;
 }

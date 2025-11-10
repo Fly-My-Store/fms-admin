@@ -6,14 +6,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import UserTableSection from 'sections/users/UserTableSection';
 import UserFormDialog from 'sections/users/UserFormDialog';
 import { clearError, fetchUsersRequest } from 'store/user/userSlice';
-import { fetchRolesRequest } from 'store/rolePermission/rolePermissionSlice';
 import { enqueueSnackbar } from 'notistack';
 
 export function UsersView() {
   const dispatch = useDispatch();
   const { usersData, error } = useSelector((state) => state.user);
   const { count, page, pageSize, totalPages, data } = usersData;
-  console.log('Users Data in UsersView:', usersData);
+
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -21,9 +20,6 @@ export function UsersView() {
     dispatch(fetchUsersRequest({ page, limit: pageSize, role: 'ADMIN' }));
   }, [dispatch]);
 
-  useEffect(() => {
-    dispatch(fetchRolesRequest());
-  }, [dispatch]);
 
   const handleDialogToggle = () => {
     setOpen((prev) => !prev);

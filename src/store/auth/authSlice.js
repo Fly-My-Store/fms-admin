@@ -34,7 +34,7 @@ function saveToStorage({ user, token, permissions }) {
     if (token != null) localStorage.setItem(STORAGE_KEYS.TOKEN, token);
     if (user != null) localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
     if (permissions != null) localStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(permissions));
-  } catch (e) { }
+  } catch (e) {}
 }
 
 function loadFromStorage() {
@@ -110,7 +110,7 @@ const authSlice = createSlice({
       try {
         localStorage.clear();
         sessionStorage.clear();
-      } catch (e) { }
+      } catch (e) {}
     },
     setPermissions(state, action) {
       const perms = action.payload || [];

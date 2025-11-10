@@ -1,7 +1,7 @@
-import BusinessConfiguration from 'views/businessConfiguration';
+import View from 'views/products';
 
 // ==============================|| PAGE ||============================== //
 
 export default function Page() {
-  return <BusinessConfiguration />;
+  return <View />;
 }

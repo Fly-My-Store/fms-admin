@@ -1,7 +1,6 @@
-import Dashboard from 'views/dashboard';
+import View from 'views/audits';
 
-// ==============================|| PAGE ||============================== //
 
-export default function DashboardPage() {
-  return <Dashboard />;
+export default function Page() {
+  return <View />;
 }

@@ -1,5 +1,7 @@
 // ==============================|| ICON IMPORTS ||============================== //
 import {
+  SlidersOutlined,
+  BlockOutlined,
   DashboardOutlined,
   ShoppingOutlined,
   ShoppingCartOutlined,
@@ -22,11 +24,25 @@ import {
   AimOutlined,
   FileSearchOutlined,
   ReloadOutlined,
-  BellOutlined
+  BellOutlined,
+  ProfileOutlined,
+  LayoutOutlined,
+  ControlOutlined,
+  DeploymentUnitOutlined,
+  BranchesOutlined,
+  FilterOutlined
 } from '@ant-design/icons';
 
 // ==============================|| ICON MAPPING ||============================== //
 const icons = {
+  ControlOutlined,
+  DeploymentUnitOutlined,
+  BranchesOutlined,
+  FilterOutlined,
+  SlidersOutlined,
+  ProfileOutlined,
+  BlockOutlined,
+  LayoutOutlined,
   DashboardOutlined,
   ShoppingOutlined,
   ShoppingCartOutlined,
@@ -53,8 +69,8 @@ const icons = {
 };
 
 // ==============================|| MENU ITEMS - FLY MY STORE (PLATFORM) ||============================== //
-// NOTE: Use `perm` (table/entity) + `action` ('create'|'read'|'modify'|'delete') to gate visibility.
-// Items without `perm` show to any authenticated platform user (server still enforces route-level ACL).
+// Use `perm` (table/entity) + `action` ('create'|'read'|'modify'|'delete') for gating.
+// All route-level ACL still enforced server-side.
 
 const platformMenu = {
   id: 'platform-admin',
@@ -62,333 +78,150 @@ const platformMenu = {
   type: 'group',
   children: [
     // ----- Dashboard -----
+    { id: 'dashboard', title: 'dashboard', type: 'item', url: '/dashboard', icon: icons.DashboardOutlined },
+
+
+    // ===== Attributes (NEW) =====
     {
-      id: 'dashboard',
-      title: 'dashboard',
-      type: 'item',
-      url: '/dashboard',
-      icon: icons.DashboardOutlined
+      id: 'attributes',
+      title: 'attributes',
+      type: 'collapse',
+      icon: icons.SlidersOutlined,
+      children: [
+        { id: 'attribute-defs', title: 'attribute-defs', type: 'item', url: '/attribute-defs', icon: icons.ProfileOutlined, perm: 'attributeDef', action: 'read' },
+        { id: 'category-attributes', title: 'category-attributes', type: 'item', url: '/category-attrs', icon: icons.DeploymentUnitOutlined, perm: 'categoryAttribute', action: 'read' },
+        { id: 'product-attributes', title: 'product-attributes', type: 'item', url: '/product-attrs', icon: icons.ShoppingOutlined, perm: 'categoryAttribute', action: 'read' },
+        { id: 'varient-attributes', title: 'varient-attributes', type: 'item', url: '/varient-attrs', icon: icons.ShoppingOutlined, perm: 'categoryAttribute', action: 'read' },
+        { id: 'attribute-groups', title: 'attribute-groups', type: 'item', url: '/attribute-groups', icon: icons.BlockOutlined, perm: 'attributeGroup', action: 'read' },
+        { id: 'plp-configs', title: 'plp-configs', type: 'item', url: '/plp-configs', icon: icons.LayoutOutlined, perm: 'categoryPLPConfig', action: 'read' }
+      ]
     },
 
-    // ----- Catalog -----
+    // ===== Catalog =====
     {
       id: 'catalog',
       title: 'catalog',
       type: 'collapse',
       icon: icons.ShoppingOutlined,
       children: [
-        {
-          id: 'categories',
-          title: 'categories',
-          type: 'item',
-          url: '/categories',
-          icon: icons.ClusterOutlined,
-          perm: 'category',
-          action: 'read'
-        },
-        {
-          id: 'brands',
-          title: 'brands',
-          type: 'item',
-          url: '/brands',
-          icon: icons.TagsOutlined,
-          perm: 'brand',
-          action: 'read'
-        },
-        {
-          id: 'products',
-          title: 'products',
-          type: 'item',
-          url: '/products',
-          icon: icons.AppstoreOutlined,
-          perm: 'product',
-          action: 'read'
-        },
-        {
-          id: 'product-options',
-          title: 'product-options',
-          type: 'item',
-          url: '/product-options',
-          icon: icons.SettingOutlined, // alias via SettingOutlined if you prefer
-          perm: 'productOption',
-          action: 'read'
-        },
-        {
-          id: 'product-variants',
-          title: 'product-variants',
-          type: 'item',
-          url: '/product-variants',
-          icon: icons.ReloadOutlined,
-          perm: 'productVariant',
-          action: 'read'
-        },
-        {
-          id: 'images',
-          title: 'images',
-          type: 'item',
-          url: '/images',
-          icon: icons.PictureOutlined,
-          perm: 'productImage',
-          action: 'read'
-        }
+        { id: 'brands', title: 'brands', type: 'item', url: '/brands', icon: icons.TagsOutlined, perm: 'brand', action: 'read' },
+        { id: 'categories', title: 'categories', type: 'item', url: '/categories', icon: icons.ClusterOutlined, perm: 'category', action: 'read' },
+        { id: 'products', title: 'products', type: 'item', url: '/products', icon: icons.AppstoreOutlined, perm: 'product', action: 'read' },
+        { id: 'product-variants', title: 'product-variants', type: 'item', url: '/product-variants', icon: icons.ReloadOutlined, perm: 'productVariant', action: 'read' },
+        { id: 'variant-barcodes', title: 'variant-barcodes', type: 'item', url: '/variant-barcodes', icon: icons.FileSearchOutlined, perm: 'variantBarcode', action: 'read' },
+        { id: 'images', title: 'images', type: 'item', url: '/images', icon: icons.PictureOutlined, perm: 'productImage', action: 'read' },
+        { id: 'product-approvals', title: 'product-approvals', type: 'item', url: '/product-approvals', icon: icons.ReloadOutlined, perm: 'product', action: 'modify' }
       ]
     },
 
-    // ----- Merchants & Stores -----
+    // ===== Sellers & Stores (RENAMED) =====
     {
-      id: 'merchants-stores',
-      title: 'merchants-stores',
+      id: 'sellers-stores',
+      title: 'sellers-stores',
       type: 'collapse',
       icon: icons.ShopOutlined,
       children: [
-        {
-          id: 'merchants',
-          title: 'merchants',
-          type: 'item',
-          url: '/merchants',
-          icon: icons.TeamOutlined,
-          perm: 'merchant',
-          action: 'read'
-        },
-        {
-          id: 'stores',
-          title: 'stores',
-          type: 'item',
-          url: '/stores',
-          icon: icons.ShopOutlined,
-          perm: 'store',
-          action: 'read'
-        },
-        {
-          id: 'store-products',
-          title: 'store-products',
-          type: 'item',
-          url: '/store-products',
-          icon: icons.DatabaseOutlined,
-          perm: 'storeProduct',
-          action: 'read'
-        },
-        {
-          id: 'store-variants',
-          title: 'store-variants',
-          type: 'item',
-          url: '/store-variants',
-          icon: icons.SyncOutlined,
-          perm: 'storeVariant',
-          action: 'read'
-        },
-        {
-          id: 'inventory-movements',
-          title: 'inventory-movements',
-          type: 'item',
-          url: '/inventory-movements',
-          icon: icons.FileSearchOutlined,
-          perm: 'inventoryMovement',
-          action: 'read'
-        }
+        { id: 'sellers', title: 'sellers', type: 'item', url: '/sellers', icon: icons.TeamOutlined, perm: 'seller', action: 'read' },
+        { id: 'seller-documents', title: 'seller-documents', type: 'item', url: '/seller-documents', icon: icons.FileSearchOutlined, perm: 'sellerDocument', action: 'read' },
+        { id: 'seller-bank-accounts', title: 'seller-bank-accounts', type: 'item', url: '/seller-bank-accounts', icon: icons.CreditCardOutlined, perm: 'sellerBankAccount', action: 'read' },
+        { id: 'seller-policy', title: 'seller-policy', type: 'item', url: '/seller-policy', icon: icons.LockOutlined, perm: 'sellerPolicy', action: 'modify' },
+        { id: 'stores', title: 'stores', type: 'item', url: '/stores', icon: icons.ShopOutlined, perm: 'store', action: 'read' },
+        { id: 'service-areas', title: 'service-areas', type: 'item', url: '/service-areas', icon: icons.AimOutlined, perm: 'serviceArea', action: 'read' }
       ]
     },
 
-    // ----- Orders & Customers -----
+    // ===== Listings & Inventory (NEW GROUP) =====
+    {
+      id: 'listings-inventory',
+      title: 'listings-inventory',
+      type: 'collapse',
+      icon: icons.DatabaseOutlined,
+      children: [
+        { id: 'store-products', title: 'store-products', type: 'item', url: '/store-products', icon: icons.DatabaseOutlined, perm: 'storeProduct', action: 'read' },
+        { id: 'store-variants', title: 'store-variants', type: 'item', url: '/store-variants', icon: icons.SyncOutlined, perm: 'storeVariant', action: 'read' },
+        { id: 'inventory-movements', title: 'inventory-movements', type: 'item', url: '/inventory-movements', icon: icons.FileSearchOutlined, perm: 'inventoryMovement', action: 'read' }
+      ]
+    },
+
+    // ===== Orders & Customers =====
     {
       id: 'orders',
-      title: 'orders',
+      title: 'orders-customers',
       type: 'collapse',
       icon: icons.ShoppingCartOutlined,
       children: [
-        {
-          id: 'orders-list',
-          title: 'orders',
-          type: 'item',
-          url: '/orders',
-          icon: icons.ShoppingCartOutlined,
-          perm: 'order',
-          action: 'read'
-        },
-        {
-          id: 'order-events',
-          title: 'order-events',
-          type: 'item',
-          url: '/order-events',
-          icon: icons.ReloadOutlined,
-          perm: 'orderEvent',
-          action: 'read'
-        },
-        {
-          id: 'customers',
-          title: 'customers',
-          type: 'item',
-          url: '/customers',
-          icon: icons.UserOutlined,
-          perm: 'user',
-          action: 'read'
-        }
+        { id: 'orders-list', title: 'orders', type: 'item', url: '/orders', icon: icons.ShoppingCartOutlined, perm: 'order', action: 'read' },
+        { id: 'order-events', title: 'order-events', type: 'item', url: '/order-events', icon: icons.ReloadOutlined, perm: 'orderEvent', action: 'read' },
+        { id: 'carts', title: 'carts', type: 'item', url: '/carts', icon: icons.ShoppingCartOutlined, perm: 'cart', action: 'read' },
+        { id: 'customers', title: 'customers', type: 'item', url: '/customers', icon: icons.UserOutlined, perm: 'user', action: 'read' }
       ]
     },
 
-    // ----- Payments -----
+    // ===== Payments =====
     {
       id: 'payments',
       title: 'payments',
       type: 'collapse',
       icon: icons.CreditCardOutlined,
       children: [
-        {
-          id: 'payments-list',
-          title: 'payments',
-          type: 'item',
-          url: '/payments',
-          icon: icons.CreditCardOutlined,
-          perm: 'payment',
-          action: 'read'
-        },
-        {
-          id: 'refunds',
-          title: 'refunds',
-          type: 'item',
-          url: '/refunds',
-          icon: icons.ReloadOutlined,
-          perm: 'refund',
-          action: 'read'
-        }
+        { id: 'payments-list', title: 'payments', type: 'item', url: '/payments', icon: icons.CreditCardOutlined, perm: 'payment', action: 'read' },
+        { id: 'refunds', title: 'refunds', type: 'item', url: '/refunds', icon: icons.ReloadOutlined, perm: 'refund', action: 'read' }
       ]
     },
 
-    // ----- Delivery & Logistics -----
+    // ===== Logistics =====
     {
       id: 'logistics',
       title: 'logistics',
       type: 'collapse',
       icon: icons.CarOutlined,
       children: [
-        {
-          id: 'deliveries',
-          title: 'deliveries',
-          type: 'item',
-          url: '/deliveries',
-          icon: icons.CarOutlined,
-          perm: 'delivery',
-          action: 'read'
-        },
-        {
-          id: 'riders',
-          title: 'riders',
-          type: 'item',
-          url: '/riders',
-          icon: icons.TeamOutlined,
-          perm: 'rider',
-          action: 'read'
-        },
-        {
-          id: 'rider-locations',
-          title: 'rider-locations',
-          type: 'item',
-          url: '/rider-locations',
-          icon: icons.EnvironmentOutlined,
-          perm: 'riderLocation',
-          action: 'read'
-        },
-        {
-          id: 'service-areas',
-          title: 'service-areas',
-          type: 'item',
-          url: '/service-areas',
-          icon: icons.AimOutlined,
-          perm: 'serviceArea',
-          action: 'read'
-        }
+        { id: 'deliveries', title: 'deliveries', type: 'item', url: '/deliveries', icon: icons.CarOutlined, perm: 'delivery', action: 'read' },
+        { id: 'delivery-jobs', title: 'delivery-jobs', type: 'item', url: '/delivery-jobs', icon: icons.SyncOutlined, perm: 'deliveryJob', action: 'read' }, // NEW
+        { id: 'riders', title: 'riders', type: 'item', url: '/riders', icon: icons.TeamOutlined, perm: 'rider', action: 'read' },
+        { id: 'rider-locations', title: 'rider-locations', type: 'item', url: '/rider-locations', icon: icons.EnvironmentOutlined, perm: 'riderLocation', action: 'read' }
       ]
     },
 
-    // ----- Marketing -----
+    // ===== Marketing & Content =====
     {
       id: 'marketing',
       title: 'marketing',
       type: 'collapse',
       icon: icons.TagsOutlined,
       children: [
-        {
-          id: 'banners',
-          title: 'banners',
-          type: 'item',
-          url: '/banners',
-          icon: icons.PictureOutlined,
-          perm: 'banner',
-          action: 'read'
-        },
-        {
-          id: 'reviews',
-          title: 'reviews',
-          type: 'item',
-          url: '/reviews',
-          icon: icons.StarOutlined,
-          perm: 'review',
-          action: 'read'
-        }
+        { id: 'banners', title: 'banners', type: 'item', url: '/banners', icon: icons.PictureOutlined, perm: 'banner', action: 'read' },
+        { id: 'reviews', title: 'reviews', type: 'item', url: '/reviews', icon: icons.StarOutlined, perm: 'review', action: 'read' }
       ]
     },
 
-    // ----- Analytics -----
+    // ===== Geo & Addressing (NEW GROUP) =====
     {
-      id: 'analytics',
-      title: 'analytics',
-      type: 'item',
-      url: '/analytics',
-      icon: icons.LineChartOutlined
+      id: 'geo',
+      title: 'geo',
+      type: 'collapse',
+      icon: icons.EnvironmentOutlined,
+      children: [
+        { id: 'pincodes', title: 'pincodes', type: 'item', url: '/pincodes', icon: icons.EnvironmentOutlined, perm: 'geoPincode', action: 'read' },
+        { id: 'addresses', title: 'addresses', type: 'item', url: '/addresses', icon: icons.EnvironmentOutlined, perm: 'address', action: 'read' }
+      ]
     },
 
-    // ----- System -----
+    // ===== Analytics =====
+    { id: 'analytics', title: 'analytics', type: 'item', url: '/analytics', icon: icons.LineChartOutlined },
+
+    // ===== System =====
     {
       id: 'system',
       title: 'system',
       type: 'collapse',
       icon: icons.SettingOutlined,
       children: [
-        {
-          id: 'users',
-          title: 'users',
-          type: 'item',
-          url: '/users',
-          icon: icons.UserOutlined,
-          perm: 'user',
-          action: 'read'
-        },
-        {
-          id: 'roles',
-          title: 'roles',
-          type: 'item',
-          url: '/roles',
-          icon: icons.TeamOutlined,
-          perm: 'role',
-          action: 'read'
-        },
-        {
-          id: 'permissions',
-          title: 'permissions',
-          type: 'item',
-          url: '/permissions',
-          icon: icons.LockOutlined,
-          perm: 'permission',
-          action: 'read'
-        },
-        {
-          id: 'webhook-events',
-          title: 'webhook-events',
-          type: 'item',
-          url: '/webhook-events',
-          icon: icons.BellOutlined,
-          perm: 'webhookEvent',
-          action: 'read'
-        },
-        {
-          id: 'audit-logs',
-          title: 'audit-logs',
-          type: 'item',
-          url: '/audit-logs',
-          icon: icons.FileSearchOutlined,
-          perm: 'auditLog',
-          action: 'read'
-        }
+        { id: 'users', title: 'users', type: 'item', url: '/users', icon: icons.UserOutlined, perm: 'user', action: 'read' },
+        { id: 'roles', title: 'roles', type: 'item', url: '/roles', icon: icons.TeamOutlined, perm: 'role', action: 'read' },
+        { id: 'permissions', title: 'permissions', type: 'item', url: '/permissions', icon: icons.LockOutlined, perm: 'permission', action: 'read' },
+        { id: 'webhook-events', title: 'webhook-events', type: 'item', url: '/webhook-events', icon: icons.BellOutlined, perm: 'webhookEvent', action: 'read' },
+        { id: 'audit-logs', title: 'audit-logs', type: 'item', url: '/audit-logs', icon: icons.FileSearchOutlined, perm: 'auditLog', action: 'read' }
       ]
     }
   ]

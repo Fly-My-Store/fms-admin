@@ -21,7 +21,6 @@ import { CloseOutlined } from '@ant-design/icons';
 
 export default function UserFormDialog({ open, onClose, initialData = null }) {
     const dispatch = useDispatch();
-    const { roles, loading } = useSelector((state) => state.rolePermission);
 
     const [form, setForm] = useState({
         firstName: '',
@@ -40,7 +39,6 @@ export default function UserFormDialog({ open, onClose, initialData = null }) {
                 email: initialData.email || '',
                 type: initialData.type || 'admin',
                 status: initialData.status ?? 1,
-                roleId: initialData.roleId || '',
                 password: '',
             });
         } else {
@@ -50,7 +48,6 @@ export default function UserFormDialog({ open, onClose, initialData = null }) {
                 email: '',
                 type: 'admin',
                 status: 1,
-                roleId: '',
                 password: '',
             });
         }
@@ -115,24 +112,7 @@ export default function UserFormDialog({ open, onClose, initialData = null }) {
                         />
                     </Stack>
 
-                    <Stack sx={{ gap: 1 }}>
-                        <InputLabel>Role</InputLabel>
-                        <Select
-                            id="roleId"
-                            name="roleId"
-                            value={form.roleId}
-                            onChange={handleChange}
-                            fullWidth
-                            displayEmpty
-                        >
-                            <MenuItem value="" disabled>Select role</MenuItem>
-                            {roles.map((role) => (
-                                <MenuItem key={role.id} value={role.id}>
-                                    {role.name}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </Stack>
+                
 
                     <Stack sx={{ gap: 1 }}>
                         <InputLabel>Password</InputLabel>

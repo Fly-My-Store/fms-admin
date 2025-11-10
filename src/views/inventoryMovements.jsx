@@ -1,0 +1,65 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { enqueueSnackbar } from 'notistack';
+import { actions as listingsInventory } from 'store/listingsInventory/slice';
+import InventorymovementsTableSection from 'sections/inventoryMovements/InventorymovementsTableSection';
+import InventorymovementsFormDialog from 'sections/inventoryMovements/InventorymovementsFormDialog';
+
+export function InventorymovementsView() {
+  const dispatch = useDispatch();
+  const state = useSelector((s) => s.adminListingsinventory || {});
+  const list = state.inventoryMovements || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
+  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
+
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    dispatch(listingsInventory.inventoryMovementsListRequest({ params: { page, limit: pageSize } }));
+  }, [dispatch]);
+
+  const handleDialogToggle = () => {
+    setOpen((prev) => !prev);
+    if (open) setSelected(null);
+  };
+
+  const handleAddButton = () => {
+    setSelected(null);
+    setOpen(true);
+  };
+
+  const handleEditButton = (row) => {
+    setSelected(row);
+    setOpen(true);
+  };
+
+  const handlePaginationChange = (updater) => {
+    const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
+    dispatch(listingsInventory.inventoryMovementsListRequest({ params: { page: next.pageIndex + 1, limit: next.pageSize } }));
+  };
+
+  useEffect(() => {
+    if (error) {
+      enqueueSnackbar(error, { variant: 'error' });
+    }
+  }, [error]);
+
+  return (
+    <>
+      <InventorymovementsTableSection
+        rows={data}
+        handleAddButton={handleAddButton}
+        handleEditButton={handleEditButton}
+        pageIndex={page - 1}
+        pageSize={pageSize}
+        totalPageCount={totalPages}
+        onPaginationChange={handlePaginationChange}
+      />
+      <InventorymovementsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
+    </>
+  );
+}
+
+export default InventorymovementsView;

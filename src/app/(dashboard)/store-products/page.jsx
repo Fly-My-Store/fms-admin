@@ -1,7 +1,7 @@
-import ConstructionActivityType from 'views/constructionActivityType';
+import View from 'views/storeProducts';
 
 // ==============================|| PAGE ||============================== //
 
-export default function ConstructionActivityTypePage() {
-  return <ConstructionActivityType />;
+export default function Page() {
+  return <View />;
 }

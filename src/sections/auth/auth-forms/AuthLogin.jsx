@@ -164,7 +164,7 @@ export default function AuthLogin({ }) {
 
               <Grid sx={{ mt: -1 }} size={12}>
                 <Stack direction="row" sx={{ gap: 2, alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <FormControlLabel
+                  {/* <FormControlLabel
                     control={
                       <Checkbox
                         checked={checked}
@@ -175,7 +175,7 @@ export default function AuthLogin({ }) {
                       />
                     }
                     label={<Typography variant="h6">Keep me sign in</Typography>}
-                  />
+                  /> */}
 
                   <Link variant="h6" component={NextLink} href={ROUTES.FORGOT_PASSWORD} color="text.primary">
                     Forgot Password?

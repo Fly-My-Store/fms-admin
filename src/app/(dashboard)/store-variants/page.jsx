@@ -1,7 +1,7 @@
-import ConstructionPlanConfig from 'views/constructionPlanConfig';
+import View from 'views/storeVariants';
 
 // ==============================|| PAGE ||============================== //
 
-export default function ConstructionPlanConfigPage() {
-  return <ConstructionPlanConfig />;
+export default function Page() {
+  return <View />;
 }

@@ -1,7 +1,7 @@
-import GeoMap from 'views/geo-map';
+import View from 'views/orders';
 
 // ==============================|| PAGE ||============================== //
 
 export default function Page() {
-  return <GeoMap />;
+  return <View />;
 }

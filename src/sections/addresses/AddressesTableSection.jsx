@@ -1,0 +1,42 @@
+'use client';
+
+import { useMemo } from 'react';
+import Chip from '@mui/material/Chip';
+import BasicReactTable from 'components/tables/basicTable';
+import { TABLE_STATUS } from 'utils/constants';
+
+export default function AddressesTableSection({
+  rows,
+  handleAddButton,
+  handleEditButton,
+  pageIndex,
+  pageSize,
+  totalPageCount,
+  onPaginationChange
+}) {
+  const columns = useMemo(
+    () => [
+      { header: 'User ID', accessorKey: 'user_id' },
+      { header: 'Line 1', accessorKey: 'line1' },
+      { header: 'City', accessorKey: 'city' },
+      { header: 'Pincode', accessorKey: 'pincode' },
+    ],
+    []
+  );
+
+  return (
+    <BasicReactTable
+      columns={columns}
+      data={rows}
+      title="Addresss"
+      ariaLebel="Add Address"
+      handleAddButton={handleAddButton}
+      handleEditButton={handleEditButton}
+      pageIndex={pageIndex}
+      pageSize={pageSize}
+      totalPageCount={totalPageCount}
+      onPaginationChange={onPaginationChange}
+      permissionName={'addresse'}
+    />
+  );
+}

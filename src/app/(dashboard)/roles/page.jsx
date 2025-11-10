@@ -1,7 +1,7 @@
-import Role from 'views/role';
+import View from 'views/roles';
 
 // ==============================|| PAGE ||============================== //
 
-export default function UserPage() {
-  return <Role />;
+export default function Page() {
+  return <View />;
 }

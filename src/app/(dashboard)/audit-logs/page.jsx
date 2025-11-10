@@ -1,7 +1,6 @@
-import Branch from 'views/branch';
+import View from 'views/audits';
 
-// ==============================|| PAGE ||============================== //
 
-export default function BranchPage() {
-  return <Branch />;
+export default function Page() {
+  return <View />;
 }

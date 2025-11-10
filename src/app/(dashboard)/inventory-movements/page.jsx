@@ -1,7 +1,7 @@
-import Districts from 'views/districts';
+import View from 'views/inventoryMovements';
 
 // ==============================|| PAGE ||============================== //
 
 export default function Page() {
-  return <Districts />;
+  return <View />;
 }

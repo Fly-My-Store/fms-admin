@@ -14,7 +14,6 @@ const nextConfig = {
     }
   },
   images: {
-    domains: ['verko-profile.s3.ap-south-1.amazonaws.com', 'img.freepik.com', 'progress-media-prod.s3.ap-south-1.amazonaws.com'],
     remotePatterns: [
       {
         protocol: 'https',
