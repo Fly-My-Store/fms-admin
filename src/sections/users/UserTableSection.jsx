@@ -14,7 +14,6 @@ export default function UserTableSection({
   totalPageCount,
   onPaginationChange,
 }) {
-  console.log('Users in UserTableSection:', users);
   const columns = useMemo(
     () => [
       {

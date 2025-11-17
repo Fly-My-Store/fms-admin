@@ -9,7 +9,7 @@ import RefundsFormDialog from 'sections/refunds/RefundsFormDialog';
 
 export function RefundsView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminOrderspayments || {});
+  const state = useSelector((s) => s.orderspayments || {});
   const list = state.refunds || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

@@ -9,7 +9,7 @@ import OrdersFormDialog from 'sections/orders/OrdersFormDialog';
 
 export function OrdersView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminOrderspayments || {});
+  const state = useSelector((s) => s.orderspayments || {});
   const list = state.orders || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

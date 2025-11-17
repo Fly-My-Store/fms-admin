@@ -33,7 +33,3 @@ export const listProductImages = (productId, params) => get(`admin/catalog/produ
 export const createProductImage = (productId, data) => post(`admin/catalog/products/${productId}/images`, data);
 export const updateProductImage = (productId, imageId, data) => patch(`admin/catalog/products/${productId}/images/${imageId}`, data);
 export const removeProductImage = (productId, imageId) => del(`admin/catalog/products/${productId}/images/${imageId}`);
-
-export const listVariantBarcodes = (variantId) => get(`admin/catalog/variants/${variantId}/barcodes`);
-export const createVariantBarcode = (variantId, data) => post(`admin/catalog/variants/${variantId}/barcodes`, data);
-export const removeVariantBarcode = (variantId, barcodeId) => del(`admin/catalog/variants/${variantId}/barcodes/${barcodeId}`);

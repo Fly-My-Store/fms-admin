@@ -9,7 +9,7 @@ import AddressesFormDialog from 'sections/addresses/AddressesFormDialog';
 
 export function AddressesView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminGeo || {});
+  const state = useSelector((s) => s.geo || {});
   const list = state.addresses || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

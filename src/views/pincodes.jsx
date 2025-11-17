@@ -9,7 +9,7 @@ import PincodesFormDialog from 'sections/pincodes/PincodesFormDialog';
 
 export function PincodesView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminGeo || {});
+  const state = useSelector((s) => s.geo || {});
   const list = state.pincodes || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

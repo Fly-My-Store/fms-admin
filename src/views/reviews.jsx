@@ -9,7 +9,7 @@ import ReviewsFormDialog from 'sections/reviews/ReviewsFormDialog';
 
 export function ReviewsView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminContent || {});
+  const state = useSelector((s) => s.content || {});
   const list = state.reviews || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

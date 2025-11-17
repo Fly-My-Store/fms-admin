@@ -32,7 +32,7 @@ export default function ServiceAreasView() {
     } catch (e) { enqueueSnackbar('Failed to load', { variant: 'error' }); }
   };
 
-  useEffect(() => { load(); }, [pageIndex, pageSize]);
+  useEffect(() => { {load()}; }, [pageIndex, pageSize]);
 
   return (
     <>

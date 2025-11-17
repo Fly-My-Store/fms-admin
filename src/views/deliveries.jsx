@@ -9,7 +9,7 @@ import DeliveriesFormDialog from 'sections/deliveries/DeliveriesFormDialog';
 
 export function DeliveriesView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminLogistics || {});
+  const state = useSelector((s) => s.logistics || {});
   const list = state.deliveries || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

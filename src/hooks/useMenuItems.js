@@ -30,7 +30,7 @@ function filterTree(node, can, isAdmin) {
 
 export default function useMenuItems() {
   const { user, isLoaded, permissionsByName } = useSelector((s) => s.auth || {});
-  const isAdminBypass = user?.role === 'ADMIN';
+  const isAdminBypass = user?.type === 'ADMIN';
 
   const can = (perm, action = 'read') => {
     if (!isLoaded) return false; // wait for hydration
@@ -41,7 +41,7 @@ export default function useMenuItems() {
 
   if (!isLoaded) return { items: [] };
 
-  const src = user?.role === 'ADMIN' ? platform : business;
+  const src = user?.type === 'ADMIN' ? platform : business;
   const filtered = filterTree(src, can, isAdminBypass);
 
   return { items: filtered ? [filtered] : [] };

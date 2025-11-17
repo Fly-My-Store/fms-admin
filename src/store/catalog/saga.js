@@ -151,6 +151,61 @@ function* productsRemoveWorker(action) {
   }
 }
 
+function* variantsListWorker(action) {
+  try {
+    const { product_id, ...query } = action.payload?.params || {};
+    const resp = yield call(api.listVariants, product_id, query);
+    yield put(actions.variantsListSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Failed to load variants');
+    yield put(actions.variantsListFailure(msg));
+  }
+}
+
+function* variantsGetWorker(action) {
+  try {
+    const { id } = action.payload?.params || {};
+    const resp = yield call(api.getVariant, id);
+    yield put(actions.variantsGetSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Failed to fetch variant');
+    yield put(actions.variantsGetFailure(msg));
+  }
+}
+
+function* variantsCreateWorker(action) {
+  try {
+    const { id, data } = action.payload?.params || {};
+    const resp = yield call(api.createVariant, id, data);
+    yield put(actions.variantsCreateSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Variant create failed');
+    yield put(actions.variantsCreateFailure(msg));
+  }
+}
+
+function* variantsUpdateWorker(action) {
+  try {
+    const { id, data } = action.payload?.params || {};
+    const resp = yield call(api.updateVariant, id, data);
+    yield put(actions.variantsUpdateSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Variant update failed');
+    yield put(actions.variantsUpdateFailure(msg));
+  }
+}
+
+function* variantsRemoveWorker(action) {
+  try {
+    const { id } = action.payload?.params || {};
+    const resp = yield call(api.removeVariant, id);
+    yield put(actions.variantsRemoveSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Variant delete failed');
+    yield put(actions.variantsRemoveFailure(msg));
+  }
+}
+
 export default function* catalogSaga() {
   yield all([
     takeLatest(actions.brandsListRequest.type, brandsListWorker),
@@ -167,6 +222,11 @@ export default function* catalogSaga() {
     takeLatest(actions.productsGetRequest.type, productsGetWorker),
     takeLatest(actions.productsCreateRequest.type, productsCreateWorker),
     takeLatest(actions.productsUpdateRequest.type, productsUpdateWorker),
-    takeLatest(actions.productsRemoveRequest.type, productsRemoveWorker)
+    takeLatest(actions.productsRemoveRequest.type, productsRemoveWorker),
+    takeLatest(actions.variantsListRequest.type, variantsListWorker),
+    takeLatest(actions.variantsGetRequest.type, variantsGetWorker),
+    takeLatest(actions.variantsCreateRequest.type, variantsCreateWorker),
+    takeLatest(actions.variantsUpdateRequest.type, variantsUpdateWorker),
+    takeLatest(actions.variantsRemoveRequest.type, variantsRemoveWorker)
   ]);
 }

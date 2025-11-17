@@ -30,8 +30,8 @@ export default function CustomersFormDialog({ open, onClose, initialData = null,
   const handleSubmit = async () => {
     try {
       const payload = { ...form };
-      if (initialData?.id) await axiosServices.put('admin/iam/users?role=CUSTOMER/' + initialData.id, payload);
-      else await axiosServices.post('admin/iam/users?role=CUSTOMER', payload);
+      if (initialData?.id) await axiosServices.put('admin/iam/users?type=CUSTOMER/' + initialData.id, payload);
+      else await axiosServices.post('admin/iam/users?type=CUSTOMER', payload);
       onSaved && onSaved();
       onClose();
     } catch (e) {}

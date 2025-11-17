@@ -9,7 +9,7 @@ import RolesFormDialog from 'sections/roles/RolesFormDialog';
 
 export function RolesView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminIam || {});
+  const state = useSelector((s) => s.iam || {});
   const list = state.roles || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

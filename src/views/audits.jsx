@@ -9,7 +9,7 @@ import AuditsFormDialog from 'sections/audits/AuditsFormDialog';
 
 export function AuditsView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminAudit || {});
+  const state = useSelector((s) => s.audit || {});
   const list = state.audits || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

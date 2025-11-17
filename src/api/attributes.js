@@ -1,4 +1,4 @@
-import { get, post, patch, del } from '../utils/api';
+import { get, post, patch, del, put } from '../utils/api';
 
 export const listDefs = (params) => get('admin/attributes/defs', params);
 export const getDef = (code) => get(`admin/attributes/defs/${encodeURIComponent(code)}`);
@@ -11,7 +11,8 @@ export const listCategoryAttrs = (params) => get('admin/attributes/category-attr
 export const getCategoryAttr = (id) => get(`admin/attributes/category-attrs/${id}`);
 export const createCategoryAttr = (data) => post('admin/attributes/category-attrs', data);
 export const updateCategoryAttr = (id, data) => patch(`admin/attributes/category-attrs/${id}`, data);
-export const removeCategoryAttr = (id) => del(`admin/attributes/category-attrs/${id}`);
+export const removeCategoryAttr = (category_id, attribute_code) =>
+  del(`admin/attributes/category-attrs/${category_id}/${encodeURIComponent(attribute_code)}`);
 export const bulkUpsertCategoryAttrs = (items) => post('admin/attributes/category-attrs/bulk-upsert', items);
 
 export const listGroups = (params) => get('admin/attributes/groups', params);
@@ -32,16 +33,10 @@ export const createPlpConfig = (data) => post('admin/attributes/plp', data);
 export const upsertPlpConfig = (categoryId, data) => patch(`admin/attributes/plp/${categoryId}`, data);
 export const removePlpConfig = (categoryId) => del(`admin/attributes/plp/${categoryId}`);
 
-export const listProductAttrs = (productId) => get(`admin/attributes/products/${productId}/attrs`);
-export const bulkUpsertProductAttrs = (productId, items) => post(`admin/attributes/products/${productId}/attrs/bulk-upsert`, items);
-export const upsertProductAttr = (productId, attributeCode, data) =>
-  patch(`admin/attributes/products/${productId}/attrs/${encodeURIComponent(attributeCode)}`, data);
-export const removeProductAttr = (productId, attributeCode) =>
-  del(`admin/attributes/products/${productId}/attrs/${encodeURIComponent(attributeCode)}`);
+export const listProductAttrs = (params) => get('admin/attributes/product-attrs', params);
+export const upsertProductAttr = (code, data) => put(`admin/attributes/product-attrs/${code}`, data);
+export const getProductAttr = (code, productId) => get(`admin/attributes/product-attrs/${productId}/${code}`);
 
-export const listVariantAttrs = (variantId) => get(`admin/attributes/variants/${variantId}/attrs`);
-export const bulkUpsertVariantAttrs = (variantId, items) => post(`admin/attributes/variants/${variantId}/attrs/bulk-upsert`, items);
-export const upsertVariantAttr = (variantId, attributeCode, data) =>
-  patch(`admin/attributes/variants/${variantId}/attrs/${encodeURIComponent(attributeCode)}`, data);
-export const removeVariantAttr = (variantId, attributeCode) =>
-  del(`admin/attributes/variants/${variantId}/attrs/${encodeURIComponent(attributeCode)}`);
+export const listVariantAttrs = (params) => get('admin/attributes/variant-attrs', params);
+export const upsertVariantAttr = (code, data) => put(`admin/attributes/variant-attrs/${code}`, data);
+export const getVariantAttr = (code, variantId) => get(`admin/attributes/variant-attrs/${variantId}/${code}`);

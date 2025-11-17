@@ -9,7 +9,7 @@ import GroupsFormDialog from 'sections/groups/GroupsFormDialog';
 
 export function GroupsView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminAttributes || {});
+  const state = useSelector((s) => s.attributes || {});
   const list = state.groups || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

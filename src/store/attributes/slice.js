@@ -7,15 +7,19 @@ const initialState = {
   defs: initialList(),
   groups: initialList(),
   categoryAttrs: initialList(),
+  productAttrs: initialList(),
+  variantAttrs: initialList(),
   plpConfigs: initialList(),
   defsDetail: initialEntity(),
   groupsDetail: initialEntity(),
   categoryAttrsDetail: initialEntity(),
+  productAttrDetail: initialEntity(),
+  variantAttrDetail: initialEntity(),
   plpConfigsDetail: initialEntity()
 };
 
 const slice = createSlice({
-  name: 'admin/attributes',
+  name: 'attributes',
   initialState,
   reducers: {
     defsListRequest(state) {
@@ -260,6 +264,81 @@ const slice = createSlice({
     plpConfigsRemoveFailure(state, action) {
       state.plpConfigsDetail.loading = false;
       state.plpConfigsDetail.error = action.payload;
+    },
+    productAttrsListRequest(state) {
+      state.productAttrs.loading = true;
+      state.productAttrs.error = null;
+    },
+    productAttrsListSuccess(state, action) {
+      state.productAttrs.loading = false;
+      state.productAttrs.rows = action.payload?.data || [];
+      state.productAttrs.meta = action.payload?.meta || state.productAttrs.meta;
+    },
+    productAttrsListFailure(state, action) {
+      state.productAttrs.loading = false;
+      state.productAttrs.error = action.payload;
+    },
+    productAttrGetRequest(state) {
+      state.productAttrDetail.loading = true;
+      state.productAttrDetail.error = null;
+    },
+    productAttrGetSuccess(state, action) {
+      state.productAttrDetail.loading = false;
+      state.productAttrDetail.data = action.payload?.data || action.payload;
+    },
+    productAttrGetFailure(state, action) {
+      state.productAttrDetail.loading = false;
+      state.productAttrDetail.error = action.payload;
+    },
+    productAttrUpsertRequest(state) {
+      state.productAttrDetail.loading = true;
+      state.productAttrDetail.error = null;
+    },
+    productAttrUpsertSuccess(state, action) {
+      state.productAttrDetail.loading = false;
+      state.productAttrDetail.data = action.payload?.data || action.payload;
+    },
+    productAttrUpsertFailure(state, action) {
+      state.productAttrDetail.loading = false;
+      state.productAttrDetail.error = action.payload;
+    },
+
+    variantAttrsListRequest(state) {
+      state.variantAttrs.loading = true;
+      state.variantAttrs.error = null;
+    },
+    variantAttrsListSuccess(state, action) {
+      state.variantAttrs.loading = false;
+      state.variantAttrs.rows = action.payload?.data || [];
+      state.variantAttrs.meta = action.payload?.meta || state.variantAttrs.meta;
+    },
+    variantAttrsListFailure(state, action) {
+      state.variantAttrs.loading = false;
+      state.variantAttrs.error = action.payload;
+    },
+    variantAttrGetRequest(state) {
+      state.variantAttrDetail.loading = true;
+      state.variantAttrDetail.error = null;
+    },
+    variantAttrGetSuccess(state, action) {
+      state.variantAttrDetail.loading = false;
+      state.variantAttrDetail.data = action.payload?.data || action.payload;
+    },
+    variantAttrGetFailure(state, action) {
+      state.variantAttrDetail.loading = false;
+      state.variantAttrDetail.error = action.payload;
+    },
+    variantAttrUpsertRequest(state) {
+      state.variantAttrDetail.loading = true;
+      state.variantAttrDetail.error = null;
+    },
+    variantAttrUpsertSuccess(state, action) {
+      state.variantAttrDetail.loading = false;
+      state.variantAttrDetail.data = action.payload?.data || action.payload;
+    },
+    variantAttrUpsertFailure(state, action) {
+      state.variantAttrDetail.loading = false;
+      state.variantAttrDetail.error = action.payload;
     }
   }
 });

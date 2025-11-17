@@ -20,7 +20,6 @@ function* handleLogin(action) {
 function* handleForgotPassword(action) {
   try {
     const response = yield call(forgotPassword, action.payload.params);
-    console.log('Forgot password response:', response);
     yield put(forgotPasswordSuccess(response));
     if (action.payload.callback) action.payload.callback();
   } catch (err) {

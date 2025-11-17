@@ -25,14 +25,14 @@ export default function CustomersView() {
 
   const load = async () => {
     try {
-      const resp = await axiosServices.get('admin/iam/users?role=CUSTOMER', { params: { page: pageIndex+1, limit: pageSize } });
+      const resp = await axiosServices.get('admin/iam/users?type=CUSTOMER', { params: { page: pageIndex+1, limit: pageSize } });
       const payload = resp?.data || {};
       setRows(payload.data || []);
       setTotalPages(payload?.meta?.totalPages || 1);
     } catch (e) { enqueueSnackbar('Failed to load', { variant: 'error' }); }
   };
 
-  useEffect(() => { load(); }, [pageIndex, pageSize]);
+  useEffect(() => { {load()}; }, [pageIndex, pageSize]);
 
   return (
     <>

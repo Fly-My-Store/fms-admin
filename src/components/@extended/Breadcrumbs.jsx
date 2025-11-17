@@ -193,7 +193,6 @@ export default function Breadcrumbs({
         <MuiBreadcrumbs aria-label="breadcrumb" maxItems={maxItems || 8} separator={separatorIcon}>
           {links?.map((link, index) => {
             CollapseIcon = link.icon ? link.icon : ApartmentOutlined;
-
             return (
               <Typography
                 key={index}
@@ -203,7 +202,7 @@ export default function Breadcrumbs({
                 color={!link.to ? 'text.primary' : 'text.secondary'}
               >
                 {link.icon && <CollapseIcon style={iconSX} />}
-                <FormattedMessage id={link.title} />
+                {link.i18n === false ? String(link.title) : <FormattedMessage id={link.title} />}
               </Typography>
             );
           })}

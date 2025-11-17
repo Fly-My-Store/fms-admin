@@ -5,16 +5,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import { actions as catalog } from 'store/catalog/slice';
 import ProductsTableSection from 'sections/products/ProductsTableSection';
-import ProductsFormDialog from 'sections/products/ProductsFormDialog';
+import { useRouter } from 'next/navigation';
 
 export function ProductsView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminCatalog || {});
+  const state = useSelector((s) => s.catalog || {});
   const list = state.products || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     dispatch(catalog.productsListRequest({ params: { page, limit: pageSize } }));
@@ -26,13 +27,11 @@ export function ProductsView() {
   };
 
   const handleAddButton = () => {
-    setSelected(null);
-    setOpen(true);
+    router.push('/products/create');
   };
 
   const handleEditButton = (row) => {
-    setSelected(row);
-    setOpen(true);
+    router.push(`/products/edit/${row.id}`);
   };
 
   const handlePaginationChange = (updater) => {
@@ -52,12 +51,12 @@ export function ProductsView() {
         rows={data}
         handleAddButton={handleAddButton}
         handleEditButton={handleEditButton}
+        handleViewButton={(row) => router.push(`/products/${row.id}`)}
         pageIndex={page - 1}
         pageSize={pageSize}
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
       />
-      <ProductsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
     </>
   );
 }

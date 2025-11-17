@@ -18,10 +18,9 @@ export default function BrandsTableSection({
     () => [
       { header: 'Name', accessorKey: 'name' },
       { header: 'Slug', accessorKey: 'slug' },
-
       {
-        header: 'Status',
-        accessorKey: 'status',
+        header: 'Reacrod Status',
+        accessorKey: 'record_status',
         cell: (cell) => {
           const value = cell.getValue();
           switch (value) {

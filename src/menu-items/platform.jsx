@@ -103,14 +103,13 @@ const platformMenu = {
       title: 'catalog',
       type: 'collapse',
       icon: icons.ShoppingOutlined,
+      breadcrumbs: true,
       children: [
-        { id: 'brands', title: 'brands', type: 'item', url: '/brands', icon: icons.TagsOutlined, perm: 'brand', action: 'read' },
-        { id: 'categories', title: 'categories', type: 'item', url: '/categories', icon: icons.ClusterOutlined, perm: 'category', action: 'read' },
-        { id: 'products', title: 'products', type: 'item', url: '/products', icon: icons.AppstoreOutlined, perm: 'product', action: 'read' },
-        { id: 'product-variants', title: 'product-variants', type: 'item', url: '/product-variants', icon: icons.ReloadOutlined, perm: 'productVariant', action: 'read' },
-        { id: 'variant-barcodes', title: 'variant-barcodes', type: 'item', url: '/variant-barcodes', icon: icons.FileSearchOutlined, perm: 'variantBarcode', action: 'read' },
-        { id: 'images', title: 'images', type: 'item', url: '/images', icon: icons.PictureOutlined, perm: 'productImage', action: 'read' },
-        { id: 'product-approvals', title: 'product-approvals', type: 'item', url: '/product-approvals', icon: icons.ReloadOutlined, perm: 'product', action: 'modify' }
+        { id: 'brands', breadcrumbs: true, title: 'brands', type: 'item', url: '/brands', icon: icons.TagsOutlined, perm: 'brand', action: 'read' },
+        { id: 'categories', breadcrumbs: true, title: 'categories', type: 'item', url: '/categories', icon: icons.ClusterOutlined, perm: 'category', action: 'read' },
+        { id: 'products', breadcrumbs: true, title: 'products', type: 'item', url: '/products', icon: icons.AppstoreOutlined, perm: 'product', action: 'read' },
+        { id: 'product-variants', breadcrumbs: true, title: 'product-variants', type: 'item', url: '/product-variants', icon: icons.ReloadOutlined, perm: 'productVariant', action: 'read' },
+        { id: 'product-approvals', breadcrumbs: true, title: 'product-approvals', type: 'item', url: '/product-approvals', icon: icons.ReloadOutlined, perm: 'product', action: 'modify' }
       ]
     },
 
@@ -122,9 +121,6 @@ const platformMenu = {
       icon: icons.ShopOutlined,
       children: [
         { id: 'sellers', title: 'sellers', type: 'item', url: '/sellers', icon: icons.TeamOutlined, perm: 'seller', action: 'read' },
-        { id: 'seller-documents', title: 'seller-documents', type: 'item', url: '/seller-documents', icon: icons.FileSearchOutlined, perm: 'sellerDocument', action: 'read' },
-        { id: 'seller-bank-accounts', title: 'seller-bank-accounts', type: 'item', url: '/seller-bank-accounts', icon: icons.CreditCardOutlined, perm: 'sellerBankAccount', action: 'read' },
-        { id: 'seller-policy', title: 'seller-policy', type: 'item', url: '/seller-policy', icon: icons.LockOutlined, perm: 'sellerPolicy', action: 'modify' },
         { id: 'stores', title: 'stores', type: 'item', url: '/stores', icon: icons.ShopOutlined, perm: 'store', action: 'read' },
         { id: 'service-areas', title: 'service-areas', type: 'item', url: '/service-areas', icon: icons.AimOutlined, perm: 'serviceArea', action: 'read' }
       ]
@@ -137,7 +133,6 @@ const platformMenu = {
       type: 'collapse',
       icon: icons.DatabaseOutlined,
       children: [
-        { id: 'store-products', title: 'store-products', type: 'item', url: '/store-products', icon: icons.DatabaseOutlined, perm: 'storeProduct', action: 'read' },
         { id: 'store-variants', title: 'store-variants', type: 'item', url: '/store-variants', icon: icons.SyncOutlined, perm: 'storeVariant', action: 'read' },
         { id: 'inventory-movements', title: 'inventory-movements', type: 'item', url: '/inventory-movements', icon: icons.FileSearchOutlined, perm: 'inventoryMovement', action: 'read' }
       ]

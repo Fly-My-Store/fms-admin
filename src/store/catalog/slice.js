@@ -7,13 +7,15 @@ const initialState = {
   brands: initialList(),
   categories: initialList(),
   products: initialList(),
+  variants: initialList(),
   brandsDetail: initialEntity(),
-  categoriesDetail: initialEntity(),
-  productsDetail: initialEntity()
+  categoryDetail: initialEntity(),
+  productDetail: initialEntity(),
+  variantDetail: initialEntity()
 };
 
 const slice = createSlice({
-  name: 'admin/catalog',
+  name: 'catalog',
   initialState,
   reducers: {
     brandsListRequest(state) {
@@ -91,51 +93,51 @@ const slice = createSlice({
       state.categories.error = action.payload;
     },
     categoriesGetRequest(state) {
-      state.categoriesDetail.loading = true;
-      state.categoriesDetail.error = null;
+      state.categoryDetail.loading = true;
+      state.categoryDetail.error = null;
     },
     categoriesGetSuccess(state, action) {
-      state.categoriesDetail.loading = false;
-      state.categoriesDetail.data = action.payload?.data || action.payload;
+      state.categoryDetail.loading = false;
+      state.categoryDetail.data = action.payload?.data || action.payload;
     },
     categoriesGetFailure(state, action) {
-      state.categoriesDetail.loading = false;
-      state.categoriesDetail.error = action.payload;
+      state.categoryDetail.loading = false;
+      state.categoryDetail.error = action.payload;
     },
     categoriesCreateRequest(state) {
-      state.categoriesDetail.loading = true;
-      state.categoriesDetail.error = null;
+      state.categoryDetail.loading = true;
+      state.categoryDetail.error = null;
     },
     categoriesCreateSuccess(state, action) {
-      state.categoriesDetail.loading = false;
-      state.categoriesDetail.data = action.payload?.data || action.payload;
+      state.categoryDetail.loading = false;
+      state.categoryDetail.data = action.payload?.data || action.payload;
     },
     categoriesCreateFailure(state, action) {
-      state.categoriesDetail.loading = false;
-      state.categoriesDetail.error = action.payload;
+      state.categoryDetail.loading = false;
+      state.categoryDetail.error = action.payload;
     },
     categoriesUpdateRequest(state) {
-      state.categoriesDetail.loading = true;
-      state.categoriesDetail.error = null;
+      state.categoryDetail.loading = true;
+      state.categoryDetail.error = null;
     },
     categoriesUpdateSuccess(state, action) {
-      state.categoriesDetail.loading = false;
-      state.categoriesDetail.data = action.payload?.data || action.payload;
+      state.categoryDetail.loading = false;
+      state.categoryDetail.data = action.payload?.data || action.payload;
     },
     categoriesUpdateFailure(state, action) {
-      state.categoriesDetail.loading = false;
-      state.categoriesDetail.error = action.payload;
+      state.categoryDetail.loading = false;
+      state.categoryDetail.error = action.payload;
     },
     categoriesRemoveRequest(state) {
-      state.categoriesDetail.loading = true;
-      state.categoriesDetail.error = null;
+      state.categoryDetail.loading = true;
+      state.categoryDetail.error = null;
     },
     categoriesRemoveSuccess(state) {
-      state.categoriesDetail.loading = false;
+      state.categoryDetail.loading = false;
     },
     categoriesRemoveFailure(state, action) {
-      state.categoriesDetail.loading = false;
-      state.categoriesDetail.error = action.payload;
+      state.categoryDetail.loading = false;
+      state.categoryDetail.error = action.payload;
     },
 
     productsListRequest(state) {
@@ -152,51 +154,117 @@ const slice = createSlice({
       state.products.error = action.payload;
     },
     productsGetRequest(state) {
-      state.productsDetail.loading = true;
-      state.productsDetail.error = null;
+      state.productDetail.loading = true;
+      state.productDetail.error = null;
     },
     productsGetSuccess(state, action) {
-      state.productsDetail.loading = false;
-      state.productsDetail.data = action.payload?.data || action.payload;
+      state.productDetail.loading = false;
+      state.productDetail.data = action.payload?.data || action.payload;
     },
     productsGetFailure(state, action) {
-      state.productsDetail.loading = false;
-      state.productsDetail.error = action.payload;
+      state.productDetail.loading = false;
+      state.productDetail.error = action.payload;
     },
     productsCreateRequest(state) {
-      state.productsDetail.loading = true;
-      state.productsDetail.error = null;
+      state.productDetail.loading = true;
+      state.productDetail.error = null;
     },
     productsCreateSuccess(state, action) {
-      state.productsDetail.loading = false;
-      state.productsDetail.data = action.payload?.data || action.payload;
+      state.productDetail.loading = false;
+      state.productDetail.data = action.payload?.data || action.payload;
     },
     productsCreateFailure(state, action) {
-      state.productsDetail.loading = false;
-      state.productsDetail.error = action.payload;
+      state.productDetail.loading = false;
+      state.productDetail.error = action.payload;
     },
     productsUpdateRequest(state) {
-      state.productsDetail.loading = true;
-      state.productsDetail.error = null;
+      state.productDetail.loading = true;
+      state.productDetail.error = null;
     },
     productsUpdateSuccess(state, action) {
-      state.productsDetail.loading = false;
-      state.productsDetail.data = action.payload?.data || action.payload;
+      state.productDetail.loading = false;
+      state.productDetail.data = action.payload?.data || action.payload;
     },
     productsUpdateFailure(state, action) {
-      state.productsDetail.loading = false;
-      state.productsDetail.error = action.payload;
+      state.productDetail.loading = false;
+      state.productDetail.error = action.payload;
     },
     productsRemoveRequest(state) {
-      state.productsDetail.loading = true;
-      state.productsDetail.error = null;
+      state.productDetail.loading = true;
+      state.productDetail.error = null;
     },
     productsRemoveSuccess(state) {
-      state.productsDetail.loading = false;
+      state.productDetail.loading = false;
     },
     productsRemoveFailure(state, action) {
-      state.productsDetail.loading = false;
-      state.productsDetail.error = action.payload;
+      state.productDetail.loading = false;
+      state.productDetail.error = action.payload;
+    },
+
+    // ===== Variants =====
+    variantsListRequest(state) {
+      state.variants.loading = true;
+      state.variants.error = null;
+    },
+    variantsListSuccess(state, action) {
+      state.variants.loading = false;
+      state.variants.rows = action.payload?.data || [];
+      state.variants.meta = action.payload?.meta || state.variants.meta;
+    },
+    variantsListFailure(state, action) {
+      state.variants.loading = false;
+      state.variants.error = action.payload;
+    },
+
+    variantsGetRequest(state) {
+      state.variantDetail.loading = true;
+      state.variantDetail.error = null;
+    },
+    variantsGetSuccess(state, action) {
+      state.variantDetail.loading = false;
+      state.variantDetail.data = action.payload?.data || action.payload;
+    },
+    variantsGetFailure(state, action) {
+      state.variantDetail.loading = false;
+      state.variantDetail.error = action.payload;
+    },
+
+    variantsCreateRequest(state) {
+      state.variantDetail.loading = true;
+      state.variantDetail.error = null;
+    },
+    variantsCreateSuccess(state, action) {
+      state.variantDetail.loading = false;
+      state.variantDetail.data = action.payload?.data || action.payload;
+    },
+    variantsCreateFailure(state, action) {
+      state.variantDetail.loading = false;
+      state.variantDetail.error = action.payload;
+    },
+
+    variantsUpdateRequest(state) {
+      state.variantDetail.loading = true;
+      state.variantDetail.error = null;
+    },
+    variantsUpdateSuccess(state, action) {
+      state.variantDetail.loading = false;
+      state.variantDetail.data = action.payload?.data || action.payload;
+    },
+    variantsUpdateFailure(state, action) {
+      state.variantDetail.loading = false;
+      state.variantDetail.error = action.payload;
+    },
+
+    variantsRemoveRequest(state) {
+      state.variantDetail.loading = true;
+      state.variantDetail.error = null;
+    },
+    variantsRemoveSuccess(state) {
+      state.variantDetail.loading = false;
+    },
+    variantsRemoveFailure(state, action) {
+      state.variantDetail.loading = false;
+      state.variantDetail.error = action.payload;
     }
   }
 });

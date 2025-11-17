@@ -9,7 +9,7 @@ import WebhookeventsFormDialog from 'sections/webhookEvents/WebhookeventsFormDia
 
 export function WebhookeventsView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminIntegrations || {});
+  const state = useSelector((s) => s.integrations || {});
   const list = state.webhookEvents || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

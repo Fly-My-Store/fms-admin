@@ -9,7 +9,7 @@ import RidersFormDialog from 'sections/riders/RidersFormDialog';
 
 export function RidersView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminLogistics || {});
+  const state = useSelector((s) => s.logistics || {});
   const list = state.riders || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

@@ -9,7 +9,7 @@ import StoreproductsFormDialog from 'sections/storeProducts/StoreproductsFormDia
 
 export function StoreProductsView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminListingsinventory || {});
+  const state = useSelector((s) => s.listingsinventory || {});
   const list = state.storeProducts || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

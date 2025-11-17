@@ -5,11 +5,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import { actions as catalog } from 'store/catalog/slice';
 import BrandsTableSection from 'sections/brands/BrandsTableSection';
-import BrandsFormDialog from 'sections/brands/BrandsFormDialog';
+import { useRouter } from 'next/navigation';
 
 export function BrandsView() {
+  const router = useRouter();
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminCatalog || {});
+  const state = useSelector((s) => s.catalog || {});
   const list = state.brands || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 
@@ -26,13 +27,11 @@ export function BrandsView() {
   };
 
   const handleAddButton = () => {
-    setSelected(null);
-    setOpen(true);
+    router.push('/brands/create');
   };
 
   const handleEditButton = (row) => {
-    setSelected(row);
-    setOpen(true);
+    router.push(`/brands/edit/${row.id}`);
   };
 
   const handlePaginationChange = (updater) => {
@@ -57,7 +56,6 @@ export function BrandsView() {
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
       />
-      <BrandsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
     </>
   );
 }

@@ -17,7 +17,7 @@ export function UsersView() {
   const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchUsersRequest({ page, limit: pageSize, role: 'ADMIN' }));
+    dispatch(fetchUsersRequest({ page, limit: pageSize, type: 'ADMIN' }));
   }, [dispatch]);
 
 

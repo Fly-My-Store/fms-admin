@@ -98,7 +98,7 @@ export default function NavUser() {
           <ListItemAvatar>
             {user && <Avatar alt="Avatar" src={user.avatar} sx={{ ...(drawerOpen && { width: 46, height: 46 }) }} />}
           </ListItemAvatar>
-          {user && <ListItemText primary={user?.name} secondary={user?.role} />}
+          {user && <ListItemText primary={user?.name} secondary={user?.type} />}
         </ListItem>
       </List>
       <Menu

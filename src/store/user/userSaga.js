@@ -27,8 +27,6 @@ import { getUsers, getBusinessUsers, getUserById, createUser, updateUser, update
 function* handleFetchUsers(action) {
   try {
     const response = yield call(getUsers, action.payload);
-    console.log('Payload in response:', response);
-
     yield put(fetchUsersSuccess(response));
   } catch (error) {
     yield put(fetchUsersFailure(error.message || 'Failed to fetch users'));

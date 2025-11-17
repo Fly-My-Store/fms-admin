@@ -65,7 +65,7 @@ export default function DashboardLayout({ children }) {
               flexDirection: 'column'
             }}
           >
-            {/* {pathname !== '/apps/profiles/account/my-account' && <Breadcrumbs />} */}
+            {pathname !== '/apps/profiles/account/my-account' && <Breadcrumbs />}
             {children}
             {/* <Footer /> */}
           </Container>

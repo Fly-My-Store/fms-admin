@@ -9,7 +9,7 @@ import StorevariantsFormDialog from 'sections/storeVariants/StorevariantsFormDia
 
 export function StoreVariantsView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminListingsinventory || {});
+  const state = useSelector((s) => s.listingsinventory || {});
   const list = state.storeVariants || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

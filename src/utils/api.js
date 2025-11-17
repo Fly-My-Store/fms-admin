@@ -12,6 +12,12 @@ export async function patch(path, data) {
   const r = await axiosServices.patch(path, data);
   return r.data;
 }
+
+export async function put(path, data) {
+  const r = await axiosServices.put(path, data);
+  return r.data;
+}
+
 export async function del(path) {
   const r = await axiosServices.delete(path);
   return r.data;

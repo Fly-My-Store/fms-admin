@@ -33,8 +33,8 @@ function* defsCreateWorker(action) {
 }
 function* defsUpdateWorker(action) {
   try {
-    const { id, data } = action.payload?.params || {};
-    const resp = yield call(api.updateDef, id, data);
+    const { code, data } = action.payload?.params || {};
+    const resp = yield call(api.updateDef, code, data);
     yield put(actions.defsUpdateSuccess(resp));
   } catch (err) {
     const msg = getErrorMessage(err, 'Update failed');
@@ -141,8 +141,8 @@ function* categoryAttrsUpdateWorker(action) {
 }
 function* categoryAttrsRemoveWorker(action) {
   try {
-    const { id } = action.payload?.params || {};
-    const resp = yield call(api.removeCategoryAttr, id);
+    const { category_id, attribute_code } = action.payload?.params || {};
+    const resp = yield call(api.removeCategoryAttr, category_id, attribute_code);
     yield put(actions.categoryAttrsRemoveSuccess(resp));
   } catch (err) {
     const msg = getErrorMessage(err, 'Delete failed');
@@ -199,6 +199,72 @@ function* plpConfigsRemoveWorker(action) {
   }
 }
 
+function* listProductAttrsWorker(action) {
+  try {
+    const data = action.payload?.params || {};
+    const resp = yield call(api.listProductAttrs, data);
+    yield put(actions.productAttrsListSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Update failed');
+    yield put(actions.productAttrsListFailure(msg));
+  }
+}
+
+function* upsertProductAttrWorker(action) {
+  try {
+    const { id } = action.payload?.params || {};
+    const resp = yield call(api.upsertProductAttr, id);
+    yield put(actions.productAttrUpsertSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Delete failed');
+    yield put(actions.productAttrUpsertFailure(msg));
+  }
+}
+
+function* productAttrGetWorker(action) {
+  try {
+    const { id } = action.payload?.params || {};
+    const resp = yield call(api.getProductAttr, id);
+    yield put(actions.productAttrGetSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Failed to fetch');
+    yield put(actions.productAttrGetFailure(msg));
+  }
+}
+
+function* listVariantAttrsWorker(action) {
+  try {
+    const data = action.payload?.params || {};
+    const resp = yield call(api.listVariantAttrs, data);
+    yield put(actions.variantAttrsListSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Update failed');
+    yield put(actions.variantAttrsListFailure(msg));
+  }
+}
+
+function* upsertVariantAttrWorker(action) {
+  try {
+    const { id } = action.payload?.params || {};
+    const resp = yield call(api.upsertVariantAttr, id);
+    yield put(actions.variantAttrUpsertSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Delete failed');
+    yield put(actions.variantAttrUpsertFailure(msg));
+  }
+}
+
+function* variantAttrGetWorker(action) {
+  try {
+    const { id } = action.payload?.params || {};
+    const resp = yield call(api.getVariantAttr, id);
+    yield put(actions.variantAttrGetSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Failed to fetch');
+    yield put(actions.variantAttrGetFailure(msg));
+  }
+}
+
 export default function* attributesSaga() {
   yield all([
     takeLatest(actions.defsListRequest.type, defsListWorker),
@@ -220,6 +286,13 @@ export default function* attributesSaga() {
     takeLatest(actions.plpConfigsGetRequest.type, plpConfigsGetWorker),
     takeLatest(actions.plpConfigsCreateRequest.type, plpConfigsCreateWorker),
     takeLatest(actions.plpConfigsUpdateRequest.type, plpConfigsUpdateWorker),
-    takeLatest(actions.plpConfigsRemoveRequest.type, plpConfigsRemoveWorker)
+    takeLatest(actions.plpConfigsRemoveRequest.type, plpConfigsRemoveWorker),
+
+    takeLatest(actions.productAttrsListRequest.type, listProductAttrsWorker),
+    takeLatest(actions.productAttrUpsertRequest.type, upsertProductAttrWorker),
+    takeLatest(actions.productAttrGetRequest.type, productAttrGetWorker),
+    takeLatest(actions.variantAttrsListRequest.type, listVariantAttrsWorker),
+    takeLatest(actions.variantAttrUpsertRequest.type, upsertVariantAttrWorker),
+    takeLatest(actions.variantAttrGetRequest.type, variantAttrGetWorker)
   ]);
 }

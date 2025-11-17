@@ -9,7 +9,7 @@ import StoresFormDialog from 'sections/stores/StoresFormDialog';
 
 export function StoresView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.adminSellersstores || {});
+  const state = useSelector((s) => s.sellersstores || {});
   const list = state.stores || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

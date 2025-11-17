@@ -30,7 +30,6 @@ const userSlice = createSlice({
     },
     fetchUsersSuccess: (state, action) => {
       state.loading = false;
-      console.log('Payload in fetchUsersSuccess:', action.payload);
       state.usersData = action.payload;
     },
     fetchUsersFailure: (state, action) => {

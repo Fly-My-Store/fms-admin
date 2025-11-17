@@ -12,17 +12,28 @@ export default function CategoriesTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  topActionsLeft,
+  tableActions,
+  handleViewButton
 }) {
   const columns = useMemo(
     () => [
       { header: 'Name', accessorKey: 'name' },
       { header: 'Slug', accessorKey: 'slug' },
-      { header: 'Parent ID', accessorKey: 'parent_id' },
+      {
+        header: 'Parent',
+        accessorKey: 'parent',
+        cell: (cell) => {
+          const parent = cell.getValue(); // expects object { id, name } from API include
+          if (!parent || !parent.id) return '—';
+          return <span title={parent.id}>{parent.name}</span>;
+        }
+      },
 
       {
-        header: 'Status',
-        accessorKey: 'status',
+        header: 'Record Status',
+        accessorKey: 'record_status',
         cell: (cell) => {
           const value = cell.getValue();
           switch (value) {
@@ -47,16 +58,19 @@ export default function CategoriesTableSection({
   return (
     <BasicReactTable
       columns={columns}
+      topActionsLeft={topActionsLeft}
       data={rows}
-      title="Categorys"
+      title="Categories"
       ariaLebel="Add Category"
       handleAddButton={handleAddButton}
       handleEditButton={handleEditButton}
+      handleViewButton={handleViewButton}
+      tableActions={tableActions}
       pageIndex={pageIndex}
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
-      permissionName={'categorie'}
+      permissionName={'category'}
     />
   );
 }

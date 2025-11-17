@@ -1,12 +1,3 @@
-import {
-  CameraTwoTone,
-  CheckCircleTwoTone,
-  CheckSquareTwoTone,
-  CloseCircleTwoTone,
-  InteractionTwoTone,
-  PlusCircleTwoTone
-} from '@ant-design/icons';
-
 export const STORAGE_KEYS = {
   TOKEN: 'auth_token',
   USER: 'auth_user',
@@ -103,142 +94,228 @@ export const PERMISSION_SCOPE_MAP = {
   session: 'both'
 };
 
-export const CONSTRUCTION_PLAN_EVENT_LABELS = {
-  1: 'Created',
-  2: 'Submitted',
-  3: 'Verified - Remote',
-  4: 'Rejected',
-  5: 'Verified - Site Visit',
-  6: 'Reset'
-};
+// ==============================
+// Global Application Enums
+// ==============================
+// ==============================
+// Global Application Enums (Superset)
+// Keep these enums the single source of truth across models/controllers/services
+// ==============================
 
-export const CONSTRUCTION_PLAN_EVENT_ICONS = {
-  1: <PlusCircleTwoTone twoToneColor="#1890ff" style={{ fontSize: 14, marginRight: '8px' }} />,
-  2: <CameraTwoTone twoToneColor="#FFA500" style={{ fontSize: 14, marginRight: '8px' }} />,
-  3: <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: 14, marginRight: '8px' }} />,
-  4: <CloseCircleTwoTone twoToneColor="#ff4d4f" style={{ fontSize: 14, marginRight: '8px' }} />,
-  5: <CheckSquareTwoTone twoToneColor="#52c41a" style={{ fontSize: 14, marginRight: '8px' }} />,
-  6: <InteractionTwoTone twoToneColor="#aaaaaa" style={{ fontSize: 14, marginRight: '8px' }} />
-};
+export const RECORD_STATUS = Object.freeze({
+  ACTIVE: 1,
+  INACTIVE: 2,
+  ARCHIVED: 3
+});
 
-export const getDisbursementRequestProgressStatus = (status) => {
-  switch (status) {
-    case DISBURSEMENT_REQUEST_STATUS.APPROVED:
-      return { label: 'Approved', color: 'success' };
-    case DISBURSEMENT_REQUEST_STATUS.REJECTED:
-      return { label: 'Rejected', color: 'error' };
-    case DISBURSEMENT_REQUEST_STATUS.OPEN:
-      return { label: 'Open', color: 'default' };
-    default:
-      return { label: '-', color: 'default' };
-  }
-};
+export const RECORD_STATUS_ARRAY = [
+  { key: 1, value: 'ACTIVE' },
+  { key: 2, value: 'INACTIVE' },
+  { key: 3, value: 'ARCHIVED' }
+];
 
-export const DISBURSEMENT_REQUEST_EVENT_LABELS = {
-  1: 'Created',
-  2: 'Approved',
-  3: 'Rejected'
-};
+export const USER_TYPES = Object.freeze({
+  ADMIN: 'ADMIN',
+  SELLER: 'SELLER',
+  RIDER: 'RIDER',
+  CUSTOMER: 'CUSTOMER'
+});
 
-export const CONSTRUCTION_PLAN_VERIFICATION_MODE = {
-  REMOTE: 1,
-  SITE: 2
-};
+export const ROLE_DOMAIN = Object.freeze({
+  ADMIN: 'ADMIN',
+  SELLER: 'SELLER'
+});
 
-export const DISBURSEMENT_REQUEST_EVENT_ICONS = {
-  1: <PlusCircleTwoTone twoToneColor="#1890ff" style={{ fontSize: 14, marginRight: '8px' }} />,
-  2: <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: 14, marginRight: '8px' }} />,
-  3: <CloseCircleTwoTone twoToneColor="#ff4d4f" style={{ fontSize: 14, marginRight: '8px' }} />
-};
+export const DEVICE_PLATFORMS = Object.freeze({
+  ANDROID: 'ANDROID',
+  IOS: 'IOS',
+  WEB: 'WEB'
+});
 
-export const DISBURSEMENT_REQUEST_STATUS = {
-  OPEN: 1,
-  APPROVED: 2,
-  REJECTED: 3
-};
+export const ATTRIBUTE_DEF_DATA_TYPES = Object.freeze({
+  TEXT: 'text',
+  INT: 'int',
+  DECIMAL: 'decimal',
+  BOOLEAN: 'bool',
+  JSON: 'json'
+});
 
-export const USER_TYPES = {
-  PLATFORM: 'platform',
-  BUSINESS: 'business',
-  CUSTOMER: 'customer'
-};
+export const ATTRIBUTE_DEF_STATUS = Object.freeze({
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+});
 
-export const LOAN_STEPS = {
-  LOAN: 1,
-  PROPERTY: 2,
-  DISBURSEMENT: 3,
-  PLAN_GENERATED: 4
-};
+export const ACCOUNT_STATUS = Object.freeze({
+  ACTIVE: 1,
+  INACTIVE: 2,
+  SUSPENDED: 3,
+  DELETED: 4
+});
 
-export const LOAN_STEP_TEXT_MAP = {
-  1: 'Loan Generated',
-  2: 'Property Added',
-  3: 'Disbursement Added',
-  4: 'Plan Generated'
-};
+export const KYC_STATUS = Object.freeze({
+  PENDING: 'PENDING',
+  IN_REVIEW: 'IN_REVIEW',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  RESUBMIT: 'RESUBMIT'
+});
 
-// statusMessageMap.js (can be kept in a separate constants/helper file)
-export const PLAN_PROGRESS_DIALOG_MAP = {
-  reset: {
-    title: 'Reset the status of construction Activity?',
-    message:
-      'Are you sure want to reset the verified activity ? This will change the status to “Yet to Start” and remove any photos and videos'
-  },
-  site: {
-    title: 'Mark completed without photos/videos',
-    message: 'Do this only if construction progress is verified by physical site visit and supporting report is available.'
-  },
-  verify: {
-    title: 'Accept Submitted Construction Progress',
-    message: 'Are you sure want to accept the submitted progress? This will verify the construction progress.'
-  },
-  reject: {
-    title: 'Reject Submitted Construction Progress',
-    message:
-      'Are you sure want to reject the submitted progress? This will reject the construction progress and customer will have to submit again.'
-  }
-};
+// Superset to cover both your current Order model states and catalog flows
+export const ORDER_STATUS = Object.freeze({
+  CREATED: 'CREATED',
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  PACKING: 'PACKING',
+  PACKED: 'PACKED',
+  DISPATCHED: 'DISPATCHED',
+  SHIPPED: 'SHIPPED',
+  OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED',
+  RETURNED: 'RETURNED',
+  REFUNDED: 'REFUNDED'
+});
 
-export const getConstructionProgressDialogContent = (status) => {
-  if (status.reset) return PLAN_PROGRESS_DIALOG_MAP.reset;
-  if (status.site) return PLAN_PROGRESS_DIALOG_MAP.site;
-  if (status.verify) return PLAN_PROGRESS_DIALOG_MAP.verify;
-  return PLAN_PROGRESS_DIALOG_MAP.reject;
-};
+// Event types that describe key order lifecycle transitions
+export const ORDER_EVENT_TYPE = Object.freeze({
+  ORDER_CREATED: 'ORDER_CREATED',
+  ORDER_CONFIRMED: 'ORDER_CONFIRMED',
+  ORDER_PACKED: 'ORDER_PACKED',
+  ORDER_DISPATCHED: 'ORDER_DISPATCHED',
+  ORDER_DELIVERED: 'ORDER_DELIVERED',
+  ORDER_CANCELLED: 'ORDER_CANCELLED',
+  ORDER_REFUNDED: 'ORDER_REFUNDED',
+  PAYMENT_SUCCESS: 'PAYMENT_SUCCESS',
+  PAYMENT_FAILED: 'PAYMENT_FAILED',
+  DELIVERY_ASSIGNED: 'DELIVERY_ASSIGNED',
+  DELIVERY_COMPLETED: 'DELIVERY_COMPLETED'
+});
 
-export const getConstructionPlanProgressStatus = (progress, verificationMode) => {
-  switch (progress) {
-    case 1:
-      return { label: 'Yet to Start', color: 'default' };
-    case 2:
-      return { label: 'Submitted', color: 'warning' };
-    case 3:
-      return {
-        label: verificationMode === CONSTRUCTION_PLAN_VERIFICATION_MODE.SITE ? 'Verified - Site Visit' : 'Verified - Remote',
-        color: 'success'
-      };
-    default:
-      return { label: '-', color: 'default' };
-  }
-};
+// High-level payment status (business view)
+export const PAYMENT_STATUS = Object.freeze({
+  PENDING: 'PENDING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED'
+});
 
-export const RESET_CONSTRUCTION_PLAN = {
-  title: 'Reset Construction Plan Progress',
-  message: 'Are you sure you want to reset the plan? It will delete all the submitted photos and reset the plan.'
-};
+// Gateway lifecycle states (provider view) – used by Payment model
+export const PAYMENT_GATEWAY_STATUS = Object.freeze({
+  CREATED: 'CREATED',
+  AUTHORIZED: 'AUTHORIZED',
+  CAPTURED: 'CAPTURED',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED'
+});
 
-export const DISBURSEMENT_REQUEST_STATUS_DIALOG_MAP = {
-  verify: {
-    title: 'Accept Disbursement Request',
-    message: 'Request will be accepted and marked as approved.'
-  },
-  reject: {
-    title: 'Reject Disbursement Request',
-    message: 'Request will be rejected and marked as Rejected'
-  }
-};
+// Gateway providers supported by the platform
+export const PAYMENT_GATEWAY_TYPE = Object.freeze({
+  RAZORPAY: 'RAZORPAY',
+  STRIPE: 'STRIPE',
+  CASHFREE: 'CASHFREE',
+  PAYU: 'PAYU',
+  PAYTM: 'PAYTM'
+});
 
-export const getDisbursementRequestStatusDialogContent = (status) => {
-  if (status === DISBURSEMENT_REQUEST_STATUS.APPROVED) return DISBURSEMENT_REQUEST_STATUS_DIALOG_MAP.verify;
-  return DISBURSEMENT_REQUEST_STATUS_DIALOG_MAP.reject;
-};
+export const PAYMENT_MODE = Object.freeze({
+  COD: 'COD',
+  ONLINE: 'ONLINE',
+  WALLET: 'WALLET',
+  UPI: 'UPI',
+  CARD: 'CARD'
+});
+
+export const CART_STATUS = Object.freeze({
+  ACTIVE: 'ACTIVE',
+  CHECKED_OUT: 'CHECKED_OUT',
+  ABANDONED: 'ABANDONED'
+});
+
+export const INVENTORY_MOVEMENT_TYPE = Object.freeze({
+  IN: 'IN',
+  OUT: 'OUT',
+  ADJUSTMENT: 'ADJUSTMENT'
+});
+
+// Reasons used in InventoryMovement model
+export const INVENTORY_REASON = Object.freeze({
+  SALE: 'SALE',
+  REFUND: 'REFUND',
+  MANUAL: 'MANUAL',
+  ADJUST: 'ADJUST'
+});
+
+export const STORE_STATUS = Object.freeze({
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  CLOSED: 'CLOSED'
+});
+
+// Expanded to include PENDING and FAILED used by delivery model
+export const DELIVERY_STATUS = Object.freeze({
+  PENDING: 'PENDING',
+  ASSIGNED: 'ASSIGNED',
+  PICKED_UP: 'PICKED_UP',
+  IN_TRANSIT: 'IN_TRANSIT',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED',
+  FAILED: 'FAILED'
+});
+
+export const JOB_STATUS = Object.freeze({
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  STARTED: 'STARTED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+});
+
+export const SUPPORT_TICKET_STATUS = Object.freeze({
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
+  RESOLVED: 'RESOLVED',
+  CLOSED: 'CLOSED'
+});
+
+export const NOTIFICATION_TYPE = Object.freeze({
+  SYSTEM: 'SYSTEM',
+  ORDER: 'ORDER',
+  PAYMENT: 'PAYMENT',
+  PROMOTION: 'PROMOTION'
+});
+
+export const REFUND_STATUS = Object.freeze({
+  PENDING: 'PENDING',
+  PROCESSED: 'PROCESSED',
+  FAILED: 'FAILED'
+});
+export const VEHICLE_TYPE = Object.freeze({
+  BIKE: 'BIKE',
+  SCOOTER: 'SCOOTER',
+  CAR: 'CAR',
+  CYCLE: 'CYCLE'
+});
+
+export const RIDER_AVAILABILITY_STATUS = Object.freeze({
+  OFFLINE: 'OFFLINE',
+  IDLE: 'IDLE',
+  ASSIGNED: 'ASSIGNED',
+  ON_TRIP: 'ON_TRIP'
+});
+
+// Generic owner types used by ServiceArea
+export const OWNER_TYPE = Object.freeze({
+  SELLER: 'SELLER',
+  STORE: 'STORE',
+  RIDER: 'RIDER'
+});
+
+// Webhook processing state used by WebhookEvent model
+export const WEBHOOK_STATUS = Object.freeze({
+  PENDING: 'PENDING',
+  PROCESSED: 'PROCESSED',
+  FAILED: 'FAILED'
+});

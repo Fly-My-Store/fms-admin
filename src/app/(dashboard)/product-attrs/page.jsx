@@ -1,4 +1,4 @@
-import View from 'views/products';
+import View from 'views/productAttributes';
 
 // ==============================|| PAGE ||============================== //
 

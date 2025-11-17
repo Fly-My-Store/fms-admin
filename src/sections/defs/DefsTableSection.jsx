@@ -2,8 +2,24 @@
 
 import { useMemo } from 'react';
 import Chip from '@mui/material/Chip';
+import Tooltip from '@mui/material/Tooltip';
 import BasicReactTable from 'components/tables/basicTable';
-import { TABLE_STATUS } from 'utils/constants';
+
+const STATUS_META = {
+  DRAFT: { color: 'default', label: 'Draft' },
+  SUBMITTED: { color: 'warning', label: 'Submitted' },
+  APPROVED: { color: 'success', label: 'Approved' },
+  REJECTED: { color: 'error', label: 'Rejected' },
+};
+
+const RECORD_STATUS_META = {
+  1: { color: 'success', label: 'Active' },
+  2: { color: 'error', label: 'InActive' },
+  3: { color: 'default', label: 'Archived' },
+};
+
+const fmtDateTime = (v) => (v ? new Date(v).toLocaleString() : '—');
+const safe = (v) => (v == null || v === '' ? '—' : v);
 
 export default function DefsTableSection({
   rows,
@@ -17,30 +33,52 @@ export default function DefsTableSection({
   const columns = useMemo(
     () => [
       { header: 'Code', accessorKey: 'code' },
-      { header: 'Label', accessorKey: 'label' },
-      { header: 'Type', accessorKey: 'type' },
-      { header: 'Scope', accessorKey: 'scope' },
+      { header: 'Name', accessorKey: 'name', cell: (c) => safe(c.getValue()) },
+      { header: 'Data Type', accessorKey: 'data_type', cell: (c) => safe(c.getValue()) },
+      { header: 'Unit', accessorKey: 'unit', cell: (c) => safe(c.getValue()) },
 
+      // Allowed values summary: show first 2, +N more; full JSON on hover
+      {
+        header: 'Allowed Values',
+        accessorKey: 'allowed_values',
+        cell: (cell) => {
+          const values = cell.getValue();
+          if (!values || !Array.isArray(values) || values.length === 0) return '—';
+
+          const toText = (x) =>
+            typeof x === 'object' && x !== null
+              ? x.label || x.code || JSON.stringify(x)
+              : String(x);
+
+          const sample = values.slice(0, 2).map(toText);
+          const more = values.length - sample.length;
+          const text = `${sample.join(', ')}${more > 0 ? ` +${more}` : ''}`;
+
+          return (
+            <Tooltip title={JSON.stringify(values)} placement="top" arrow>
+              <span>{text}</span>
+            </Tooltip>
+          );
+        }
+      },
       {
         header: 'Status',
         accessorKey: 'status',
         cell: (cell) => {
-          const value = cell.getValue();
-          switch (value) {
-            case TABLE_STATUS.ACTIVE:
-              return <Chip color="success" label="Active" size="small" variant="light" />;
-            case TABLE_STATUS.INACTIVE:
-              return <Chip color="warning" label="Inactive" size="small" variant="light" />;
-            case TABLE_STATUS.SUSPENDED:
-              return <Chip color="error" label="Suspended" size="small" variant="light" />;
-            case TABLE_STATUS.DELETED:
-              return <Chip color="default" label="Deleted" size="small" variant="light" />;
-            default:
-              return <Chip color="default" label="Unknown" size="small" variant="light" />;
-          }
+          const s = cell.getValue();
+          const meta = STATUS_META[s] || { color: 'default', label: s || 'Unknown' };
+          return <Chip color={meta.color} label={meta.label} size="small" variant="light" />;
         }
-      }
-
+      },
+      {
+        header: 'Record Status',
+        accessorKey: 'record_status',
+        cell: (cell) => {
+          const s = cell.getValue();
+          const meta = RECORD_STATUS_META[s] || { color: 'default', label: s || 'Unknown' };
+          return <Chip color={meta.color} label={meta.label} size="small" variant="light" />;
+        }
+      },
     ],
     []
   );
@@ -49,7 +87,7 @@ export default function DefsTableSection({
     <BasicReactTable
       columns={columns}
       data={rows}
-      title="Attributes"
+      title="Attribute Definitions"
       ariaLebel="Add Attribute"
       handleAddButton={handleAddButton}
       handleEditButton={handleEditButton}
@@ -57,7 +95,7 @@ export default function DefsTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
-      permissionName={'def'}
+      permissionName={'attributeDef'}
     />
   );
 }
