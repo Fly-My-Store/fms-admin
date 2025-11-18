@@ -15,7 +15,8 @@ export default function ProductsTableSection({
   pageSize,
   totalPageCount,
   onPaginationChange,
-  handleViewButton
+  handleViewButton,
+  totalCount
 }) {
   const columns = useMemo(
     () => [
@@ -108,6 +109,7 @@ export default function ProductsTableSection({
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'product'}
+      totalCount={totalCount}
     />
   );
 }

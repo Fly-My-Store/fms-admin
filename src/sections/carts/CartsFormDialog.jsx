@@ -57,8 +57,8 @@ export default function CartsFormDialog({ open, onClose, initialData = null, onS
           </Stack>
 
           <Stack sx={{ gap: 1 }}>
-            <InputLabel>Status</InputLabel>
-            <TextField id="status" name="status" value={form.status || ''} onChange={(e)=>setForm(p=>({...p, status: e.target.value}))} placeholder="Status" fullWidth />
+            <InputLabel>Record Status</InputLabel>
+            <TextField id="record_status" name="Record Status" value={form.record_status || ''} onChange={(e)=>setForm(p=>({...p, record_status: e.target.value}))} placeholder="Status" fullWidth />
           </Stack>
         </Stack>
       </DialogContent>

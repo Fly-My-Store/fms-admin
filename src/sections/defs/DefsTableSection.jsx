@@ -28,7 +28,8 @@ export default function DefsTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  totalCount
 }) {
   const columns = useMemo(
     () => [
@@ -96,6 +97,7 @@ export default function DefsTableSection({
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'attributeDef'}
+      totalCount={totalCount}
     />
   );
 }

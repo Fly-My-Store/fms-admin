@@ -53,7 +53,7 @@ function ViewAction({ row, handleViewButton }) {
         <Stack direction="row" sx={{ gap: 1, alignItems: 'center' }}>
             <Tooltip title={'View'}>
                 <IconButton
-                    color={'yellow'}
+                    color={'warning'}
                     onClick={() => handleViewButton(row.original)}
                 >
                     <EyeTwoTone />
@@ -69,7 +69,7 @@ function DeleteAction({ row, handleDeleteButton }) {
         <Stack direction="row" sx={{ gap: 1, alignItems: 'center' }}>
             <Tooltip title={'Delete'}>
                 <IconButton
-                    color={'red'}
+                    color={'error'}
                     onClick={() => handleDeleteButton(row.original)}
                 >
                     <DeleteTwoTone />

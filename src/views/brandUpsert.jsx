@@ -37,7 +37,7 @@ const EMPTY = {
   description: '',
   logo_url: '',
   sort_letter: '',
-  status: 'DRAFT',
+  status: 'APPROVED',
   record_status: 1
 };
 
@@ -90,7 +90,7 @@ export function BrandUpsert() {
         slug: row.slug || '',
         description: row.description || '',
         logo_url: row.logo_url || '',
-        status: row.status || 'SUBMITTED',
+        status: 'APPROVED',
         record_status: 1,
         sort_letter: row.sort_letter || toSortLetter(row.name)
       });
@@ -157,7 +157,7 @@ export function BrandUpsert() {
         description: form.description || '',
         logo_url: logoUrl,
         sort_letter: (form.sort_letter || toSortLetter(form.name) || '').toUpperCase(),
-        status: form.status,
+        status: 'APPROVED',
         record_status: Number(form.record_status ?? 1)
       };
 
@@ -287,24 +287,6 @@ export function BrandUpsert() {
                   placeholder="S"
                 />
               </Stack>
-
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Status</InputLabel>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  value={form.status}
-                  onChange={(e) => handleField('status', e.target.value)}
-                >
-                  {STATUS_LIST.map((s) => (
-                    <MenuItem key={s} value={s}>
-                      {s}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Stack>
-
               <Stack sx={{ gap: 1 }}>
                 <InputLabel>Record Status</InputLabel>
                 <TextField

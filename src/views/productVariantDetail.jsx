@@ -175,59 +175,42 @@ export default function VariantDetailView() {
                 <Divider />
 
                 {/* Images */}
-                <Stack spacing={1}>
-                  <Stack direction="row" alignItems="center" justifyContent="space-between">
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="caption" color="text.secondary">Images</Typography>
-                      <Chip size="small" variant="light" label={`${images.length} file${images.length === 1 ? '' : 's'}`} />
-                    </Stack>
-                    <Stack direction="row" spacing={1}>
-                      <Button size="small" variant="outlined" onClick={() => router.push(`/images?variant_id=${data?.id}&product_id=${data?.product_id || ''}`)}>
-                        Manage Images
-                      </Button>
-                      <Button size="small" variant="contained" onClick={() => router.push(`/images/create?variant_id=${data?.id}&product_id=${data?.product_id || ''}`)}>
-                        Add Images
-                      </Button>
-                    </Stack>
-                  </Stack>
+                {images?.length > 0 && (
+                  <Box sx={{ display: 'flex', overflowX: 'auto', gap: 1, py: 1 }}>
+                    {images.map((im) => (
+                      <Box key={im.id || im.url}
+                        sx={{
+                          position: 'relative',
+                          width: 120,
+                          height: 120,
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: im.is_primary ? 'primary.main' : 'divider',
+                          flex: '0 0 auto',
+                          bgcolor: 'grey.50',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => window.open(im.url, '_blank')}
+                      >
+                        <Box component="img" src={im.url}
+                          alt={im.alt_text || 'image'}
+                          sx={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 1 }}
+                        />
+                        {im.is_primary && (
+                          <Chip size="small" color="primary" label="Primary" sx={{ position: 'absolute', top: 6, left: 6 }} />
+                        )}
+                        {im.role && (
+                          <Chip size="small" variant="light" label={im.role}
+                            sx={{ position: 'absolute', bottom: 6, left: 6 }} />
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
+                )}
 
-                  {images.length > 0 ? (
-                    <Box sx={{ display: 'flex', overflowX: 'auto', gap: 1, py: 1 }}>
-                      {images.map((im) => (
-                        <Box key={im.id || im.url}
-                          sx={{
-                            position: 'relative',
-                            width: 120,
-                            height: 120,
-                            borderRadius: 1,
-                            border: '1px solid',
-                            borderColor: im.is_primary ? 'primary.main' : 'divider',
-                            flex: '0 0 auto',
-                            bgcolor: 'grey.50',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => window.open(im.url, '_blank')}
-                        >
-                          <Box component="img" src={im.url}
-                            alt={im.alt_text || 'image'}
-                            sx={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 1 }}
-                          />
-                          {im.is_primary && (
-                            <Chip size="small" color="primary" label="Primary" sx={{ position: 'absolute', top: 6, left: 6 }} />
-                          )}
-                          {im.role && (
-                            <Chip size="small" variant="light" label={im.role}
-                              sx={{ position: 'absolute', bottom: 6, left: 6 }} />
-                          )}
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : (
-                    <Alert severity="info">No images yet. Use "Add Images" to upload.</Alert>
-                  )}
-                </Stack>
-
-                <Divider />
+                {images?.length > 0 && (
+                  <Divider />
+                )}
 
                 {/* Variant ID + Product link */}
                 <Stack spacing={2} >
@@ -238,17 +221,6 @@ export default function VariantDetailView() {
                       View Product
                     </Button>
                   )}
-                </Stack>
-
-                {/* Attributes summary */}
-                <Stack spacing={0.5}>
-                  <Typography variant="caption" color="text.secondary">Options</Typography>
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    {data?.color_hex && (
-                      <Box sx={{ width: 16, height: 16, borderRadius: '50%', bgcolor: data.color_hex, border: '1px solid', borderColor: 'divider' }} />
-                    )}
-                    <AttrSummary attrs={data?.attributes} />
-                  </Stack>
                 </Stack>
 
                 {/* Pricing */}
@@ -264,29 +236,6 @@ export default function VariantDetailView() {
                   {data?.mpn && <Field label="MPN" value={data?.mpn} />}
                 </Stack>
 
-                {/* Dimensions */}
-                <Stack direction="row" spacing={2}>
-                  <Field label="Length (cm)" value={data?.length_cm} />
-                  <Field label="Width (cm)" value={data?.width_cm} />
-                  <Field label="Height (cm)" value={data?.height_cm} />
-                  <Field label="Weight (g)" value={data?.weight_g} />
-                </Stack>
-                <Stack direction="row" spacing={2}>
-                  <Field label="Pkg Length (cm)" value={data?.pkg_length_cm} />
-                  <Field label="Pkg Width (cm)" value={data?.pkg_width_cm} />
-                  <Field label="Pkg Height (cm)" value={data?.pkg_height_cm} />
-                </Stack>
-
-                {/* Workflow */}
-                <Stack direction="row" spacing={2}>
-                  <Field label="Submitted At" value={data?.submitted_at} />
-                  <Field label="Reviewed At" value={data?.reviewed_at} />
-                </Stack>
-                <Stack direction="row" spacing={2}>
-                  <Field label="Created By Seller" value={data?.created_by_seller_id} />
-                  <Field label="Reviewer User" value={data?.reviewer_user_id} />
-                </Stack>
-                {data?.review_note && <Field label="Review Note" value={data?.review_note} />}
 
                 {/* Actions */}
                 <Stack direction="row" spacing={1}>
@@ -298,7 +247,11 @@ export default function VariantDetailView() {
 
           {/* Right panel — Variant Attributes */}
           <Stack flex={9} spacing={2}>
-            <ProductVarientAttrsView variant_id={id} variantName={data?.sku || ''} />
+            <ProductVarientAttrsView
+              variant_id={id}
+              variantName={data?.sku || ''}
+              category_id={data?.product.category_id || null}
+            />
           </Stack>
         </Stack>
       </MainCard>

@@ -172,16 +172,17 @@ export default function ProductDetail() {
 
           {/* Right tabs */}
           <Stack flex={9} spacing={2}>
-            <ProductAttrsView
+            <ProductVariantsView
               product_id={id}
               productName={data?.name || ''}
             />
           </Stack>
         </Stack>
         <Divider sx={{ my: 2 }} />
-        <ProductVariantsView
+        <ProductAttrsView
           product_id={id}
           productName={data?.name || ''}
+          category_id={data?.category?.id || null}
         />
       </MainCard>
     </>

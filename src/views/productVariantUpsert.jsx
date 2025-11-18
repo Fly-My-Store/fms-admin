@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import { actions as catalog } from 'store/catalog/slice';
@@ -16,7 +16,6 @@ import {
   Avatar,
   Button,
   Chip,
-  CircularProgress,
   Divider,
   FormHelperText,
   InputLabel,
@@ -26,7 +25,6 @@ import {
   Typography
 } from '@mui/material';
 
-const STATUS_LIST = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'DISABLED'];
 const RECORD_STATUS_LIST = [
   { value: 1, label: 'ACTIVE' },
   { value: 2, label: 'INACTIVE' },
@@ -39,7 +37,6 @@ const EMPTY = {
   product_id: '',
   sku: '',
   barcode: '',
-  option_rows: [{ key: 'color_name', value: '' }], // used to compute signature/hash
   option_signature: '',
   option_hash: '',
   mrp: '',
@@ -49,24 +46,8 @@ const EMPTY = {
   gtin: '',
   mpn: '',
   color_hex: '',
-  length_cm: '',
-  width_cm: '',
-  height_cm: '',
-  weight_g: '',
-  pkg_length_cm: '',
-  pkg_width_cm: '',
-  pkg_height_cm: '',
-  status: 'DRAFT',
   record_status: 1
 };
-
-function slugify(s = '') {
-  return String(s)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
 
 function toNumOrNull(v) {
   if (v === '' || v === null || v === undefined) return null;
@@ -94,10 +75,9 @@ async function sha256Hex(text) {
 }
 
 export default function VariantUpsert() {
-  const params = useParams();
+  const { id } = useParams();
   const search = useSearchParams();
   const router = useRouter();
-  const { id } = useParams();
   const product_id_from_query = search?.get('p');
   const product_name_from_query = search?.get('n');
   const dispatch = useDispatch();
@@ -123,23 +103,13 @@ export default function VariantUpsert() {
 
   // hydrate when loaded
   useEffect(() => {
-    if (!variant) return;
+    if (!id || !variant) return;
     setForm((prev) => ({
       ...prev,
       id: variant.id || '',
       product_id: variant.product_id || prev.product_id || '',
       sku: variant.sku || '',
       barcode: variant.barcode || '',
-      option_rows: (() => {
-        // attempt to reverse signature into rows for editing convenience
-        const sig = variant.option_signature || '';
-        if (!sig) return [{ key: 'color_name', value: '' }];
-        const rows = sig.split('|').map((p) => {
-          const [k, ...rest] = p.split('=');
-          return { key: k || '', value: rest.join('=') || '' };
-        });
-        return rows.length ? rows : [{ key: 'color_name', value: '' }];
-      })(),
       option_signature: variant.option_signature || '',
       option_hash: variant.option_hash || '',
       mrp: variant.mrp ?? '',
@@ -149,52 +119,17 @@ export default function VariantUpsert() {
       gtin: variant.gtin || '',
       mpn: variant.mpn || '',
       color_hex: variant.color_hex || '',
-      length_cm: variant.length_cm ?? '',
-      width_cm: variant.width_cm ?? '',
-      height_cm: variant.height_cm ?? '',
-      weight_g: variant.weight_g ?? '',
-      pkg_length_cm: variant.pkg_length_cm ?? '',
-      pkg_width_cm: variant.pkg_width_cm ?? '',
-      pkg_height_cm: variant.pkg_height_cm ?? '',
-      status: variant.status || 'SUBMITTED',
-      record_status: variant.record_status ?? 1
+      record_status: variant.record_status || 1
     }));
 
     setExistingImages(Array.isArray(variant.images) ? variant.images : []);
-  }, [variant]);
+  }, [variant, id]);
 
   useEffect(() => {
     if (error) enqueueSnackbar(error, { variant: 'error' });
   }, [error]);
 
   const handleField = (name, value) => setForm((p) => ({ ...p, [name]: value }));
-
-  // ----- Option rows -----
-  const updateOptionRow = (idx, key, value) => {
-    setForm((p) => {
-      const arr = [...p.option_rows];
-      arr[idx] = { ...(arr[idx] || {}), [key]: value };
-      return { ...p, option_rows: arr };
-    });
-  };
-  const addOptionRow = () => setForm((p) => ({ ...p, option_rows: [...p.option_rows, { key: '', value: '' }] }));
-  const removeOptionRow = (idx) =>
-    setForm((p) => ({ ...p, option_rows: p.option_rows.filter((_, i) => i !== idx) }));
-
-  // recompute signature+hash when rows change
-  useEffect(() => {
-    (async () => {
-      const sig = buildOptionSignature(form.option_rows);
-      let hash = '';
-      try {
-        hash = sig ? await sha256Hex(sig) : '';
-      } catch (e) {
-        hash = ''; // very old browsers
-      }
-      setForm((p) => ({ ...p, option_signature: sig, option_hash: hash }));
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(form.option_rows)]);
 
   // ----- Images -----
   const onSelectImages = (e) => {
@@ -214,9 +149,6 @@ export default function VariantUpsert() {
       if (!form.sku?.trim()) {
         return enqueueSnackbar('SKU is required', { variant: 'warning' });
       }
-      if (!form.option_signature) {
-        return enqueueSnackbar('Add at least one variant option (e.g. color_name=Black)', { variant: 'warning' });
-      }
 
       const payload = {
         product_id: form.product_id,
@@ -231,15 +163,7 @@ export default function VariantUpsert() {
         gtin: form.gtin || null,
         mpn: form.mpn || null,
         color_hex: form.color_hex || null,
-        length_cm: toNumOrNull(form.length_cm),
-        width_cm: toNumOrNull(form.width_cm),
-        height_cm: toNumOrNull(form.height_cm),
-        weight_g: toNumOrNull(form.weight_g),
-        pkg_length_cm: toNumOrNull(form.pkg_length_cm),
-        pkg_width_cm: toNumOrNull(form.pkg_width_cm),
-        pkg_height_cm: toNumOrNull(form.pkg_height_cm),
-        status: form.status,
-        record_status: Number(form.record_status ?? 1)
+        record_status: form.record_status
       };
 
       let variantId = id || form.id;
@@ -265,8 +189,7 @@ export default function VariantUpsert() {
       const backUrl = form.product_id ? `/products/${form.product_id}?tab=variants` : '/product-variants';
       router.push(backUrl);
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Something went wrong.';
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Something went wrong.';
       enqueueSnackbar(msg, { variant: 'error' });
     }
   };
@@ -279,7 +202,7 @@ export default function VariantUpsert() {
         { title: 'home', to: '/dashboard' },
         { title: 'products', to: '/products' },
         { title: `${product_id_from_query}-${product_name_from_query}`, to: `/products/${product_id_from_query}`, i18n: false },
-        { title: 'product-variants', to: `/products/${product_id_from_query}?t=variants` },
+        { title: 'product-variants', to: `/products/${product_id_from_query}?tab=variants` },
         { title: name, i18n: false }
       ]
     };
@@ -303,189 +226,102 @@ export default function VariantUpsert() {
 
           {loading && <Alert severity="info">Loading variant…</Alert>}
 
-          {/* One-column form */}
-          <Stack spacing={2}>
-            {/* Identity */}
-            <Typography variant="subtitle1">Identity</Typography>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>SKU *</InputLabel>
-                <TextField size="small" fullWidth value={form.sku} onChange={(e) => handleField('sku', e.target.value)} placeholder="IP17-BLK-256" />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Barcode</InputLabel>
-                <TextField size="small" fullWidth value={form.barcode} onChange={(e) => handleField('barcode', e.target.value)} placeholder="EAN/GTIN" />
-              </Stack>
+          {/* Identity */}
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>SKU *</InputLabel>
+              <TextField size="small" fullWidth value={form.sku} onChange={(e) => handleField('sku', e.target.value)} placeholder="IP17-BLK-256" />
             </Stack>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>Barcode</InputLabel>
+              <TextField size="small" fullWidth value={form.barcode} onChange={(e) => handleField('barcode', e.target.value)} placeholder="EAN/GTIN" />
+            </Stack>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>Record Status</InputLabel>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                value={form.record_status}
+                onChange={(e) => handleField('record_status', e.target.value)}
+              >
+                {RECORD_STATUS_LIST.map((r) => (
+                  <MenuItem key={r.value} value={r.value}>
+                    {r.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+          </Stack>
 
-            {/* Options */}
-            <Typography variant="subtitle1">Variant Options</Typography>
-            <Stack spacing={1}>
-              {form.option_rows.map((row, idx) => (
-                <Stack key={idx} direction={{ xs: 'column', md: 'row' }} spacing={1}>
-                  <Stack flex={1} sx={{ gap: 1 }}>
-                    <InputLabel>Key</InputLabel>
-                    <TextField size="small" fullWidth value={row.key} onChange={(e) => updateOptionRow(idx, 'key', e.target.value)} placeholder="e.g., color_name" />
-                  </Stack>
-                  <Stack flex={1} sx={{ gap: 1 }}>
-                    <InputLabel>Value</InputLabel>
-                    <TextField size="small" fullWidth value={row.value} onChange={(e) => updateOptionRow(idx, 'value', e.target.value)} placeholder="e.g., Black" />
-                  </Stack>
-                  <Stack justifyContent="flex-end">
-                    <Button color="error" onClick={() => removeOptionRow(idx)} sx={{ mt: { xs: 1.6, md: 3.8 } }}>
-                      Remove
-                    </Button>
-                  </Stack>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>MRP</InputLabel>
+              <TextField size="small" fullWidth value={form.mrp} onChange={(e) => handleField('mrp', e.target.value)} placeholder="79999.00" />
+            </Stack>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>Sale Price</InputLabel>
+              <TextField size="small" fullWidth value={form.sale_price} onChange={(e) => handleField('sale_price', e.target.value)} placeholder="74999.00" />
+            </Stack>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>Currency</InputLabel>
+              <TextField select size="small" fullWidth value={form.currency} onChange={(e) => handleField('currency', e.target.value)}>
+                {CURRENCIES.map((c) => (
+                  <MenuItem key={c} value={c}>
+                    {c}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>Tax Inclusive</InputLabel>
+              <TextField select size="small" fullWidth value={form.tax_inclusive ? '1' : '0'} onChange={(e) => handleField('tax_inclusive', e.target.value === '1')}>
+                <MenuItem value="1">Yes</MenuItem>
+                <MenuItem value="0">No</MenuItem>
+              </TextField>
+            </Stack>
+          </Stack>
+
+          {/* Identifiers */}
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>GTIN</InputLabel>
+              <TextField size="small" fullWidth value={form.gtin} onChange={(e) => handleField('gtin', e.target.value)} />
+            </Stack>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>MPN</InputLabel>
+              <TextField size="small" fullWidth value={form.mpn} onChange={(e) => handleField('mpn', e.target.value)} />
+            </Stack>
+            <Stack flex={1} sx={{ gap: 1 }}>
+              <InputLabel>Color Hex</InputLabel>
+              <TextField size="small" fullWidth value={form.color_hex} onChange={(e) => handleField('color_hex', e.target.value)} placeholder="#000000" />
+            </Stack>
+          </Stack>
+
+          {/* Images */}
+          <Typography variant="subtitle1">Images</Typography>
+          <Stack sx={{ gap: 1 }}>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              {existingImages.map((im) => (
+                <Stack key={im.id} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
+                  <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
+                  {im.is_primary ? <Chip size="small" label="Primary" /> : null}
+                  <Button size="small" onClick={() => removeExistingImage(im.id)}>Remove</Button>
                 </Stack>
               ))}
-              <Button variant="outlined" size="small" onClick={addOptionRow}>
-                Add Option
-              </Button>
-              <FormHelperText>Signature is generated from these pairs (sorted by key).</FormHelperText>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                <Stack flex={1} sx={{ gap: 1 }}>
-                  <InputLabel>Option Signature</InputLabel>
-                  <TextField size="small" fullWidth value={form.option_signature} InputProps={{ readOnly: true }} />
+              {newFiles.map((f, idx) => (
+                <Stack key={`new-${idx}`} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
+                  <Avatar variant="rounded" src={URL.createObjectURL(f)} sx={{ width: 72, height: 72, borderRadius: 1 }} />
+                  <Chip size="small" label="New" />
+                  <Button size="small" onClick={() => removeNewFile(idx)}>Remove</Button>
                 </Stack>
-                <Stack flex={1} sx={{ gap: 1 }}>
-                  <InputLabel>Option Hash</InputLabel>
-                  <TextField size="small" fullWidth value={form.option_hash} InputProps={{ readOnly: true }} />
-                </Stack>
-              </Stack>
+              ))}
             </Stack>
-
-            {/* Pricing */}
-            <Typography variant="subtitle1">Pricing</Typography>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>MRP</InputLabel>
-                <TextField size="small" fullWidth value={form.mrp} onChange={(e) => handleField('mrp', e.target.value)} placeholder="79999.00" />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Sale Price</InputLabel>
-                <TextField size="small" fullWidth value={form.sale_price} onChange={(e) => handleField('sale_price', e.target.value)} placeholder="74999.00" />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Currency</InputLabel>
-                <TextField select size="small" fullWidth value={form.currency} onChange={(e) => handleField('currency', e.target.value)}>
-                  {CURRENCIES.map((c) => (
-                    <MenuItem key={c} value={c}>
-                      {c}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Tax Inclusive</InputLabel>
-                <TextField select size="small" fullWidth value={form.tax_inclusive ? '1' : '0'} onChange={(e) => handleField('tax_inclusive', e.target.value === '1')}>
-                  <MenuItem value="1">Yes</MenuItem>
-                  <MenuItem value="0">No</MenuItem>
-                </TextField>
-              </Stack>
-            </Stack>
-
-            {/* Identifiers */}
-            <Typography variant="subtitle1">Identifiers</Typography>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>GTIN</InputLabel>
-                <TextField size="small" fullWidth value={form.gtin} onChange={(e) => handleField('gtin', e.target.value)} />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>MPN</InputLabel>
-                <TextField size="small" fullWidth value={form.mpn} onChange={(e) => handleField('mpn', e.target.value)} />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Color Hex</InputLabel>
-                <TextField size="small" fullWidth value={form.color_hex} onChange={(e) => handleField('color_hex', e.target.value)} placeholder="#000000" />
-              </Stack>
-            </Stack>
-
-            {/* Physical */}
-            <Typography variant="subtitle1">Physical</Typography>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Length (cm)</InputLabel>
-                <TextField size="small" fullWidth value={form.length_cm} onChange={(e) => handleField('length_cm', e.target.value)} />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Width (cm)</InputLabel>
-                <TextField size="small" fullWidth value={form.width_cm} onChange={(e) => handleField('width_cm', e.target.value)} />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Height (cm)</InputLabel>
-                <TextField size="small" fullWidth value={form.height_cm} onChange={(e) => handleField('height_cm', e.target.value)} />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Weight (g)</InputLabel>
-                <TextField size="small" fullWidth value={form.weight_g} onChange={(e) => handleField('weight_g', e.target.value)} />
-              </Stack>
-            </Stack>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Pkg Length (cm)</InputLabel>
-                <TextField size="small" fullWidth value={form.pkg_length_cm} onChange={(e) => handleField('pkg_length_cm', e.target.value)} />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Pkg Width (cm)</InputLabel>
-                <TextField size="small" fullWidth value={form.pkg_width_cm} onChange={(e) => handleField('pkg_width_cm', e.target.value)} />
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Pkg Height (cm)</InputLabel>
-                <TextField size="small" fullWidth value={form.pkg_height_cm} onChange={(e) => handleField('pkg_height_cm', e.target.value)} />
-              </Stack>
-            </Stack>
-
-            {/* Images */}
-            <Typography variant="subtitle1">Images</Typography>
-            <Stack sx={{ gap: 1 }}>
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                {existingImages.map((im) => (
-                  <Stack key={im.id} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
-                    <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
-                    {im.is_primary ? <Chip size="small" label="Primary" /> : null}
-                    <Button size="small" onClick={() => removeExistingImage(im.id)}>Remove</Button>
-                  </Stack>
-                ))}
-                {newFiles.map((f, idx) => (
-                  <Stack key={`new-${idx}`} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
-                    <Avatar variant="rounded" src={URL.createObjectURL(f)} sx={{ width: 72, height: 72, borderRadius: 1 }} />
-                    <Chip size="small" label="New" />
-                    <Button size="small" onClick={() => removeNewFile(idx)}>Remove</Button>
-                  </Stack>
-                ))}
-              </Stack>
-              <Button component="label" variant="outlined" size="small">
-                Add Images
-                <input type="file" accept="image/*" hidden multiple onChange={onSelectImages} />
-              </Button>
-              <FormHelperText>First image becomes primary unless backend overrides.</FormHelperText>
-            </Stack>
-
-            {/* Status */}
-            <Typography variant="subtitle1">Status</Typography>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Status</InputLabel>
-                <TextField select size="small" fullWidth value={form.status} onChange={(e) => handleField('status', e.target.value)}>
-                  {STATUS_LIST.map((s) => (
-                    <MenuItem key={s} value={s}>
-                      {s}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Stack>
-              <Stack flex={1} sx={{ gap: 1 }}>
-                <InputLabel>Record Status</InputLabel>
-                <TextField select size="small" fullWidth value={form.record_status} onChange={(e) => handleField('record_status', e.target.value)}>
-                  {RECORD_STATUS_LIST.map((r) => (
-                    <MenuItem key={r.value} value={r.value}>
-                      {r.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Stack>
-            </Stack>
+            <Button component="label" variant="outlined" size="small">
+              Add Images
+              <input type="file" accept="image/*" hidden multiple onChange={onSelectImages} />
+            </Button>
+            <FormHelperText>First image becomes primary unless backend overrides.</FormHelperText>
           </Stack>
 
           <Divider />

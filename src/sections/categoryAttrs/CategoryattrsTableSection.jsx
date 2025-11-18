@@ -12,11 +12,20 @@ export default function CategoryattrsTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  totalCount
 }) {
   const columns = useMemo(
     () => [
       { header: 'Category ID', accessorKey: 'category_id' },
+      {
+        header: 'Category',
+        accessorKey: 'category',
+        cell: (cell) => {
+          const parent = cell.getValue(); // expects object { id, name } from API include
+          return <span >{parent?.name}</span>;
+        }
+      },
       { header: 'Attribute Code', accessorKey: 'attribute_code' },
       { header: 'Required', accessorKey: 'is_required' },
       { header: 'Filterable', accessorKey: 'is_filterable' },
@@ -37,6 +46,7 @@ export default function CategoryattrsTableSection({
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'categoryAttr'}
+      totalCount={totalCount}
     />
   );
 }

@@ -18,6 +18,7 @@ import {
   Divider
 } from '@mui/material';
 import { EditOutlined, EyeOutlined, PlusOutlined } from '@ant-design/icons';
+import { RECORD_STATUS } from 'utils/constants';
 
 // =============== Helpers ===============
 const nfINR = new Intl.NumberFormat('en-IN');
@@ -48,13 +49,16 @@ function getOptionSummary(row) {
 }
 
 function StatusChip({ value }) {
-  const v = String(value || '').toUpperCase();
-  let color = 'default';
-  if (v === 'APPROVED') color = 'success';
-  else if (v === 'REJECTED') color = 'error';
-  else if (v === 'DISABLED') color = 'default';
-  else color = 'warning'; // DRAFT / SUBMITTED / others
-  return <Chip size="small" color={color} label={value || '—'} variant="light" />;
+  switch (value) {
+    case RECORD_STATUS.ACTIVE:
+      return <Chip color="success" label="Active" size="small" variant="light" />;
+    case RECORD_STATUS.INACTIVE:
+      return <Chip color="warning" label="Inactive" size="small" variant="light" />;
+    case RECORD_STATUS.ARCHIVED:
+      return <Chip color="error" label="Archived" size="small" variant="light" />;
+    default:
+      return <Chip color="default" label="Unknown" size="small" variant="light" />;
+  }
 }
 
 // =============== Price Block ===============
@@ -101,7 +105,8 @@ export default function ProductVariantsGrid({
   pageIndex = 0,
   pageSize = 20,
   totalPageCount = 1,
-  onPaginationChange
+  onPaginationChange,
+  totalCount = 0
 }) {
   const hasRows = Array.isArray(rows) && rows.length > 0;
 
@@ -119,7 +124,7 @@ export default function ProductVariantsGrid({
     <Stack spacing={2} sx={{ width: '100%' }}>
       {/* Header actions */}
       <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6">Product Variants</Typography>
+        <Typography variant="h6">Product Variants{`(${totalCount})`}</Typography>
         <Button onClick={handleAddButton} startIcon={<PlusOutlined />} variant="contained" size="small">
           Add Variant
         </Button>
@@ -146,7 +151,6 @@ export default function ProductVariantsGrid({
 
         {rows.map((row) => {
           const img = getFirstImage(row);
-          const summary = getOptionSummary(row);
           const sw = row?.color_hex;
           return (
             <Card key={row.id} variant="outlined" sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -188,20 +192,7 @@ export default function ProductVariantsGrid({
                     <Typography variant="subtitle1" noWrap title={row.sku}>
                       {row.sku || '—'}
                     </Typography>
-                    <StatusChip value={row.status} />
-                  </Stack>
-
-                  {/* Option summary + swatch */}
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    {sw && (
-                      <Box
-                        aria-label="color"
-                        sx={{ width: 16, height: 16, borderRadius: '50%', bgcolor: sw, border: '1px solid', borderColor: 'divider' }}
-                      />
-                    )}
-                    <Typography variant="body2" color="text.secondary" noWrap title={summary}>
-                      {summary}
-                    </Typography>
+                    <StatusChip value={row.record_status} />
                   </Stack>
 
                   {/* Price */}
@@ -213,50 +204,20 @@ export default function ProductVariantsGrid({
                     tax_inclusive={!!row?.tax_inclusive}
                   />
 
-                  {/* Inventory */}
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <Chip size="small" variant="light" color={row?.is_active ? 'success' : 'default'} label={row?.is_active ? 'Active' : 'Inactive'} />
-                    <Chip size="small" variant="light" label={`Stock: ${row?.stock_quantity ?? 0}`} />
-                    {row?.barcode && <Chip size="small" variant="light" label={`Barcode: ${row.barcode}`} />}
-                  </Stack>
-
-                  {/* Codes */}
-                  {(row?.gtin || row?.mpn) && (
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                      {row?.gtin && (
-                        <Tooltip title="GTIN">
-                          <Chip size="small" variant="outlined" label={`GTIN: ${row.gtin}`} />
-                        </Tooltip>
-                      )}
-                      {row?.mpn && (
-                        <Tooltip title="MPN">
-                          <Chip size="small" variant="outlined" label={`MPN: ${row.mpn}`} />
-                        </Tooltip>
-                      )}
-                    </Stack>
-                  )}
-
-                  {/* Dimensions / Weight */}
-                  {(row?.length_cm || row?.width_cm || row?.height_cm || row?.weight_g) && (
-                    <Typography variant="caption" color="text.secondary">
-                      {row?.length_cm ?? '—'} × {row?.width_cm ?? '—'} × {row?.height_cm ?? '—'} cm · {row?.weight_g ?? '—'} g
-                    </Typography>
-                  )}
-
-                  {/* Package dims */}
-                  {(row?.pkg_length_cm || row?.pkg_width_cm || row?.pkg_height_cm) && (
-                    <Typography variant="caption" color="text.secondary">
-                      Pkg: {row?.pkg_length_cm ?? '—'} × {row?.pkg_width_cm ?? '—'} × {row?.pkg_height_cm ?? '—'} cm
-                    </Typography>
-                  )}
+                  <Typography variant="h7" >
+                    Barcode  : {row.barcode || ''}
+                  </Typography>
+                  <Typography variant="h7" >
+                    GTIN  : {row.gtin || ''}
+                  </Typography>
+                  <Typography variant="h7"  >
+                    MPN  : {row.mpn || ''}
+                  </Typography>
                 </Stack>
               </CardContent>
 
               {/* Actions */}
               <CardActions sx={{ pt: 0, justifyContent: 'space-between' }}>
-                <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
-                  {row?.currency || 'INR'} {row?.sale_price ? fmtMoney(row.sale_price) : (row?.mrp ? fmtMoney(row.mrp) : '')}
-                </Typography>
                 <Button size="small" startIcon={<EyeOutlined />} onClick={() => handleViewButton && handleViewButton(row)}>
                   View
                 </Button>

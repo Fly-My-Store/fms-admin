@@ -27,6 +27,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import { uploadSingle } from 'api/upload';
 
 const STATUS_LIST = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'DISABLED'];
 const RECORD_STATUS_LIST = [
@@ -42,7 +43,7 @@ const EMPTY = {
   name: '',
   slug: '',
   description: '',
-  spec_json: '', 
+  spec_json: '',
   status: 'DRAFT',
   record_status: 1
 };
@@ -104,7 +105,7 @@ export default function ProductUpsert() {
 
   // hydrate when loaded
   useEffect(() => {
-    if (!product) return;
+    if (!product || !id) return;
     setForm({
       id: product.id || '',
       brand_id: product.brand_id || product.brand?.id || '',
@@ -120,7 +121,7 @@ export default function ProductUpsert() {
     setBrandSel(product.brand || null);
     setCatSel(product.category || null);
     setExistingImages(Array.isArray(product.images) ? product.images : []);
-  }, [product]);
+  }, [product, id]);
 
   useEffect(() => {
     if (error) enqueueSnackbar(error, { variant: 'error' });
@@ -188,9 +189,10 @@ export default function ProductUpsert() {
   };
 
   // ----- Images -----
-  const onSelectImages = (e) => {
+  const onSelectImages = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    const result = await uploadSingle(files[0], 'products');//for chat gpt : fix this to upload and add to product images, you have api details
     setNewFiles((prev) => [...prev, ...files]);
   };
   const removeNewFile = (idx) => setNewFiles((prev) => prev.filter((_, i) => i !== idx));
@@ -215,28 +217,19 @@ export default function ProductUpsert() {
         slug: (form.slug || slugify(form.name)).trim(),
         description: form.description || null,
         spec_json: spec || null,
-        status: form.status,
+        status: 'APPROVED',
         record_status: Number(form.record_status ?? 1),
       };
+
+      payload.images = [];// chat gpt : fix this also  create product/ update  product api info already there.
 
       let prodId = id || form.id;
       if (prodId) {
         await updateProduct(prodId, payload);
         enqueueSnackbar('Product updated', { variant: 'success' });
       } else {
-        const res = await createProduct(payload);
-        prodId = res?.data?.id || res?.data?.data?.id;
+        await createProduct(payload);
         enqueueSnackbar('Product created', { variant: 'success' });
-      }
-
-      if (prodId && newFiles.length) {
-        for (let i = 0; i < newFiles.length; i += 1) {
-          try {
-            await uploadProductImage(prodId, newFiles[i], { position: existingImages.length + i });
-          } catch {
-            enqueueSnackbar('Some images failed to upload', { variant: 'warning' });
-          }
-        }
       }
 
       router.push('/products');
@@ -296,7 +289,7 @@ export default function ProductUpsert() {
                   size="small"
                   fullWidth
                   multiline
-                  minRows={6}
+                  minRows={4}
                   value={form.description}
                   onChange={(e) => handleField('description', e.target.value)}
                 />
@@ -405,22 +398,6 @@ export default function ProductUpsert() {
                   onChange={(e) => handleField('spec_json', e.target.value)}
                   inputProps={{ style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } }}
                 />
-              </Stack>
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Status</InputLabel>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  value={form.status}
-                  onChange={(e) => handleField('status', e.target.value)}
-                >
-                  {STATUS_LIST.map((s) => (
-                    <MenuItem key={s} value={s}>
-                      {s}
-                    </MenuItem>
-                  ))}
-                </TextField>
               </Stack>
 
               <Stack sx={{ gap: 1 }}>

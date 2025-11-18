@@ -82,7 +82,7 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
       data_type: form.data_type,
       unit: form.unit?.trim() || null,
       allowed_values,
-      status: form.status,
+      status: ATTRIBUTE_DEF_STATUS.APPROVED,
       record_status: form.record_status,
     };
 
@@ -194,27 +194,6 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
           </Stack>
 
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            {/* Column 1 */}
-            <Stack flex={1} spacing={2}>
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Status</InputLabel>
-                <TextField
-                  id="status"
-                  name="status"
-                  value={form.status}
-                  onChange={(e) => setField('status', e.target.value)}
-                  select
-                  fullWidth
-                  size="small"
-                >
-                  {...Object.values(ATTRIBUTE_DEF_STATUS).map((s) => (
-                    <MenuItem key={s} value={s}>
-                      {s}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Stack>
-            </Stack>
 
             {/* Column 2 */}
             <Stack flex={1} spacing={2}>

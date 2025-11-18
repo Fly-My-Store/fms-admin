@@ -12,7 +12,8 @@ export default function BrandsTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  totalCount
 }) {
   const columns = useMemo(
     () => [
@@ -55,6 +56,7 @@ export default function BrandsTableSection({
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'brand'}
+      totalCount={totalCount}
     />
   );
 }

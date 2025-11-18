@@ -15,7 +15,8 @@ function stableStringify(v) {
 }
 import {
   Autocomplete,
-  Button,
+  IconButton,
+  Tooltip,
   CircularProgress,
   FormHelperText,
   InputLabel,
@@ -24,29 +25,19 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-import { getVariantAttr, listCategoryAttrs, listDefs, upsertVariantAttr } from 'api/attributes';
-import { RECORD_STATUS_ARRAY } from 'utils/constants';
+import { getProductAttr, listDefs, upsertProductAttr } from 'api/attributes';
+import { CheckCircleFilled, CloseCircleFilled, CloseOutlined, DeleteFilled, PlusCircleFilled } from '@ant-design/icons';
 
 const STATUS_LIST = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'DISABLED'];
 
-export default function ProductVariantAttributeUpsert() {
-  const params = useParams();
-  const search = useSearchParams();
+export default function ProductAttrsUpsertRow({ productId, row, defs, defsLoading, setDefQuery }) {
   const router = useRouter();
-  const { id: attributeCode } = useParams();
-  const variantId = search?.get('v');
-  const variantName = search?.get('n');
-  const category_id = search?.get('c');
-  const isEdit = !!attributeCode;
-
-  const [defs, setDefs] = useState([]);
-  const [defsLoading, setDefsLoading] = useState(false);
-  const [defQuery, setDefQuery] = useState('');
-  const [defSel, setDefSel] = useState(null);
+  const attribute_code = row.attribute_code;
+  const isEdit = !!attribute_code;
 
   const [form, setForm] = useState({
-    variant_id: variantId || '',
-    attribute_code: attributeCode || '',
+    product_id: productId || '',
+    attribute_code: attribute_code || '',
     data_type: '',
     allowed_values: null,
     value_text: '',
@@ -56,73 +47,49 @@ export default function ProductVariantAttributeUpsert() {
     value_json: '',
     normalized_num: '',
     normalized_unit: '',
-    status: 'APPROVED',
-    record_status: 1
+    status: 'DRAFT'
   });
 
-  const breadcrumb = useMemo(
-    () => ({
-      heading: isEdit ? 'edit-variant-attribute' : 'create-variant-attribute',
-      links: [
-        { title: 'home', to: '/dashboard' },
-        { title: 'product-variants', to: '/product-variants' },
-        { title: variantName, to: `/variants/${variantId}`, i18n: false },
-        { title: isEdit ? attributeCode : 'create-variant-attribute', i18n: false }
-      ]
-    }),
-    [variantId, attributeCode, isEdit]
-  );
+  // Memoized selector for the currently chosen attribute definition
+  const selectedDef = useMemo(() => {
+    if (!defs || !Array.isArray(defs)) return null;
+    const code =
+      form?.attribute_code ||
+      row?.attributeDef?.code ||
+      row?.attribute_code ||
+      '';
+    return defs.find((d) => d?.code === code) || null;
+  }, [defs, form?.attribute_code, row]);
 
   // ---- Load in EDIT mode ----
   useEffect(() => {
     async function loadForEdit() {
       try {
-        const res = await getVariantAttr(attributeCode, variantId);
-        const row = res?.data;
-        console.log('Loaded attribute for edit:', row); // Debug log
-        setForm({
-          variant_id: row?.variant_id || '',
-          attribute_code: row?.attributeDef?.code || '',
-          data_type: row?.attributeDef?.data_type || '',
-          allowed_values: Array.isArray(row?.attributeDef?.allowed_values) ? row.attributeDef.allowed_values : null,
-          value_text: row?.value_text ?? '',
-          value_int: row?.value_int ?? '',
-          value_decimal: row?.value_decimal ?? '',
-          value_bool: row?.value_bool ?? null,
-          value_json: row?.value_json ? stableStringify(row.value_json) : '',
-          normalized_num: row?.normalized_num ?? '',
-          normalized_unit: row?.normalized_unit ?? '',
-          status: 'APPROVED',
-          record_status: row?.record_status || 1
+        setForm(prev => {
+          return {
+            product_id: row?.product_id || '',
+            attribute_code: row?.attributeDef?.code || '',
+            data_type: row?.attributeDef?.data_type || '',
+            allowed_values: Array.isArray(row?.attributeDef?.allowed_values) ? row.attributeDef.allowed_values : null,
+            value_text: row?.value_text ?? '',
+            value_int: row?.value_int ?? '',
+            value_decimal: row?.value_decimal ?? '',
+            value_bool: row?.value_bool ?? null,
+            value_json: row?.value_json ? stableStringify(row.value_json) : '',
+            normalized_num: row?.normalized_num ?? '',
+            normalized_unit: row?.normalized_unit ?? '',
+            status: row?.status || 'DRAFT'
+          }
         });
       } catch (e) {
         enqueueSnackbar('Failed to load attribute', { variant: 'error' });
       }
     }
-    if (isEdit && variantId && attributeCode) loadForEdit();
-  }, [isEdit, variantId, attributeCode]);
+    if (isEdit && row) loadForEdit();
 
-  // ---- Load defs in CREATE mode ----
-  useEffect(() => {
-    async function loadDefs() {
-      if (isEdit) return; // not needed
-      try {
-        setDefsLoading(true);
-        const res = await listCategoryAttrs({ q: defQuery, category_id, limit: 20 });
-        const rows = res?.data || res?.data?.rows || [];
-        setDefs(rows.map((r) => r.attributeDef));
-      } catch (e) {
-        setDefs([]);
-        enqueueSnackbar('Failed to load attribute defs', { variant: 'error' });
-      } finally {
-        setDefsLoading(false);
-      }
-    }
-    loadDefs();
-  }, [isEdit, defQuery, variantId]);
+  }, [isEdit, row]);
 
   const onDefChange = (_, v) => {
-    setDefSel(v);
     setForm((p) => ({
       ...p,
       attribute_code: v?.code || '',
@@ -140,6 +107,8 @@ export default function ProductVariantAttributeUpsert() {
   };
 
   const handleField = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+
+  async function handleRemove() { }
 
   async function handleSubmit() {
     try {
@@ -163,7 +132,7 @@ export default function ProductVariantAttributeUpsert() {
         return arr.map((x) => coerceByKind(kind, x));
       };
 
-      const payload = { status: 'APPROVED', record_status: form.record_status, variant_id: form.variant_id, attributeCode: form.attribute_code };
+      const payload = { status: form.status, product_id: form.product_id, attributeCode: form.attribute_code };
 
       // Value-driven inference (independent of data_type):
       // Priority: JSON > Bool (when chosen) > Decimal > Int > Text
@@ -227,15 +196,13 @@ export default function ProductVariantAttributeUpsert() {
       if ((form.normalized_unit || '').trim() !== '') {
         payload.normalized_unit = form.normalized_unit.trim();
       }
-      console.log('Submitting payload:', payload); // Debug log
-      console.log('form', form); // Debug log
-      await upsertVariantAttr(payload.attributeCode, payload);
+      await upsertProductAttr(payload.attributeCode, payload);
       if (isEdit) {
         enqueueSnackbar('Attribute updated', { variant: 'success' });
       } else {
         enqueueSnackbar('Attribute added', { variant: 'success' });
       }
-      router.push(`/variants/${variantId}`);
+      router.push(`/products/${productId}`);
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'Failed to save attribute';
       enqueueSnackbar(msg, { variant: 'error' });
@@ -262,7 +229,7 @@ export default function ProductVariantAttributeUpsert() {
         return '';
       }
     };
-    console.log('Rendering value input, form:', form); // Debug log
+
     if (hasAllowed) {
       // Show a SELECT but bind to the correct value_* based on data_type
       switch (form.data_type) {
@@ -272,7 +239,7 @@ export default function ProductVariantAttributeUpsert() {
             ? [...new Set(form.allowed_values.map(asBool))]
             : [true, false];
           return (
-            <>
+            <Stack>
               <InputLabel>Allowed Value</InputLabel>
               <TextField
                 select
@@ -291,12 +258,12 @@ export default function ProductVariantAttributeUpsert() {
                   </MenuItem>
                 ))}
               </TextField>
-            </>
+            </Stack>
           );
         }
         case 'int': {
           return (
-            <>
+            <Stack>
               <InputLabel>Allowed Value</InputLabel>
               <TextField
                 select
@@ -315,12 +282,12 @@ export default function ProductVariantAttributeUpsert() {
                   </MenuItem>
                 ))}
               </TextField>
-            </>
+            </Stack>
           );
         }
         case 'decimal': {
           return (
-            <>
+            <Stack>
               <InputLabel>Allowed Value</InputLabel>
               <TextField
                 select
@@ -339,7 +306,7 @@ export default function ProductVariantAttributeUpsert() {
                   </MenuItem>
                 ))}
               </TextField>
-            </>
+            </Stack>
           );
         }
         case 'json': {
@@ -348,7 +315,7 @@ export default function ProductVariantAttributeUpsert() {
             return { key: `${i}-${s}`, value: s, label: s };
           });
           return (
-            <>
+            <Stack>
               <InputLabel>Allowed Value</InputLabel>
               <TextField
                 select
@@ -367,13 +334,13 @@ export default function ProductVariantAttributeUpsert() {
                   </MenuItem>
                 ))}
               </TextField>
-            </>
+            </Stack>
           );
         }
         case 'text':
         default: {
           return (
-            <>
+            <Stack>
               <InputLabel>Allowed Value</InputLabel>
               <TextField
                 select
@@ -389,7 +356,7 @@ export default function ProductVariantAttributeUpsert() {
                   </MenuItem>
                 ))}
               </TextField>
-            </>
+            </Stack>
           );
         }
       }
@@ -399,7 +366,7 @@ export default function ProductVariantAttributeUpsert() {
     switch (form.data_type) {
       case 'text':
         return (
-          <>
+          <Stack>
             <InputLabel>Value (text)</InputLabel>
             <TextField
               size="small"
@@ -407,11 +374,11 @@ export default function ProductVariantAttributeUpsert() {
               value={form.value_text}
               onChange={(e) => handleField('value_text', e.target.value)}
             />
-          </>
+          </Stack>
         );
       case 'int':
         return (
-          <>
+          <Stack>
             <InputLabel>Value (integer)</InputLabel>
             <TextField
               size="small"
@@ -420,11 +387,11 @@ export default function ProductVariantAttributeUpsert() {
               value={form.value_int}
               onChange={(e) => handleField('value_int', e.target.value)}
             />
-          </>
+          </Stack>
         );
       case 'decimal':
         return (
-          <>
+          <Stack>
             <InputLabel>Value (decimal)</InputLabel>
             <TextField
               size="small"
@@ -433,11 +400,11 @@ export default function ProductVariantAttributeUpsert() {
               value={form.value_decimal}
               onChange={(e) => handleField('value_decimal', e.target.value)}
             />
-          </>
+          </Stack>
         );
       case 'bool':
         return (
-          <>
+          <Stack>
             <InputLabel>Value (boolean)</InputLabel>
             <TextField
               select
@@ -453,11 +420,11 @@ export default function ProductVariantAttributeUpsert() {
               <MenuItem value="true">true</MenuItem>
               <MenuItem value="false">false</MenuItem>
             </TextField>
-          </>
+          </Stack>
         );
       case 'json':
         return (
-          <>
+          <Stack>
             <InputLabel>Value (JSON)</InputLabel>
             <TextField
               size="small"
@@ -470,7 +437,7 @@ export default function ProductVariantAttributeUpsert() {
                 style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }
               }}
             />
-          </>
+          </Stack>
         );
       default:
         return (
@@ -483,100 +450,98 @@ export default function ProductVariantAttributeUpsert() {
 
   return (
     <>
-      <Breadcrumbs custom heading={isEdit ? 'edit-variant-attribute' : 'create-variant-attribute'} links={breadcrumb.links} />
-      <MainCard border={false} boxShadow>
-        <Stack spacing={2} maxWidth={720}>
-          {/* Attribute selector or static code */}
-          {isEdit ? (
-            <Stack sx={{ gap: 1 }}>
-              <InputLabel>Attribute Code</InputLabel>
-              <TextField size="small" fullWidth disabled value={form.attribute_code} />
-            </Stack>
-          ) : (
-            <Stack sx={{ gap: 1 }}>
-              <InputLabel>Attribute</InputLabel>
-              <Autocomplete
-                options={defs}
-                loading={defsLoading}
-                onChange={onDefChange}
-                getOptionLabel={(o) => (o?.name ? `${o.name} (${o.code})` : o?.code || '')}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    size="small"
-                    placeholder="Search attribute…"
-                    onChange={(e) => setDefQuery(e.target.value)}
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {defsLoading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      )
-                    }}
-                  />
-                )}
+      <Stack alignItems={'center'} spacing={1} direction={'row'}>
+        {/* Attribute selector or static code */}
+        <Stack sx={{ gap: 1 }} flex={1}>
+          <InputLabel>Attribute</InputLabel>
+          <Autocomplete
+            options={defs}
+            value={selectedDef}
+            isOptionEqualToValue={(opt, val) => (opt?.code || '') === (val?.code || '')}
+            loading={defsLoading}
+            onChange={onDefChange}
+            getOptionLabel={(o) => (o?.name ? `${o.name}` : o?.code || '')}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                size="small"
+                placeholder="Search attribute…"
+                onChange={(e) => setDefQuery(e.target.value)}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {defsLoading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  )
+                }}
               />
-              {!form.attribute_code && (
-                <FormHelperText>Select an attribute to continue.</FormHelperText>
-              )}
-            </Stack>
-          )}
-
+            )}
+          />
+        </Stack>
+        <Stack flex={1}>
           {renderValueInput()}
+        </Stack>
 
-          <Stack direction="row" spacing={2}>
-            <Stack sx={{ gap: 1 }}>
-              <InputLabel>Normalized Number</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                type="number"
-                value={form.normalized_num}
-                onChange={(e) => handleField('normalized_num', e.target.value)}
-              />
-            </Stack>
-            <Stack sx={{ gap: 1 }}>
-              <InputLabel>Normalized Unit</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                value={form.normalized_unit}
-                onChange={(e) => handleField('normalized_unit', e.target.value)}
-              />
-            </Stack>
-          </Stack>
-
+        <Stack direction="row" spacing={2} flex={1} >
           <Stack sx={{ gap: 1 }}>
-            <InputLabel>Record Status</InputLabel>
+            <InputLabel>Normalized Number</InputLabel>
             <TextField
-              select
               size="small"
               fullWidth
-              value={form.record_status}
-              onChange={(e) => handleField('record_status', e.target.value)}
-            >
-              {RECORD_STATUS_ARRAY.map((r) => (
-                <MenuItem key={r.key} value={r.key}>
-                  {r.value}
-                </MenuItem>
-              ))}
-            </TextField>
+              type="number"
+              value={form.normalized_num}
+              onChange={(e) => handleField('normalized_num', e.target.value)}
+            />
           </Stack>
-
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
-            <Button onClick={() => router.push(`/variants/${variantId}`)}>Cancel</Button>
-            <Button
-              variant="contained"
-              onClick={handleSubmit}
-              disabled={!isEdit && !form.attribute_code}
-            >
-              {isEdit ? 'Save' : 'Create'}
-            </Button>
+          <Stack sx={{ gap: 1 }}>
+            <InputLabel>Normalized Unit</InputLabel>
+            <TextField
+              size="small"
+              fullWidth
+              value={form.normalized_unit}
+              onChange={(e) => handleField('normalized_unit', e.target.value)}
+            />
           </Stack>
         </Stack>
-      </MainCard>
+
+        <Stack direction="row" spacing={1} justifyContent="flex-end" flex={1}>
+          <Tooltip title="Close">
+            <IconButton
+              size="large"
+              onClick={() => { console.log('reload original data'); }}
+              aria-label="close"
+            >
+              <CloseCircleFilled />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title={isEdit ? 'Update' : 'Add'}>
+            <IconButton
+              size="large"
+              color="primary"
+              onClick={handleSubmit}
+              aria-label={isEdit ? 'update' : 'add'}
+              disabled={!isEdit && !form.attribute_code}
+            >
+              {isEdit ? <CheckCircleFilled /> : <PlusCircleFilled />}
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Remove">
+            <IconButton
+              size="large"
+              color="error"
+              onClick={handleRemove}
+              aria-label="remove"
+              disabled={!isEdit && !form.attribute_code}
+            >
+              <DeleteFilled size={'20px'} />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      </Stack>
     </>
   );
 }

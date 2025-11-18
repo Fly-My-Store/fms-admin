@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const initialList = () => ({ rows: [], meta: { page: 1, pageSize: 20, total: 0, totalPages: 1 }, loading: false, error: null });
+const initialList = () => ({ rows: [], count: 0, page: 1, pageSize: 10, totalPages: 1, loading: false, error: null });
 const initialEntity = () => ({ data: null, loading: false, error: null });
 
 const initialState = {
@@ -29,7 +29,10 @@ const slice = createSlice({
     defsListSuccess(state, action) {
       state.defs.loading = false;
       state.defs.rows = action.payload?.data || [];
-      state.defs.meta = action.payload?.meta || state.defs.meta;
+      state.defs.count = action.payload?.count || 0;
+      state.defs.page = action.payload?.page || 1;
+      state.defs.pageSize = action.payload?.pageSize || 10;
+      state.defs.totalPages = action.payload?.totalPages || [];
     },
     defsListFailure(state, action) {
       state.defs.loading = false;
@@ -90,7 +93,10 @@ const slice = createSlice({
     groupsListSuccess(state, action) {
       state.groups.loading = false;
       state.groups.rows = action.payload?.data || [];
-      state.groups.meta = action.payload?.meta || state.groups.meta;
+      state.groups.count = action.payload?.count || 0;
+      state.groups.page = action.payload?.page || 1;
+      state.groups.pageSize = action.payload?.pageSize || 10;
+      state.groups.totalPages = action.payload?.totalPages || [];
     },
     groupsListFailure(state, action) {
       state.groups.loading = false;
@@ -151,7 +157,10 @@ const slice = createSlice({
     categoryAttrsListSuccess(state, action) {
       state.categoryAttrs.loading = false;
       state.categoryAttrs.rows = action.payload?.data || [];
-      state.categoryAttrs.meta = action.payload?.meta || state.categoryAttrs.meta;
+      state.categoryAttrs.count = action.payload?.count || 0;
+      state.categoryAttrs.page = action.payload?.page || 1;
+      state.categoryAttrs.pageSize = action.payload?.pageSize || 10;
+      state.categoryAttrs.totalPages = action.payload?.totalPages || [];
     },
     categoryAttrsListFailure(state, action) {
       state.categoryAttrs.loading = false;
@@ -212,7 +221,10 @@ const slice = createSlice({
     plpConfigsListSuccess(state, action) {
       state.plpConfigs.loading = false;
       state.plpConfigs.rows = action.payload?.data || [];
-      state.plpConfigs.meta = action.payload?.meta || state.plpConfigs.meta;
+      state.plpConfigs.count = action.payload?.count || 0;
+      state.plpConfigs.page = action.payload?.page || 1;
+      state.plpConfigs.pageSize = action.payload?.pageSize || 10;
+      state.plpConfigs.totalPages = action.payload?.totalPages || [];
     },
     plpConfigsListFailure(state, action) {
       state.plpConfigs.loading = false;
@@ -272,7 +284,10 @@ const slice = createSlice({
     productAttrsListSuccess(state, action) {
       state.productAttrs.loading = false;
       state.productAttrs.rows = action.payload?.data || [];
-      state.productAttrs.meta = action.payload?.meta || state.productAttrs.meta;
+      state.productAttrs.count = action.payload?.count || 0;
+      state.productAttrs.page = action.payload?.page || 1;
+      state.productAttrs.pageSize = action.payload?.pageSize || 10;
+      state.productAttrs.totalPages = action.payload?.totalPages || [];
     },
     productAttrsListFailure(state, action) {
       state.productAttrs.loading = false;
@@ -281,6 +296,7 @@ const slice = createSlice({
     productAttrGetRequest(state) {
       state.productAttrDetail.loading = true;
       state.productAttrDetail.error = null;
+      state.productAttrDetail.data = initialEntity().data;
     },
     productAttrGetSuccess(state, action) {
       state.productAttrDetail.loading = false;
@@ -310,7 +326,10 @@ const slice = createSlice({
     variantAttrsListSuccess(state, action) {
       state.variantAttrs.loading = false;
       state.variantAttrs.rows = action.payload?.data || [];
-      state.variantAttrs.meta = action.payload?.meta || state.variantAttrs.meta;
+      state.variantAttrs.count = action.payload?.count || 0;
+      state.variantAttrs.page = action.payload?.page || 1;
+      state.variantAttrs.pageSize = action.payload?.pageSize || 10;
+      state.variantAttrs.totalPages = action.payload?.totalPages || [];
     },
     variantAttrsListFailure(state, action) {
       state.variantAttrs.loading = false;

@@ -10,9 +10,8 @@ import CategoryattrsFormDialog from 'sections/categoryAttrs/CategoryattrsFormDia
 export function CategoryattrsView() {
   const dispatch = useDispatch();
   const state = useSelector((s) => s.attributes || {});
-  const list = state.categoryAttrs || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
-  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
-
+  const list = state.categoryAttrs || { rows: [], count: 0, page: 1, pageSize: 10, totalPages: 1, loading: false, error: null };
+  const { rows: data = [], count = 0, page = 1, pageSize = 10, totalPages = 1, error } = list;
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
@@ -56,6 +55,7 @@ export function CategoryattrsView() {
         pageSize={pageSize}
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
+        totalCount={count}
       />
       <CategoryattrsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
     </>

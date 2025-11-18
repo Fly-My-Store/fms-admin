@@ -10,8 +10,8 @@ import { useRouter } from 'next/navigation';
 export function ProductsView() {
   const dispatch = useDispatch();
   const state = useSelector((s) => s.catalog || {});
-  const list = state.products || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
-  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
+  const list = state.products || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1, total: 0 }, loading: false, error: null };
+  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1, total = 1 } = {}, error } = list;
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -56,6 +56,7 @@ export function ProductsView() {
         pageSize={pageSize}
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
+        totalCount={total}
       />
     </>
   );

@@ -15,7 +15,8 @@ export default function CategoriesTableSection({
   onPaginationChange,
   topActionsLeft,
   tableActions,
-  handleViewButton
+  handleViewButton,
+  totalCount
 }) {
   const columns = useMemo(
     () => [
@@ -71,6 +72,7 @@ export default function CategoriesTableSection({
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'category'}
+      totalCount={totalCount}
     />
   );
 }

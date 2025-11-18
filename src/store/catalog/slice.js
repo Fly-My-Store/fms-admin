@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const initialList = () => ({ rows: [], meta: { page: 1, pageSize: 20, total: 0, totalPages: 1 }, loading: false, error: null });
+const initialList = () => ({ rows: [], meta: { page: 1, pageSize: 10, total: 0, totalPages: 1 }, loading: false, error: null });
 const initialEntity = () => ({ data: null, loading: false, error: null });
 
 const initialState = {
@@ -217,8 +217,8 @@ const slice = createSlice({
     },
 
     variantsGetRequest(state) {
+      state.variantDetail = initialEntity();
       state.variantDetail.loading = true;
-      state.variantDetail.error = null;
     },
     variantsGetSuccess(state, action) {
       state.variantDetail.loading = false;

@@ -7,11 +7,11 @@ import { actions as attributes } from 'store/attributes/slice';
 import VariantAttrsTableSection from 'sections/variant-attributes/VariantAttrsTableSection';
 import { useRouter } from 'next/navigation';
 
-export function ProductVarientAttrsView({ variant_id, variantName }) {
+export function ProductVarientAttrsView({ variant_id, variantName, category_id }) {
   const dispatch = useDispatch();
   const state = useSelector((s) => s.attributes || {});
-  const list = state.variantAttrs || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
-  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
+  const list = state.variantAttrs || { rows: [], count: 0, page: 1, pageSize: 10, totalPages: 1, loading: false, error: null };
+  const { rows: data = [], count = 0, page = 1, pageSize = 10, totalPages = 1, error } = list;
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -27,11 +27,11 @@ export function ProductVarientAttrsView({ variant_id, variantName }) {
   };
 
   const handleAddButton = () => {
-    router.push(`/variant-attrs/add?v=${variant_id}&n=${encodeURIComponent(variantName)}`);
+    router.push(`/variant-attrs/add?v=${variant_id}&n=${encodeURIComponent(variantName)}&c=${encodeURIComponent(category_id)}`);
   };
 
   const handleEditButton = (row) => {
-    router.push(`/variant-attrs/edit/${encodeURIComponent(row.attribute_code)}?v=${variant_id}&n=${encodeURIComponent(variantName)}`)
+    router.push(`/variant-attrs/edit/${encodeURIComponent(row.attribute_code)}?v=${variant_id}&n=${encodeURIComponent(variantName)}&c=${encodeURIComponent(category_id)}`)
   };
 
   const handlePaginationChange = (updater) => {
@@ -56,6 +56,7 @@ export function ProductVarientAttrsView({ variant_id, variantName }) {
         pageSize={pageSize}
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
+        totalCount={count}
       />
     </>
   );

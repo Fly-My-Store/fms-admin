@@ -24,7 +24,8 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-import { getProductAttr, listDefs, upsertProductAttr } from 'api/attributes';
+import { getProductAttr, listCategoryAttrs, listDefs, upsertProductAttr } from 'api/attributes';
+import { RECORD_STATUS_ARRAY } from 'utils/constants';
 
 const STATUS_LIST = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'DISABLED'];
 
@@ -35,6 +36,7 @@ export default function ProductAttributeUpsert() {
   const { id: attributeCode } = useParams();
   const productId = search?.get('p');
   const productName = search?.get('n');
+  const category_id = search?.get('c');
   const isEdit = !!attributeCode;
 
   const [defs, setDefs] = useState([]);
@@ -54,7 +56,8 @@ export default function ProductAttributeUpsert() {
     value_json: '',
     normalized_num: '',
     normalized_unit: '',
-    status: 'DRAFT'
+    status: 'APPROVED',
+    record_status: 1
   });
 
   const breadcrumb = useMemo(
@@ -89,7 +92,8 @@ export default function ProductAttributeUpsert() {
           value_json: row?.value_json ? stableStringify(row.value_json) : '',
           normalized_num: row?.normalized_num ?? '',
           normalized_unit: row?.normalized_unit ?? '',
-          status: row?.status || 'DRAFT'
+          status: 'APPROVED',
+          record_status: row?.record_status || 1
         });
       } catch (e) {
         enqueueSnackbar('Failed to load attribute', { variant: 'error' });
@@ -104,18 +108,17 @@ export default function ProductAttributeUpsert() {
       if (isEdit) return; // not needed
       try {
         setDefsLoading(true);
-        const res = await listDefs({ q: defQuery, limit: 20 });
+        const res = await listCategoryAttrs({ q: defQuery, category_id, limit: 20 });
         const rows = res?.data || res?.data?.rows || [];
-        setDefs(rows);
+        setDefs(rows.map((r) => r.attributeDef));
       } catch (e) {
-        setDefs(rows);
         enqueueSnackbar('Failed to load attribute defs', { variant: 'error' });
       } finally {
         setDefsLoading(false);
       }
     }
     loadDefs();
-  }, [isEdit, defQuery, productId]);
+  }, [isEdit, defQuery, productId, category_id]);
 
   const onDefChange = (_, v) => {
     setDefSel(v);
@@ -131,7 +134,7 @@ export default function ProductAttributeUpsert() {
       value_bool: null,
       value_json: '',
       normalized_num: '',
-      normalized_unit: v.unit || ''
+      normalized_unit: v.unit || '',
     }));
   };
 
@@ -159,7 +162,7 @@ export default function ProductAttributeUpsert() {
         return arr.map((x) => coerceByKind(kind, x));
       };
 
-      const payload = { status: form.status, product_id: form.product_id, attributeCode: form.attribute_code };
+      const payload = { status: 'APPROVED', record_status: form.record_status, product_id: form.product_id, attributeCode: form.attribute_code };
 
       // Value-driven inference (independent of data_type):
       // Priority: JSON > Bool (when chosen) > Decimal > Int > Text
@@ -223,8 +226,6 @@ export default function ProductAttributeUpsert() {
       if ((form.normalized_unit || '').trim() !== '') {
         payload.normalized_unit = form.normalized_unit.trim();
       }
-      console.log('Submitting payload:', payload); // Debug log
-      console.log('form', form); // Debug log
       await upsertProductAttr(payload.attributeCode, payload);
       if (isEdit) {
         enqueueSnackbar('Attribute updated', { variant: 'success' });
@@ -545,17 +546,17 @@ export default function ProductAttributeUpsert() {
           </Stack>
 
           <Stack sx={{ gap: 1 }}>
-            <InputLabel>Status</InputLabel>
+            <InputLabel>Record Status</InputLabel>
             <TextField
               select
               size="small"
               fullWidth
-              value={form.status}
-              onChange={(e) => handleField('status', e.target.value)}
+              value={form.record_status}
+              onChange={(e) => handleField('record_status', e.target.value)}
             >
-              {STATUS_LIST.map((s) => (
-                <MenuItem key={s} value={s}>
-                  {s}
+              {RECORD_STATUS_ARRAY.map((r) => (
+                <MenuItem key={r.key} value={r.key}>
+                  {r.value}
                 </MenuItem>
               ))}
             </TextField>

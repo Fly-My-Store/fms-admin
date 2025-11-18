@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Chip } from '@mui/material';
 import BasicReactTable from 'components/tables/basicTable';
+import { RECORD_STATUS } from 'utils/constants';
 
 function formatValue(r) {
   if (r == null) return '';
@@ -59,7 +60,8 @@ export default function VariantAttrsTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  totalCount
 }) {
   const columns = useMemo(
     () => [
@@ -91,9 +93,21 @@ export default function VariantAttrsTableSection({
         cell: (cell) => cell.getValue?.() || cell.row?.original?.normalized_unit || '—'
       },
       {
-        header: 'Status',
-        accessorKey: 'status',
-        cell: (cell) => <StatusChip value={cell.getValue?.() || cell.row?.original?.status} />
+        header: 'Record Status',
+        accessorKey: 'record_status',
+        cell: (cell) => {
+          const value = cell.getValue();
+          switch (value) {
+            case RECORD_STATUS.ACTIVE:
+              return <Chip color="success" label="Active" size="small" variant="light" />;
+            case RECORD_STATUS.INACTIVE:
+              return <Chip color="warning" label="Inactive" size="small" variant="light" />;
+            case RECORD_STATUS.ARCHIVED:
+              return <Chip color="error" label="Archived" size="small" variant="light" />;
+            default:
+              return <Chip color="default" label="Unknown" size="small" variant="light" />;
+          }
+        }
       },
       {
         header: 'Updated',
@@ -125,6 +139,7 @@ export default function VariantAttrsTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
+      totalCount={totalCount}
       permissionName={'variantAttributeValue'}
     />
   );

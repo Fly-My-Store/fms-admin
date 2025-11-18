@@ -108,8 +108,8 @@ const platformMenu = {
         { id: 'brands', breadcrumbs: true, title: 'brands', type: 'item', url: '/brands', icon: icons.TagsOutlined, perm: 'brand', action: 'read' },
         { id: 'categories', breadcrumbs: true, title: 'categories', type: 'item', url: '/categories', icon: icons.ClusterOutlined, perm: 'category', action: 'read' },
         { id: 'products', breadcrumbs: true, title: 'products', type: 'item', url: '/products', icon: icons.AppstoreOutlined, perm: 'product', action: 'read' },
-        { id: 'product-variants', breadcrumbs: true, title: 'product-variants', type: 'item', url: '/product-variants', icon: icons.ReloadOutlined, perm: 'productVariant', action: 'read' },
-        { id: 'product-approvals', breadcrumbs: true, title: 'product-approvals', type: 'item', url: '/product-approvals', icon: icons.ReloadOutlined, perm: 'product', action: 'modify' }
+        // { id: 'product-variants', breadcrumbs: true, title: 'product-variants', type: 'item', url: '/product-variants', icon: icons.ReloadOutlined, perm: 'productVariant', action: 'read' },
+        // { id: 'product-approvals', breadcrumbs: true, title: 'product-approvals', type: 'item', url: '/product-approvals', icon: icons.ReloadOutlined, perm: 'product', action: 'modify' }
       ]
     },
 

@@ -43,7 +43,7 @@ const EMPTY = {
   description: '',
   icon_url: '',
   level: 0,
-  status: 'DRAFT',
+  status: 'APPROVED',
   record_status: 1
 };
 
@@ -121,7 +121,7 @@ export function CategoryUpsert() {
 
   // hydrate form when loaded (edit mode)
   useEffect(() => {
-    if (cat) {
+    if (cat && id) {
       setForm({
         id: cat.id || '',
         parent_id: cat.parent_id || '',
@@ -129,7 +129,7 @@ export function CategoryUpsert() {
         slug: cat.slug || '',
         description: cat.description || '',
         icon_url: cat.icon_url || '',
-        status: cat.status || 'SUBMITTED',
+        status: 'APPROVED',
         record_status: cat.record_status || 1,
         level: Number(cat.level ?? 0)
       });
@@ -138,7 +138,7 @@ export function CategoryUpsert() {
       setIconPreview(cat.icon_url || '');
       setIconFile(null);
     }
-  }, [cat]);
+  }, [cat, id]);
 
   // create mode: read parent from query params once on mount
   useEffect(() => {
@@ -207,7 +207,7 @@ export function CategoryUpsert() {
         description: form.description || null,
         icon_url: iconUrl,
         level: Number(form.level ?? 0),
-        status: form.status,
+        status: 'APPROVED',
         record_status: Number(form.record_status ?? 1)
       };
 
@@ -401,23 +401,6 @@ export function CategoryUpsert() {
                   {LEVEL_OPTIONS.map((o) => (
                     <MenuItem key={o.value} value={o.value}>
                       {o.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Stack>
-
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Status</InputLabel>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  value={form.status}
-                  onChange={(e) => handleField('status', e.target.value)}
-                >
-                  {STATUS_LIST.map((s) => (
-                    <MenuItem key={s} value={s}>
-                      {s}
                     </MenuItem>
                   ))}
                 </TextField>
