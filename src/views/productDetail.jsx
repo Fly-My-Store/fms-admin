@@ -159,6 +159,59 @@ export default function ProductDetail() {
                 {/* Description */}
                 <Field label="Description" value={data?.description} />
 
+                {/* Images */}
+                <Stack spacing={1} sx={{ mt: 1 }}>
+                  <Typography variant="subtitle2">Images</Typography>
+                  {Array.isArray(data?.images) && data.images.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                      {data.images.map((im) => (
+                        <Box
+                          key={im.id || im.url}
+                          sx={{
+                            position: 'relative',
+                            width: 96,
+                            height: 96,
+                            borderRadius: 1,
+                            overflow: 'hidden',
+                            border: '1px solid',
+                            borderColor: im.is_primary ? 'primary.main' : 'divider',
+                            boxShadow: im.is_primary ? 2 : 0,
+                            bgcolor: 'background.paper'
+                          }}
+                          onClick={() => window.open(im.url, '_blank')}
+                        >
+                          <Box
+                            component="img"
+                            src={im.url}
+                            alt={im.alt_text || ''}
+                            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          />
+                          {im.is_primary ? (
+                            <Chip
+                              size="small"
+                              color="primary"
+                              label="Primary"
+                              sx={{ position: 'absolute', top: 6, left: 6 }}
+                            />
+                          ) : null}
+                          {im.role ? (
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              label={im.role}
+                              sx={{ position: 'absolute', bottom: 6, left: 6, bgcolor: 'background.paper' }}
+                            />
+                          ) : null}
+                        </Box>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No images.
+                    </Typography>
+                  )}
+                </Stack>
+
                 {/* JSON blocks */}
                 <Field label="Specifications" value={data?.spec_json ? JSON.stringify(data.spec_json) : '—'} mono />
 

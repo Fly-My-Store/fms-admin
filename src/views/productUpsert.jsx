@@ -8,8 +8,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 
-import axiosServices from 'utils/axios';
-import { createProduct, listBrands, listCategories, updateProduct, uploadProductImage } from 'api/catalog';
+import { createProduct, listBrands, listCategories, updateProduct } from 'api/catalog';
 
 // MUI
 import {
@@ -22,6 +21,7 @@ import {
   Divider,
   FormHelperText,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Stack,
   TextField,
@@ -95,7 +95,10 @@ export default function ProductUpsert() {
 
   // --- Images ---
   const [existingImages, setExistingImages] = useState([]); // from backend
-  const [newFiles, setNewFiles] = useState([]); // File[]
+  const [newImages, setNewImages] = useState([]); // [{ url, is_primary?, kind?, role? }]
+  const [removedImageIds, setRemovedImageIds] = useState([]); // ids marked for deletion (sent as {id, delete:true})
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
 
   // fetch detail for edit
   useEffect(() => {
@@ -121,6 +124,8 @@ export default function ProductUpsert() {
     setBrandSel(product.brand || null);
     setCatSel(product.category || null);
     setExistingImages(Array.isArray(product.images) ? product.images : []);
+    setNewImages([]);
+    setRemovedImageIds([]);
   }, [product, id]);
 
   useEffect(() => {
@@ -192,11 +197,42 @@ export default function ProductUpsert() {
   const onSelectImages = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const result = await uploadSingle(files[0], 'products');//for chat gpt : fix this to upload and add to product images, you have api details
-    setNewFiles((prev) => [...prev, ...files]);
+
+    try {
+      // upload each file and collect URLs with progress
+      const uploaded = [];
+      setUploading(true);
+      setUploadPct(0);
+      for (const file of files) {
+        const res = await uploadSingle(file, (evt) => {
+          if (evt && evt.total) {
+            const pct = Math.round((evt.loaded * 100) / evt.total);
+            setUploadPct((prev) => (pct > prev ? pct : prev));
+          }
+        }); // expects { ok: true, url }
+        const url = res?.url || res?.data?.url || res?.result?.url || null;
+        if (url) uploaded.push({ url, kind: 'image', role: 'gallery' });
+      }
+      if (!uploaded.length) return;
+
+      // if there is no primary anywhere yet, mark the first of this batch as primary
+      const hasAnyPrimary = existingImages.some((im) => im?.is_primary) || newImages.some((im) => im?.is_primary);
+      if (!hasAnyPrimary) uploaded[0].is_primary = true;
+
+      setNewImages((prev) => [...prev, ...uploaded]);
+    } catch (err) {
+      enqueueSnackbar('Image upload failed', { variant: 'error' });
+    } finally {
+      // allow selecting the same file again
+      if (e?.target) e.target.value = '';
+      setUploading(false);
+      setUploadPct(0);
+    }
   };
-  const removeNewFile = (idx) => setNewFiles((prev) => prev.filter((_, i) => i !== idx));
-  const removeExistingImage = (imgId) => setExistingImages((prev) => prev.filter((im) => im.id !== imgId));
+
+  const removeNewImage = (idx) => setNewImages((prev) => prev.filter((_, i) => i !== idx));
+  const toggleRemoveExistingImage = (imgId) =>
+    setRemovedImageIds((prev) => (prev.includes(imgId) ? prev.filter((id) => id !== imgId) : [...prev, imgId]));
 
   // ----- Submit -----
   const handleSubmit = async () => {
@@ -221,14 +257,37 @@ export default function ProductUpsert() {
         record_status: Number(form.record_status ?? 1),
       };
 
-      payload.images = [];// chat gpt : fix this also  create product/ update  product api info already there.
-
-      let prodId = id || form.id;
+      // Build images payload per backend contract
+      const prodId = id || form.id;
       if (prodId) {
+        // UPDATE: send ops [{ new:true, url,... }, { id, delete:true }]
+        const imageOps = [
+          // new uploads
+          ...newImages.map((im) => ({
+            new: true,
+            url: im.url,
+            kind: im.kind || 'image',
+            role: im.role || 'gallery',
+            is_primary: !!im.is_primary
+          })),
+          // deletions
+          ...removedImageIds.map((imgId) => ({ id: imgId, delete: true }))
+        ];
+        if (imageOps.length) payload.images = imageOps;
+
         await updateProduct(prodId, payload);
         enqueueSnackbar('Product updated', { variant: 'success' });
       } else {
-        await createProduct(payload);
+        // CREATE: backend accepts either `urls` or `images`. Send rich objects so primary/role can be honored.
+        const createImages = newImages.map((im) => ({
+          url: im.url,
+          kind: im.kind || 'image',
+          role: im.role || 'gallery',
+          is_primary: !!im.is_primary
+        }));
+        if (createImages.length) payload.images = createImages;
+
+        const res = await createProduct(payload);
         enqueueSnackbar('Product created', { variant: 'success' });
       }
 
@@ -299,18 +358,29 @@ export default function ProductUpsert() {
               <Stack sx={{ gap: 1 }}>
                 <InputLabel>Images</InputLabel>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
-                  {existingImages.map((im) => (
-                    <Stack key={im.id} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
-                      <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
-                      {im.is_primary ? <Chip size="small" label="Primary" /> : null}
-                      <Button size="small" onClick={() => removeExistingImage(im.id)}>Remove</Button>
-                    </Stack>
-                  ))}
-                  {newFiles.map((f, idx) => (
+                  {existingImages.map((im) => {
+                    const marked = removedImageIds.includes(im.id);
+                    return (
+                      <Stack key={im.id} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1, opacity: marked ? 0.4 : 1 }}>
+                        <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
+                        <Stack direction="row" spacing={0.5}>
+                          {im.is_primary ? <Chip size="small" label="Primary" /> : null}
+                          {marked ? <Chip size="small" color="warning" label="Will delete" /> : null}
+                        </Stack>
+                        <Button size="small" onClick={() => toggleRemoveExistingImage(im.id)}>
+                          {marked ? 'Undo' : 'Remove'}
+                        </Button>
+                      </Stack>
+                    );
+                  })}
+                  {newImages.map((im, idx) => (
                     <Stack key={`new-${idx}`} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
-                      <Avatar variant="rounded" src={URL.createObjectURL(f)} sx={{ width: 72, height: 72, borderRadius: 1 }} />
-                      <Chip size="small" label="New" />
-                      <Button size="small" onClick={() => removeNewFile(idx)}>Remove</Button>
+                      <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
+                      <Stack direction="row" spacing={0.5}>
+                        <Chip size="small" label="New" />
+                        {im.is_primary ? <Chip size="small" label="Primary" /> : null}
+                      </Stack>
+                      <Button size="small" onClick={() => removeNewImage(idx)}>Remove</Button>
                     </Stack>
                   ))}
                 </Stack>
@@ -318,6 +388,12 @@ export default function ProductUpsert() {
                   Add Images
                   <input type="file" accept="image/*" hidden multiple onChange={onSelectImages} />
                 </Button>
+                {uploading && (
+                  <Stack sx={{ mt: 1, width: 240 }}>
+                    <LinearProgress variant="determinate" value={uploadPct} />
+                    <FormHelperText>Uploading… {uploadPct}%</FormHelperText>
+                  </Stack>
+                )}
                 <FormHelperText>First image becomes primary unless backend overrides.</FormHelperText>
               </Stack>
             </Stack>

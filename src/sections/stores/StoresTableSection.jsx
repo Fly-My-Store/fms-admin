@@ -12,7 +12,8 @@ export default function StoresTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  handleViewButton
 }) {
   const columns = useMemo(
     () => [
@@ -57,6 +58,7 @@ export default function StoresTableSection({
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'store'}
+      handleViewButton={handleViewButton}
     />
   );
 }

@@ -5,7 +5,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import { actions as catalog } from 'store/catalog/slice';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { createCategory, updateCategory, uploadCategoryIcon, listCategories } from 'api/catalog';
+import { createCategory, updateCategory, listCategories } from 'api/catalog';
+import { uploadSingle } from 'api/upload';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 
@@ -76,6 +77,7 @@ export function CategoryUpsert() {
   const [iconFile, setIconFile] = useState(null);
   const [iconPreview, setIconPreview] = useState('');
   const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // parent autocomplete state
   const [parentQuery, setParentQuery] = useState('');
@@ -170,42 +172,60 @@ export function CategoryUpsert() {
   };
 
   // --- Icon upload handlers ---
-  const handleIconSelect = (e) => {
+  const handleIconSelect = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
+
+    // local preview while uploading
+    try {
+      const localUrl = URL.createObjectURL(f);
+      setIconPreview(localUrl);
+    } catch {}
+
     setIconFile(f);
-    const url = URL.createObjectURL(f);
-    setIconPreview(url);
+    setUploadingIcon(true);
+    setUploadProgress(0);
+    try {
+      const res = await uploadSingle(f, (evt) => {
+        if (evt?.total) {
+          const pct = Math.round((evt.loaded / evt.total) * 100);
+          setUploadProgress(Number.isFinite(pct) ? pct : 0);
+        }
+      });
+      const url = res?.url || res?.data?.url;
+      if (url) {
+        // store the final URL returned by the server
+        setForm((p) => ({ ...p, icon_url: url }));
+        setIconPreview(url);
+      } else {
+        enqueueSnackbar('Upload completed but URL missing in response.', { variant: 'warning' });
+      }
+    } catch (err) {
+      enqueueSnackbar(err?.response?.data?.message || err?.message || 'Icon upload failed', { variant: 'error' });
+      // clear preview on failure
+      setIconPreview('');
+    } finally {
+      setUploadingIcon(false);
+      setUploadProgress(0);
+      setIconFile(null);
+    }
   };
 
   const handleIconRemove = () => {
     setIconFile(null);
     setIconPreview('');
+    setForm((p) => ({ ...p, icon_url: '' }));
   };
 
 
   const handleSubmit = async () => {
     try {
-      // upload icon first if a new file is chosen
-      let iconUrl = form.icon_url || null;
-      if (iconFile) {
-        try {
-          setUploadingIcon(true);
-          const res = await uploadCategoryIcon(iconFile);
-          iconUrl = res?.url || res?.data?.url || iconUrl;
-        } catch (e) {
-          enqueueSnackbar('Icon upload failed, using existing URL field.', { variant: 'warning' });
-        } finally {
-          setUploadingIcon(false);
-        }
-      }
-
       const payload = {
-        parent_id: form.parent_id || null, // include parent if present (create subcategory)
+        parent_id: form.parent_id || null,
         name: form.name?.trim(),
         slug: form.slug?.trim() || slugify(form.name),
         description: form.description || null,
-        icon_url: iconUrl,
+        icon_url: form.icon_url || null,
         level: Number(form.level ?? 0),
         status: 'APPROVED',
         record_status: Number(form.record_status ?? 1)
@@ -359,29 +379,18 @@ export function CategoryUpsert() {
                     {form.name?.[0]?.toUpperCase() || 'C'}
                   </Avatar>
                   <Button component="label" variant="outlined" size="small" disabled={uploadingIcon}>
-                    {uploadingIcon ? 'Uploading…' : 'Upload'}
+                    {uploadingIcon ? `Uploading… ${uploadProgress || 0}%` : 'Upload'}
                     <input type="file" accept="image/*" hidden onChange={handleIconSelect} />
                   </Button>
-                  {iconPreview || form.icon_url ? (
-                    <Button size="small" onClick={handleIconRemove}>Remove</Button>
-                  ) : null}
+                  {(iconPreview || form.icon_url) && (
+                    <Button size="small" onClick={handleIconRemove} disabled={uploadingIcon}>
+                      Remove
+                    </Button>
+                  )}
                 </Stack>
                 <FormHelperText>
-                  Upload an icon image. If a file is chosen, it will be uploaded and used as the icon URL.
+                  Selecting a file uploads immediately. The returned URL is saved to this category.
                 </FormHelperText>
-              </Stack>
-
-              {/* Optional manual URL entry */}
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Icon URL (optional)</InputLabel>
-                <TextField
-                  size="small"
-                  fullWidth
-                  value={form.icon_url}
-                  onChange={(e) => handleField('icon_url', e.target.value)}
-                  placeholder="https://..."
-                />
-                <FormHelperText>If you don’t upload a file, this URL will be used.</FormHelperText>
               </Stack>
             </Stack>
 

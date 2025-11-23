@@ -1,4 +1,4 @@
-import Permission from 'views/permission';
+import Permission from 'views/permissions';
 
 // ==============================|| PAGE ||============================== //
 

@@ -8,7 +8,8 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 
-import { createVariant, updateVariant, uploadVariantImage } from 'api/catalog';
+import { createVariant, updateVariant } from 'api/catalog';
+import { uploadSingle } from 'api/upload';
 
 // MUI
 import {
@@ -19,6 +20,7 @@ import {
   Divider,
   FormHelperText,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Stack,
   TextField,
@@ -93,7 +95,9 @@ export default function VariantUpsert() {
 
   // --- Images ---
   const [existingImages, setExistingImages] = useState([]); // from backend
-  const [newFiles, setNewFiles] = useState([]); // File[]
+  const [newImages, setNewImages] = useState([]); // [{url, kind, role, is_primary, position}]
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
 
   // fetch detail for edit
   useEffect(() => {
@@ -132,13 +136,56 @@ export default function VariantUpsert() {
   const handleField = (name, value) => setForm((p) => ({ ...p, [name]: value }));
 
   // ----- Images -----
-  const onSelectImages = (e) => {
+  const onSelectImages = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    setNewFiles((prev) => [...prev, ...files]);
+    setUploading(true);
+    setUploadPct(0);
+
+    try {
+      const staged = [];
+      for (let i = 0; i < files.length; i += 1) {
+        const file = files[i];
+        const res = await uploadSingle(file, (evt) => {
+          if (evt && evt.total) {
+            const pct = Math.round((evt.loaded * 100) / evt.total);
+            setUploadPct((prev) => (pct > prev ? pct : prev));
+          }
+        });
+        const url = res?.url;
+        if (!url) continue;
+
+        const hasPrimary = existingImages.some((im) => im.is_primary && !im._delete) || newImages.some((im) => im.is_primary);
+        const positionBase = existingImages.filter((im) => !im._delete).length + newImages.length + staged.length;
+
+        staged.push({
+          url,
+          kind: 'image',
+          role: 'gallery',
+          is_primary: hasPrimary ? false : staged.length === 0, // first new becomes primary if none
+          position: positionBase
+        });
+      }
+      if (staged.length) {
+        setNewImages((prev) => [...prev, ...staged]);
+        enqueueSnackbar(`${staged.length} image${staged.length > 1 ? 's' : ''} added`, { variant: 'success' });
+      }
+    } catch (err) {
+      enqueueSnackbar('Upload failed for some files', { variant: 'warning' });
+    } finally {
+      setUploading(false);
+      setUploadPct(0);
+      // clear input selection
+      e.target.value = '';
+    }
   };
-  const removeNewFile = (idx) => setNewFiles((prev) => prev.filter((_, i) => i !== idx));
-  const removeExistingImage = (imgId) => setExistingImages((prev) => prev.filter((im) => im.id !== imgId));
+
+  const removeNewImage = (idx) => setNewImages((prev) => prev.filter((_, i) => i !== idx));
+
+  const toggleDeleteExisting = (imgId) =>
+    setExistingImages((prev) =>
+      prev.map((im) => (im.id === imgId ? { ...im, _delete: !im._delete } : im))
+    );
 
   // ----- Submit -----
   const handleSubmit = async () => {
@@ -166,6 +213,23 @@ export default function VariantUpsert() {
         record_status: form.record_status
       };
 
+      const imagesOps = [];
+
+      existingImages.forEach((im) => {
+        if (im._delete) imagesOps.push({ id: im.id, delete: true });
+      });
+
+      newImages.forEach((ni) => {
+        imagesOps.push({
+          ...ni,
+          new: true
+        });
+      });
+
+      if (imagesOps.length) {
+        payload.images = imagesOps;
+      }
+
       let variantId = id || form.id;
       if (variantId) {
         await updateVariant(variantId, payload);
@@ -174,16 +238,6 @@ export default function VariantUpsert() {
         const res = await createVariant(form.product_id, payload);
         variantId = res?.data?.id || res?.data?.data?.id;
         enqueueSnackbar('Variant created', { variant: 'success' });
-      }
-
-      if (variantId && newFiles.length) {
-        for (let i = 0; i < newFiles.length; i += 1) {
-          try {
-            await uploadVariantImage(variantId, newFiles[i], { position: existingImages.length + i });
-          } catch {
-            enqueueSnackbar('Some images failed to upload', { variant: 'warning' });
-          }
-        }
       }
 
       const backUrl = form.product_id ? `/products/${form.product_id}?tab=variants` : '/product-variants';
@@ -304,16 +358,18 @@ export default function VariantUpsert() {
             <Stack direction="row" spacing={1} flexWrap="wrap">
               {existingImages.map((im) => (
                 <Stack key={im.id} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
-                  <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
+                  <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1, opacity: im._delete ? 0.4 : 1 }} />
                   {im.is_primary ? <Chip size="small" label="Primary" /> : null}
-                  <Button size="small" onClick={() => removeExistingImage(im.id)}>Remove</Button>
+                  {im._delete ? <Chip size="small" color="warning" label="To delete" /> : null}
+                  <Button size="small" onClick={() => toggleDeleteExisting(im.id)}>{im._delete ? 'Undo' : 'Remove'}</Button>
                 </Stack>
               ))}
-              {newFiles.map((f, idx) => (
+              {newImages.map((im, idx) => (
                 <Stack key={`new-${idx}`} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
-                  <Avatar variant="rounded" src={URL.createObjectURL(f)} sx={{ width: 72, height: 72, borderRadius: 1 }} />
+                  <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
                   <Chip size="small" label="New" />
-                  <Button size="small" onClick={() => removeNewFile(idx)}>Remove</Button>
+                  {im.is_primary ? <Chip size="small" label="Primary" /> : null}
+                  <Button size="small" onClick={() => removeNewImage(idx)}>Remove</Button>
                 </Stack>
               ))}
             </Stack>
@@ -321,6 +377,12 @@ export default function VariantUpsert() {
               Add Images
               <input type="file" accept="image/*" hidden multiple onChange={onSelectImages} />
             </Button>
+            {uploading && (
+              <Stack sx={{ width: 240, mt: 1 }}>
+                <LinearProgress variant="determinate" value={uploadPct} />
+                <FormHelperText>Uploading… {uploadPct}%</FormHelperText>
+              </Stack>
+            )}
             <FormHelperText>First image becomes primary unless backend overrides.</FormHelperText>
           </Stack>
 

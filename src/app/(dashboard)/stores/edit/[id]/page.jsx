@@ -1,7 +1,7 @@
-import BusinessUpdate from 'views/businessUpdate';
+import View from 'views/storeUpsert';
 
 // ==============================|| PAGE ||============================== //
 
 export default function Page() {
-  return <BusinessUpdate />;
+  return <View />;
 }

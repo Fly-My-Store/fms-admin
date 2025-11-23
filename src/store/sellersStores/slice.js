@@ -7,7 +7,7 @@ const initialState = {
   sellers: initialList(),
   stores: initialList(),
   sellersDetail: initialEntity(),
-  storesDetail: initialEntity()
+  storeDetail: initialEntity()
 };
 
 const slice = createSlice({
@@ -89,51 +89,51 @@ const slice = createSlice({
       state.stores.error = action.payload;
     },
     storesGetRequest(state) {
-      state.storesDetail.loading = true;
-      state.storesDetail.error = null;
+      state.storeDetail.loading = true;
+      state.storeDetail.error = null;
     },
     storesGetSuccess(state, action) {
-      state.storesDetail.loading = false;
-      state.storesDetail.data = action.payload?.data || action.payload;
+      state.storeDetail.loading = false;
+      state.storeDetail.data = action.payload?.data || action.payload;
     },
     storesGetFailure(state, action) {
-      state.storesDetail.loading = false;
-      state.storesDetail.error = action.payload;
+      state.storeDetail.loading = false;
+      state.storeDetail.error = action.payload;
     },
     storesCreateRequest(state) {
-      state.storesDetail.loading = true;
-      state.storesDetail.error = null;
+      state.storeDetail.loading = true;
+      state.storeDetail.error = null;
     },
     storesCreateSuccess(state, action) {
-      state.storesDetail.loading = false;
-      state.storesDetail.data = action.payload?.data || action.payload;
+      state.storeDetail.loading = false;
+      state.storeDetail.data = action.payload?.data || action.payload;
     },
     storesCreateFailure(state, action) {
-      state.storesDetail.loading = false;
-      state.storesDetail.error = action.payload;
+      state.storeDetail.loading = false;
+      state.storeDetail.error = action.payload;
     },
     storesUpdateRequest(state) {
-      state.storesDetail.loading = true;
-      state.storesDetail.error = null;
+      state.storeDetail.loading = true;
+      state.storeDetail.error = null;
     },
     storesUpdateSuccess(state, action) {
-      state.storesDetail.loading = false;
-      state.storesDetail.data = action.payload?.data || action.payload;
+      state.storeDetail.loading = false;
+      state.storeDetail.data = action.payload?.data || action.payload;
     },
     storesUpdateFailure(state, action) {
-      state.storesDetail.loading = false;
-      state.storesDetail.error = action.payload;
+      state.storeDetail.loading = false;
+      state.storeDetail.error = action.payload;
     },
     storesRemoveRequest(state) {
-      state.storesDetail.loading = true;
-      state.storesDetail.error = null;
+      state.storeDetail.loading = true;
+      state.storeDetail.error = null;
     },
     storesRemoveSuccess(state) {
-      state.storesDetail.loading = false;
+      state.storeDetail.loading = false;
     },
     storesRemoveFailure(state, action) {
-      state.storesDetail.loading = false;
-      state.storesDetail.error = action.payload;
+      state.storeDetail.loading = false;
+      state.storeDetail.error = action.payload;
     }
   }
 });

@@ -5,7 +5,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import { actions as catalog } from 'store/catalog/slice';
 import { useParams, useRouter } from 'next/navigation';
-import { createBrand, updateBrand, uploadBrandLogo } from 'api/catalog';
+import { createBrand, updateBrand } from 'api/catalog';
+import { uploadSingle } from 'api/upload';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 
@@ -74,6 +75,7 @@ export function BrandUpsert() {
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // fetch existing
   useEffect(() => {
@@ -122,40 +124,52 @@ export function BrandUpsert() {
   };
 
   // --- Logo upload handlers ---
-  const handleLogoSelect = (e) => {
+  const handleLogoSelect = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    setLogoFile(f);
-    const url = URL.createObjectURL(f);
-    setLogoPreview(url);
+    // Clear the input so selecting the same file again triggers onChange
+    e.target.value = '';
+    try {
+      setUploadingLogo(true);
+      setUploadProgress(0);
+      // Upload immediately using common upload API
+      const res = await uploadSingle(f, (pe) => {
+        if (pe && pe.total) {
+          const pct = Math.round((pe.loaded * 100) / pe.total);
+          setUploadProgress(pct);
+        }
+      });
+      const url = res?.url || res?.data?.url;
+      if (!url) throw new Error('Upload failed: no URL returned');
+      // Persist into form and preview
+      setForm((p) => ({ ...p, logo_url: url }));
+      setLogoPreview(url);
+      setLogoFile(null);
+      enqueueSnackbar('Logo uploaded', { variant: 'success' });
+    } catch (err) {
+      setLogoFile(null);
+      setLogoPreview('');
+      const msg = err?.response?.data?.message || err?.message || 'Logo upload failed';
+      enqueueSnackbar(msg, { variant: 'error' });
+    } finally {
+      setUploadingLogo(false);
+      setUploadProgress(0);
+    }
   };
 
   const handleLogoRemove = () => {
     setLogoFile(null);
     setLogoPreview('');
+    setForm((p) => ({ ...p, logo_url: '' }));
   };
 
   const handleSubmit = async () => {
     try {
-      // upload logo first if a new file is chosen
-      let logoUrl = form.logo_url || null;
-      if (logoFile) {
-        try {
-          setUploadingLogo(true);
-          const res = await uploadBrandLogo(logoFile); // must exist in api/catalog
-          logoUrl = res?.url || res?.data?.url || logoUrl;
-        } catch (e) {
-          enqueueSnackbar('Logo upload failed, using existing URL field.', { variant: 'warning' });
-        } finally {
-          setUploadingLogo(false);
-        }
-      }
-
       const payload = {
         name: form.name?.trim(),
         slug: form.slug?.trim() || slugify(form.name),
         description: form.description || '',
-        logo_url: logoUrl,
+        logo_url: form.logo_url || '',
         sort_letter: (form.sort_letter || toSortLetter(form.name) || '').toUpperCase(),
         status: 'APPROVED',
         record_status: Number(form.record_status ?? 1)
@@ -249,7 +263,7 @@ export function BrandUpsert() {
                     {form.name?.[0]?.toUpperCase() || 'B'}
                   </Avatar>
                   <Button component="label" variant="outlined" size="small" disabled={uploadingLogo}>
-                    {uploadingLogo ? 'Uploading…' : 'Upload'}
+                    {uploadingLogo ? `Uploading… ${uploadProgress || 0}%` : 'Upload'}
                     <input type="file" accept="image/*" hidden onChange={handleLogoSelect} />
                   </Button>
                   {logoPreview || form.logo_url ? (
@@ -257,21 +271,8 @@ export function BrandUpsert() {
                   ) : null}
                 </Stack>
                 <FormHelperText>
-                  Upload a logo image. If a file is chosen, it will be uploaded and used as the logo URL.
+                  Choose an image to upload immediately; the returned URL is saved to the form.
                 </FormHelperText>
-              </Stack>
-
-              {/* Optional manual URL */}
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Logo URL (optional)</InputLabel>
-                <TextField
-                  size="small"
-                  fullWidth
-                  value={form.logo_url}
-                  onChange={(e) => handleField('logo_url', e.target.value)}
-                  placeholder="https://..."
-                />
-                <FormHelperText>If you don’t upload a file, this URL will be used.</FormHelperText>
               </Stack>
             </Stack>
 
