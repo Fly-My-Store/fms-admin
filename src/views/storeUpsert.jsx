@@ -491,10 +491,7 @@ export default function StoreUpsert() {
           </Stack>
 
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Business Name</InputLabel>
-              <TextField size="small" value={form.seller.business_name} onChange={(e) => handleSellerField('business_name', e.target.value)} error={!!errors['seller.business_name']} helperText={errors['seller.business_name'] || ''} />
-            </Stack>
+           
             <Stack sx={{ gap: 1, flex: 1 }}>
               <InputLabel>KYB Status</InputLabel>
               <TextField select size="small" value={form.seller.kyb_status} onChange={(e) => handleSellerField('kyb_status', e.target.value)} error={!!errors['seller.kyb_status']} helperText={errors['seller.kyb_status'] || ''}>

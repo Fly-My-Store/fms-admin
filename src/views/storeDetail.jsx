@@ -134,7 +134,6 @@ export default function StoreDetailView() {
                   <Stack spacing={1.25} flex={1}>
                     <KV label="Display Name" value={data?.seller?.display_name} />
                     <KV label="Legal Name" value={data?.seller?.legal_name} />
-                    <KV label="Business Name" value={data?.seller?.business_name} />
                     <KV label="KYB Status" value={data?.seller?.kyb_status} />
                     <KV label="Onboarding Step" value={data?.seller?.onboarding_step} />
                   </Stack>
