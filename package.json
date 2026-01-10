@@ -2,6 +2,9 @@
   "name": "fms-admin",
   "version": "3.4.0",
   "private": true,
+  "engines": {
+    "node": ">=20.19.5"
+  },
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
@@ -69,5 +72,5 @@
     "knip": "5.43.5",
     "prettier": "3.4.2"
   },
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "pnpm@10.24.0"
 }
