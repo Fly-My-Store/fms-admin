@@ -82,7 +82,6 @@ const EMPTY = {
     id: '', // optional when editing existing seller
     legal_name: '',
     display_name: '',
-    business_name: '',
     gstin: '',
     pan: '',
     cin: '',
@@ -152,7 +151,6 @@ export default function StoreUpsert() {
         id: seller.id || '',
         legal_name: seller.legal_name || '',
         display_name: seller.display_name || '',
-        business_name: seller.business_name || '',
         gstin: seller.gstin || '',
         pan: seller.pan || '',
         cin: seller.cin || '',
@@ -249,7 +247,6 @@ export default function StoreUpsert() {
     const sel = f.seller || {};
     if (!String(sel.legal_name || '').trim()) add('seller.legal_name', 'Required');
     if (!String(sel.display_name || '').trim()) add('seller.display_name', 'Required');
-    if (!String(sel.business_name || '').trim()) add('seller.business_name', 'Required');
     if (!KYB_STATUS.includes(sel.kyb_status)) add('seller.kyb_status', 'Invalid');
 
     // Seller optional docs; validate format if present
@@ -293,6 +290,7 @@ export default function StoreUpsert() {
   const handleSubmit = async () => {
     try {
       const e = validateForm();
+      console.log('errors', e);
       if (Object.keys(e).length) {
         setErrors(e);
         enqueueSnackbar('Please fix the highlighted fields.', { variant: 'warning' });
@@ -330,7 +328,6 @@ export default function StoreUpsert() {
         'id',
         'legal_name',
         'display_name',
-        'business_name',
         'gstin',
         'pan',
         'cin',
