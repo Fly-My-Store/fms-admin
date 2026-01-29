@@ -82,7 +82,7 @@ export default function UserFormDialog({ open, onClose, initialData = null }) {
                         <TextField
                             id="firstName"
                             name="firstName"
-                            value={form.firstName}
+                            value={form.firstName || ''}
                             onChange={handleChange}
                             placeholder="First Name"
                             fullWidth
@@ -93,7 +93,7 @@ export default function UserFormDialog({ open, onClose, initialData = null }) {
                         <TextField
                             id="lastName"
                             name="lastName"
-                            value={form.lastName}
+                            value={form.lastName || ''}
                             onChange={handleChange}
                             placeholder="Last Name"
                             fullWidth
@@ -105,7 +105,7 @@ export default function UserFormDialog({ open, onClose, initialData = null }) {
                         <TextField
                             id="email"
                             name="email"
-                            value={form.email}
+                            value={form.email || ''}
                             onChange={handleChange}
                             placeholder="Email"
                             fullWidth
@@ -120,7 +120,7 @@ export default function UserFormDialog({ open, onClose, initialData = null }) {
                             id="password"
                             name="password"
                             type="password"
-                            value={form.password}
+                            value={form.password || ''}
                             onChange={handleChange}
                             placeholder="Enter password"
                             fullWidth

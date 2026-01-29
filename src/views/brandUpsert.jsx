@@ -13,6 +13,7 @@ import MainCard from 'components/MainCard';
 // MUI
 import {
   Avatar,
+  Box,
   Button,
   Divider,
   InputLabel,
@@ -22,6 +23,7 @@ import {
   Typography,
   FormHelperText
 } from '@mui/material';
+import Image from 'next/image';
 
 // If your Brand has a workflow status keep this list; otherwise you can hide the field in UI
 const STATUS_LIST = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED'];
@@ -38,7 +40,6 @@ const EMPTY = {
   description: '',
   logo_url: '',
   sort_letter: '',
-  status: 'APPROVED',
   record_status: 1
 };
 
@@ -77,6 +78,15 @@ export function BrandUpsert() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  // Reset form when id is cleared (navigating to create)
+  useEffect(() => {
+    if (!id) {
+      setForm(EMPTY);
+      setLogoFile(null);
+      setLogoPreview('');
+    }
+  }, [id]);
+
   // fetch existing
   useEffect(() => {
     if (!id) return;
@@ -85,23 +95,18 @@ export function BrandUpsert() {
 
   // hydrate form when loaded
   useEffect(() => {
-    if (row) {
+    if (row && id) {
       setForm({
         id: row.id,
         name: row.name || '',
         slug: row.slug || '',
         description: row.description || '',
         logo_url: row.logo_url || '',
-        status: 'APPROVED',
-        record_status: 1,
+        record_status: row.record_status ?? 1,
         sort_letter: row.sort_letter || toSortLetter(row.name)
       });
       setLogoPreview(row.logo_url || '');
       setLogoFile(null);
-    } else if (!id) {
-      setForm(EMPTY);
-      setLogoFile(null);
-      setLogoPreview('');
     }
   }, [row, id]);
 
@@ -118,7 +123,7 @@ export function BrandUpsert() {
     setForm((p) => ({
       ...p,
       name: value,
-      slug: p.slug ? p.slug : slugify(value),
+      slug: slugify(value),
       sort_letter: p.sort_letter ? p.sort_letter : toSortLetter(value)
     }));
   };
@@ -171,7 +176,6 @@ export function BrandUpsert() {
         description: form.description || '',
         logo_url: form.logo_url || '',
         sort_letter: (form.sort_letter || toSortLetter(form.name) || '').toUpperCase(),
-        status: 'APPROVED',
         record_status: Number(form.record_status ?? 1)
       };
 
@@ -221,7 +225,7 @@ export function BrandUpsert() {
                 <TextField
                   size="small"
                   fullWidth
-                  value={form.name}
+                  value={form.name || ''}
                   onChange={handleNameChange}
                   placeholder="e.g., Samsung"
                 />
@@ -232,7 +236,7 @@ export function BrandUpsert() {
                 <TextField
                   size="small"
                   fullWidth
-                  value={form.slug}
+                  value={form.slug || ''}
                   onChange={(e) => handleField('slug', e.target.value)}
                   placeholder="samsung"
                 />
@@ -245,7 +249,7 @@ export function BrandUpsert() {
                   fullWidth
                   multiline
                   minRows={3}
-                  value={form.description}
+                  value={form.description || ''}
                   onChange={(e) => handleField('description', e.target.value)}
                   placeholder="Short description"
                 />
@@ -255,13 +259,40 @@ export function BrandUpsert() {
               <Stack sx={{ gap: 1 }}>
                 <InputLabel>Logo</InputLabel>
                 <Stack direction="row" spacing={2} alignItems="center">
-                  <Avatar
-                    variant="rounded"
-                    src={logoPreview || form.logo_url || undefined}
-                    sx={{ width: 48, height: 48, borderRadius: 1 }}
-                  >
-                    {form.name?.[0]?.toUpperCase() || 'B'}
-                  </Avatar>
+                  {(logoPreview || form.logo_url) ? (
+                    <Box
+                      sx={{
+                        width: 100,
+                        height: 100,
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'grey.100',
+                        border: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                    >
+                      <img
+                        src={logoPreview || form.logo_url}
+                        alt={form.name || 'Brand logo'}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          display: 'block'
+                        }}
+                      />
+                    </Box>
+                  ) : (
+                    <Avatar
+                      variant="rounded"
+                      sx={{ width: 100, height: 100, borderRadius: 1 }}
+                    >
+                      {form.name?.[0]?.toUpperCase() || 'B'}
+                    </Avatar>
+                  )}
                   <Button component="label" variant="outlined" size="small" disabled={uploadingLogo}>
                     {uploadingLogo ? `Uploading… ${uploadProgress || 0}%` : 'Upload'}
                     <input type="file" accept="image/*" hidden onChange={handleLogoSelect} />

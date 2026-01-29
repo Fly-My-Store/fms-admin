@@ -99,6 +99,15 @@ export default function VariantUpsert() {
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
 
+  // Reset form when id is cleared (navigating to create)
+  useEffect(() => {
+    if (!id) {
+      setForm({ ...EMPTY, product_id: product_id_from_query || '' });
+      setExistingImages([]);
+      setNewImages([]);
+    }
+  }, [id, product_id_from_query]);
+
   // fetch detail for edit
   useEffect(() => {
     if (!id) return;
@@ -284,11 +293,11 @@ export default function VariantUpsert() {
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <Stack flex={1} sx={{ gap: 1 }}>
               <InputLabel>SKU *</InputLabel>
-              <TextField size="small" fullWidth value={form.sku} onChange={(e) => handleField('sku', e.target.value)} placeholder="IP17-BLK-256" />
+              <TextField size="small" fullWidth value={form.sku || ''} onChange={(e) => handleField('sku', e.target.value)} placeholder="IP17-BLK-256" />
             </Stack>
             <Stack flex={1} sx={{ gap: 1 }}>
               <InputLabel>Barcode</InputLabel>
-              <TextField size="small" fullWidth value={form.barcode} onChange={(e) => handleField('barcode', e.target.value)} placeholder="EAN/GTIN" />
+              <TextField size="small" fullWidth value={form.barcode || ''} onChange={(e) => handleField('barcode', e.target.value)} placeholder="EAN/GTIN" />
             </Stack>
             <Stack flex={1} sx={{ gap: 1 }}>
               <InputLabel>Record Status</InputLabel>
@@ -311,11 +320,11 @@ export default function VariantUpsert() {
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <Stack flex={1} sx={{ gap: 1 }}>
               <InputLabel>MRP</InputLabel>
-              <TextField size="small" fullWidth value={form.mrp} onChange={(e) => handleField('mrp', e.target.value)} placeholder="79999.00" />
+              <TextField size="small" fullWidth value={form.mrp || ''} onChange={(e) => handleField('mrp', e.target.value)} placeholder="79999.00" />
             </Stack>
             <Stack flex={1} sx={{ gap: 1 }}>
               <InputLabel>Sale Price</InputLabel>
-              <TextField size="small" fullWidth value={form.sale_price} onChange={(e) => handleField('sale_price', e.target.value)} placeholder="74999.00" />
+              <TextField size="small" fullWidth value={form.sale_price || ''} onChange={(e) => handleField('sale_price', e.target.value)} placeholder="74999.00" />
             </Stack>
             <Stack flex={1} sx={{ gap: 1 }}>
               <InputLabel>Currency</InputLabel>
@@ -340,15 +349,15 @@ export default function VariantUpsert() {
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <Stack flex={1} sx={{ gap: 1 }}>
               <InputLabel>GTIN</InputLabel>
-              <TextField size="small" fullWidth value={form.gtin} onChange={(e) => handleField('gtin', e.target.value)} />
+              <TextField size="small" fullWidth value={form.gtin || ''} onChange={(e) => handleField('gtin', e.target.value)} />
             </Stack>
             <Stack flex={1} sx={{ gap: 1 }}>
               <InputLabel>MPN</InputLabel>
-              <TextField size="small" fullWidth value={form.mpn} onChange={(e) => handleField('mpn', e.target.value)} />
+              <TextField size="small" fullWidth value={form.mpn || ''} onChange={(e) => handleField('mpn', e.target.value)} />
             </Stack>
             <Stack flex={1} sx={{ gap: 1 }}>
               <InputLabel>Color Hex</InputLabel>
-              <TextField size="small" fullWidth value={form.color_hex} onChange={(e) => handleField('color_hex', e.target.value)} placeholder="#000000" />
+              <TextField size="small" fullWidth value={form.color_hex || ''} onChange={(e) => handleField('color_hex', e.target.value)} placeholder="#000000" />
             </Stack>
           </Stack>
 

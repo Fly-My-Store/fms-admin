@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 // next
 import NextLink from 'next/link';
 import { getProviders, getCsrfToken } from 'next-auth/react';
@@ -17,8 +19,25 @@ import AuthRegister from 'sections/auth/auth-forms/AuthRegister';
 // ================================|| REGISTER ||================================ //
 
 export default function Register() {
-  const csrfToken = getCsrfToken();
-  const providers = getProviders();
+  const [csrfToken, setCsrfToken] = useState(null);
+  const [providers, setProviders] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [csrf, prov] = await Promise.all([getCsrfToken(), getProviders()]);
+        if (!mounted) return;
+        setCsrfToken(csrf || null);
+        setProviders(prov || null);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <AuthWrapper>

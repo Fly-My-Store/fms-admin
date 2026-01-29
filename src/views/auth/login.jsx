@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 // next
 import NextLink from 'next/link';
 import { getProviders, getCsrfToken } from 'next-auth/react';
@@ -15,8 +17,25 @@ import AuthWrapper from 'sections/auth/AuthWrapper';
 import AuthLogin from 'sections/auth/auth-forms/AuthLogin';
 
 export default function SignIn() {
-  const csrfToken = getCsrfToken();
-  const providers = getProviders();
+  const [csrfToken, setCsrfToken] = useState(null);
+  const [providers, setProviders] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [csrf, prov] = await Promise.all([getCsrfToken(), getProviders()]);
+        if (!mounted) return;
+        setCsrfToken(csrf || null);
+        setProviders(prov || null);
+      } catch {
+        // ignore: login form can still work even if next-auth endpoints fail
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <AuthWrapper>

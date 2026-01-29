@@ -119,7 +119,7 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
                 <TextField
                   id="code"
                   name="code"
-                  value={form.code}
+                  value={form.code || ''}
                   onChange={(e) => setField('code', e.target.value)}
                   placeholder="battery_mah"
                   fullWidth
@@ -133,7 +133,7 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
                 <TextField
                   id="data_type"
                   name="data_type"
-                  value={form.data_type}
+                  value={form.data_type || ''}
                   onChange={(e) => setField('data_type', e.target.value)}
                   select
                   fullWidth
@@ -155,7 +155,7 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
                 <TextField
                   id="name"
                   name="name"
-                  value={form.name}
+                  value={form.name || ''}
                   onChange={(e) => setField('name', e.target.value)}
                   placeholder="Battery Capacity"
                   fullWidth
@@ -168,7 +168,7 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
                 <TextField
                   id="unit"
                   name="unit"
-                  value={form.unit}
+                  value={form.unit || ''}
                   onChange={(e) => setField('unit', e.target.value)}
                   placeholder='e.g., "mAh", "kg", "cm"'
                   fullWidth
@@ -182,7 +182,7 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
             <TextField
               id="allowed_values"
               name="allowed_values"
-              value={form.allowed_values_str}
+              value={form.allowed_values_str || ''}
               onChange={(e) => setField('allowed_values_str', e.target.value)}
               placeholder={`["64GB", "128GB"] or [{"code":"RED","label":"Red"}]`}
               fullWidth
@@ -202,7 +202,7 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
                 <TextField
                   id="record_status"
                   name="record_status"
-                  value={form.record_status}
+                  value={form.record_status || ''}
                   onChange={(e) => setField('record_status', e.target.value)}
                   select
                   fullWidth

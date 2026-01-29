@@ -56,9 +56,29 @@ export default function ProductVariantAttributeUpsert() {
     value_json: '',
     normalized_num: '',
     normalized_unit: '',
-    status: 'APPROVED',
     record_status: 1
   });
+
+  // Reset form when attributeCode is cleared (navigating to create)
+  useEffect(() => {
+    if (!attributeCode) {
+      setForm({
+        variant_id: variantId || '',
+        attribute_code: '',
+        data_type: '',
+        allowed_values: null,
+        value_text: '',
+        value_int: '',
+        value_decimal: '',
+        value_bool: null,
+        value_json: '',
+        normalized_num: '',
+        normalized_unit: '',
+        record_status: 1
+      });
+      setDefSel(null);
+    }
+  }, [attributeCode, variantId]);
 
   const breadcrumb = useMemo(
     () => ({
@@ -92,7 +112,6 @@ export default function ProductVariantAttributeUpsert() {
           value_json: row?.value_json ? stableStringify(row.value_json) : '',
           normalized_num: row?.normalized_num ?? '',
           normalized_unit: row?.normalized_unit ?? '',
-          status: 'APPROVED',
           record_status: row?.record_status || 1
         });
       } catch (e) {
@@ -163,7 +182,7 @@ export default function ProductVariantAttributeUpsert() {
         return arr.map((x) => coerceByKind(kind, x));
       };
 
-      const payload = { status: 'APPROVED', record_status: form.record_status, variant_id: form.variant_id, attributeCode: form.attribute_code };
+      const payload = { record_status: form.record_status, variant_id: form.variant_id, attributeCode: form.attribute_code };
 
       // Value-driven inference (independent of data_type):
       // Priority: JSON > Bool (when chosen) > Decimal > Int > Text
@@ -379,7 +398,7 @@ export default function ProductVariantAttributeUpsert() {
                 select
                 size="small"
                 fullWidth
-                value={form.value_text}
+                value={form.value_text || ''}
                 onChange={(e) => handleField('value_text', e.target.value)}
               >
                 <MenuItem value="">—</MenuItem>
@@ -404,7 +423,7 @@ export default function ProductVariantAttributeUpsert() {
             <TextField
               size="small"
               fullWidth
-              value={form.value_text}
+              value={form.value_text || ''}
               onChange={(e) => handleField('value_text', e.target.value)}
             />
           </>
@@ -417,7 +436,7 @@ export default function ProductVariantAttributeUpsert() {
               size="small"
               type="number"
               fullWidth
-              value={form.value_int}
+              value={form.value_int || ''}
               onChange={(e) => handleField('value_int', e.target.value)}
             />
           </>
@@ -430,7 +449,7 @@ export default function ProductVariantAttributeUpsert() {
               size="small"
               type="number"
               fullWidth
-              value={form.value_decimal}
+              value={form.value_decimal || ''}
               onChange={(e) => handleField('value_decimal', e.target.value)}
             />
           </>
@@ -464,7 +483,7 @@ export default function ProductVariantAttributeUpsert() {
               fullWidth
               multiline
               minRows={4}
-              value={form.value_json}
+              value={form.value_json || ''}
               onChange={(e) => handleField('value_json', e.target.value)}
               inputProps={{
                 style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }
@@ -533,7 +552,7 @@ export default function ProductVariantAttributeUpsert() {
                 size="small"
                 fullWidth
                 type="number"
-                value={form.normalized_num}
+                value={form.normalized_num || ''}
                 onChange={(e) => handleField('normalized_num', e.target.value)}
               />
             </Stack>
@@ -542,7 +561,7 @@ export default function ProductVariantAttributeUpsert() {
               <TextField
                 size="small"
                 fullWidth
-                value={form.normalized_unit}
+                value={form.normalized_unit || ''}
                 onChange={(e) => handleField('normalized_unit', e.target.value)}
               />
             </Stack>

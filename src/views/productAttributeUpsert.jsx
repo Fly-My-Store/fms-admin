@@ -17,6 +17,10 @@ import {
   Autocomplete,
   Button,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   FormHelperText,
   InputLabel,
   MenuItem,
@@ -43,6 +47,7 @@ export default function ProductAttributeUpsert() {
   const [defsLoading, setDefsLoading] = useState(false);
   const [defQuery, setDefQuery] = useState('');
   const [defSel, setDefSel] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const [form, setForm] = useState({
     product_id: productId || '',
@@ -56,9 +61,29 @@ export default function ProductAttributeUpsert() {
     value_json: '',
     normalized_num: '',
     normalized_unit: '',
-    status: 'APPROVED',
     record_status: 1
   });
+
+  // Reset form when attributeCode is cleared (navigating to create)
+  useEffect(() => {
+    if (!attributeCode) {
+      setForm({
+        product_id: productId || '',
+        attribute_code: '',
+        data_type: '',
+        allowed_values: null,
+        value_text: '',
+        value_int: '',
+        value_decimal: '',
+        value_bool: null,
+        value_json: '',
+        normalized_num: '',
+        normalized_unit: '',
+        record_status: 1
+      });
+      setDefSel(null);
+    }
+  }, [attributeCode, productId]);
 
   const breadcrumb = useMemo(
     () => ({
@@ -92,7 +117,6 @@ export default function ProductAttributeUpsert() {
           value_json: row?.value_json ? stableStringify(row.value_json) : '',
           normalized_num: row?.normalized_num ?? '',
           normalized_unit: row?.normalized_unit ?? '',
-          status: 'APPROVED',
           record_status: row?.record_status || 1
         });
       } catch (e) {
@@ -162,7 +186,7 @@ export default function ProductAttributeUpsert() {
         return arr.map((x) => coerceByKind(kind, x));
       };
 
-      const payload = { status: 'APPROVED', record_status: form.record_status, product_id: form.product_id, attributeCode: form.attribute_code };
+      const payload = { record_status: form.record_status, product_id: form.product_id, attributeCode: form.attribute_code };
 
       // Value-driven inference (independent of data_type):
       // Priority: JSON > Bool (when chosen) > Decimal > Int > Text
@@ -227,12 +251,7 @@ export default function ProductAttributeUpsert() {
         payload.normalized_unit = form.normalized_unit.trim();
       }
       await upsertProductAttr(payload.attributeCode, payload);
-      if (isEdit) {
-        enqueueSnackbar('Attribute updated', { variant: 'success' });
-      } else {
-        enqueueSnackbar('Attribute added', { variant: 'success' });
-      }
-      router.push(`/products/${productId}`);
+      setShowConfirmation(true);
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'Failed to save attribute';
       enqueueSnackbar(msg, { variant: 'error' });
@@ -376,7 +395,7 @@ export default function ProductAttributeUpsert() {
                 select
                 size="small"
                 fullWidth
-                value={form.value_text}
+                value={form.value_text || ''}
                 onChange={(e) => handleField('value_text', e.target.value)}
               >
                 <MenuItem value="">—</MenuItem>
@@ -401,7 +420,7 @@ export default function ProductAttributeUpsert() {
             <TextField
               size="small"
               fullWidth
-              value={form.value_text}
+              value={form.value_text || ''}
               onChange={(e) => handleField('value_text', e.target.value)}
             />
           </>
@@ -414,7 +433,7 @@ export default function ProductAttributeUpsert() {
               size="small"
               type="number"
               fullWidth
-              value={form.value_int}
+              value={form.value_int || ''}
               onChange={(e) => handleField('value_int', e.target.value)}
             />
           </>
@@ -427,7 +446,7 @@ export default function ProductAttributeUpsert() {
               size="small"
               type="number"
               fullWidth
-              value={form.value_decimal}
+              value={form.value_decimal || ''}
               onChange={(e) => handleField('value_decimal', e.target.value)}
             />
           </>
@@ -461,7 +480,7 @@ export default function ProductAttributeUpsert() {
               fullWidth
               multiline
               minRows={4}
-              value={form.value_json}
+              value={form.value_json || ''}
               onChange={(e) => handleField('value_json', e.target.value)}
               inputProps={{
                 style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }
@@ -530,7 +549,7 @@ export default function ProductAttributeUpsert() {
                 size="small"
                 fullWidth
                 type="number"
-                value={form.normalized_num}
+                value={form.normalized_num || ''}
                 onChange={(e) => handleField('normalized_num', e.target.value)}
               />
             </Stack>
@@ -539,7 +558,7 @@ export default function ProductAttributeUpsert() {
               <TextField
                 size="small"
                 fullWidth
-                value={form.normalized_unit}
+                value={form.normalized_unit || ''}
                 onChange={(e) => handleField('normalized_unit', e.target.value)}
               />
             </Stack>
@@ -574,6 +593,27 @@ export default function ProductAttributeUpsert() {
           </Stack>
         </Stack>
       </MainCard>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmation} onClose={() => setShowConfirmation(false)}>
+        <DialogTitle>Success</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {isEdit ? 'Attribute updated successfully!' : 'Attribute added successfully!'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setShowConfirmation(false);
+              router.push(`/products/${productId}`);
+            }}
+          >
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

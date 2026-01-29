@@ -63,15 +63,6 @@ export default function DefsTableSection({
         }
       },
       {
-        header: 'Status',
-        accessorKey: 'status',
-        cell: (cell) => {
-          const s = cell.getValue();
-          const meta = STATUS_META[s] || { color: 'default', label: s || 'Unknown' };
-          return <Chip color={meta.color} label={meta.label} size="small" variant="light" />;
-        }
-      },
-      {
         header: 'Record Status',
         accessorKey: 'record_status',
         cell: (cell) => {

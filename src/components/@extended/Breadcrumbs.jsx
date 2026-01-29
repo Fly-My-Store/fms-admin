@@ -64,6 +64,9 @@ export default function Breadcrumbs({
   const customLocation = location;
 
   useEffect(() => {
+    // Skip auto-detection when custom breadcrumbs are provided
+    if (custom) return;
+    
     navigation?.items?.map((menu) => {
       if (menu.type && menu.type === 'group') {
         if (menu?.url && menu.url === customLocation) {
@@ -109,8 +112,8 @@ export default function Breadcrumbs({
   let CollapseIcon;
   let ItemIcon;
 
-  // collapse item
-  if (main && main.type === 'collapse' && !main.breadcrumbs) {
+  // collapse item (only when not using custom breadcrumbs)
+  if (!custom && main && main.type === 'collapse' && !main.breadcrumbs) {
     CollapseIcon = main.icon ? main.icon : ApartmentOutlined;
     mainContent = (
       <Typography
@@ -123,71 +126,13 @@ export default function Breadcrumbs({
         <FormattedMessage id={main?.title} />
       </Typography>
     );
-
-    if (!!custom) {
-      breadcrumbContent = (
-        <MainCard
-          border={card}
-          sx={card === false ? { mb: 3, bgcolor: 'inherit', backgroundImage: 'none', ...sx } : { mb: 3, ...sx }}
-          {...others}
-          content={card}
-          shadow="none"
-        >
-          <Grid
-            container
-            direction={rightAlign ? 'row' : 'column'}
-            justifyContent={rightAlign ? 'space-between' : 'flex-start'}
-            alignItems={rightAlign ? 'center' : 'flex-start'}
-            spacing={1}
-          >
-            <Grid>
-              <MuiBreadcrumbs aria-label="breadcrumb" maxItems={maxItems || 8} separator={separatorIcon}>
-                <Typography component={NextLink} href="/" color="text.secondary" variant="h6" sx={{ textDecoration: 'none' }}>
-                  {icons && <HomeOutlined style={iconSX} />}
-                  {icon && !icons && <HomeFilled style={{ ...iconSX, marginRight: 0 }} />}
-                  {(!icon || icons) && <FormattedMessage id="home" />}
-                </Typography>
-                {mainContent}
-              </MuiBreadcrumbs>
-            </Grid>
-            {title && titleBottom && (
-              <Grid sx={{ mt: card === false ? 0.25 : 1 }}>
-                <Typography variant="h2">
-                  <FormattedMessage id={main.title} />
-                </Typography>
-              </Grid>
-            )}
-          </Grid>
-          {card === false && divider !== false && <Divider sx={{ mt: 2 }} />}
-        </MainCard>
-      );
-    }
   }
 
   // items
   if ((item && item.type === 'item') || (item?.type === 'group' && item?.url) || custom) {
-    itemTitle = item?.title;
-
-    ItemIcon = item?.icon ? item.icon : ApartmentOutlined;
-    itemContent = (
-      <Typography variant="subtitle1" color="text.primary">
-        {icons && <ItemIcon style={iconSX} />}
-        <FormattedMessage id={itemTitle} />
-      </Typography>
-    );
-
-    let tempContent = (
-      <MuiBreadcrumbs aria-label="breadcrumb" maxItems={maxItems || 8} separator={separatorIcon}>
-        <Typography component={NextLink} href="/" color="text.secondary" variant="h6" sx={{ textDecoration: 'none' }}>
-          {icons && <HomeOutlined style={iconSX} />}
-          {icon && !icons && <HomeFilled style={{ ...iconSX, marginRight: 0 }} />}
-          {(!icon || icons) && <FormattedMessage id="home" />}
-        </Typography>
-        {mainContent}
-        {itemContent}
-      </MuiBreadcrumbs>
-    );
-
+    let tempContent;
+    
+    // When custom is true, only use custom links, skip auto-detection
     if (custom && links && links?.length > 0) {
       tempContent = (
         <MuiBreadcrumbs aria-label="breadcrumb" maxItems={maxItems || 8} separator={separatorIcon}>
@@ -206,6 +151,28 @@ export default function Breadcrumbs({
               </Typography>
             );
           })}
+        </MuiBreadcrumbs>
+      );
+    } else {
+      // Auto-detected breadcrumbs (only when not custom)
+      itemTitle = item?.title;
+      ItemIcon = item?.icon ? item.icon : ApartmentOutlined;
+      itemContent = (
+        <Typography variant="subtitle1" color="text.primary">
+          {icons && <ItemIcon style={iconSX} />}
+          <FormattedMessage id={itemTitle} />
+        </Typography>
+      );
+
+      tempContent = (
+        <MuiBreadcrumbs aria-label="breadcrumb" maxItems={maxItems || 8} separator={separatorIcon}>
+          <Typography component={NextLink} href="/" color="text.secondary" variant="h6" sx={{ textDecoration: 'none' }}>
+            {icons && <HomeOutlined style={iconSX} />}
+            {icon && !icons && <HomeFilled style={{ ...iconSX, marginRight: 0 }} />}
+            {(!icon || icons) && <FormattedMessage id="home" />}
+          </Typography>
+          {mainContent}
+          {itemContent}
         </MuiBreadcrumbs>
       );
     }

@@ -12,18 +12,24 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
+import MenuItem from '@mui/material/MenuItem';
 import { CloseOutlined } from '@ant-design/icons';
 import { actions as attributes } from 'store/attributes/slice';
 
 export default function CategoryattrsFormDialog({ open, onClose, initialData = null }) {
   const dispatch = useDispatch();
-  const [form, setForm] = useState({ category_id: '', attribute_code: '', is_required: '', is_filterable: '' });
+  const [form, setForm] = useState({ category_id: '', attribute_code: '', is_required: false, is_filterable: false });
 
   useEffect(() => {
     if (initialData) {
-      setForm({ ...{ category_id: '', attribute_code: '', is_required: '', is_filterable: '' }, ...initialData });
+      setForm({ 
+        ...{ category_id: '', attribute_code: '', is_required: false, is_filterable: false }, 
+        ...initialData,
+        is_required: initialData.is_required ?? false,
+        is_filterable: initialData.is_filterable ?? false
+      });
     } else {
-      setForm({ category_id: '', attribute_code: '', is_required: '', is_filterable: '' });
+      setForm({ category_id: '', attribute_code: '', is_required: false, is_filterable: false });
     }
   }, [initialData, open]);
 
@@ -66,13 +72,35 @@ export default function CategoryattrsFormDialog({ open, onClose, initialData = n
 
           <Stack sx={{gap: 1}}>
             <InputLabel>Required</InputLabel>
-            <TextField id="is_required" name="is_required" type="text" value={form.is_required || ''} onChange={handleChange} placeholder="Required" fullWidth />
+            <TextField 
+              id="is_required" 
+              name="is_required" 
+              select
+              value={form.is_required ? 'true' : 'false'} 
+              onChange={(e) => handleChange({ target: { name: 'is_required', value: e.target.value === 'true' } })} 
+              fullWidth
+              size="small"
+            >
+              <MenuItem value="true">True</MenuItem>
+              <MenuItem value="false">False</MenuItem>
+            </TextField>
           </Stack>
 
 
           <Stack sx={{gap: 1}}>
             <InputLabel>Filterable</InputLabel>
-            <TextField id="is_filterable" name="is_filterable" type="text" value={form.is_filterable || ''} onChange={handleChange} placeholder="Filterable" fullWidth />
+            <TextField 
+              id="is_filterable" 
+              name="is_filterable" 
+              select
+              value={form.is_filterable ? 'true' : 'false'} 
+              onChange={(e) => handleChange({ target: { name: 'is_filterable', value: e.target.value === 'true' } })} 
+              fullWidth
+              size="small"
+            >
+              <MenuItem value="true">True</MenuItem>
+              <MenuItem value="false">False</MenuItem>
+            </TextField>
           </Stack>
 
         </Stack>

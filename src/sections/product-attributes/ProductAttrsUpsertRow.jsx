@@ -346,7 +346,7 @@ export default function ProductAttrsUpsertRow({ productId, row, defs, defsLoadin
                 select
                 size="small"
                 fullWidth
-                value={form.value_text}
+                value={form.value_text || ''}
                 onChange={(e) => handleField('value_text', e.target.value)}
               >
                 <MenuItem value="">—</MenuItem>
@@ -371,7 +371,7 @@ export default function ProductAttrsUpsertRow({ productId, row, defs, defsLoadin
             <TextField
               size="small"
               fullWidth
-              value={form.value_text}
+              value={form.value_text || ''}
               onChange={(e) => handleField('value_text', e.target.value)}
             />
           </Stack>
@@ -384,7 +384,7 @@ export default function ProductAttrsUpsertRow({ productId, row, defs, defsLoadin
               size="small"
               type="number"
               fullWidth
-              value={form.value_int}
+              value={form.value_int || ''}
               onChange={(e) => handleField('value_int', e.target.value)}
             />
           </Stack>
@@ -397,7 +397,7 @@ export default function ProductAttrsUpsertRow({ productId, row, defs, defsLoadin
               size="small"
               type="number"
               fullWidth
-              value={form.value_decimal}
+              value={form.value_decimal || ''}
               onChange={(e) => handleField('value_decimal', e.target.value)}
             />
           </Stack>
@@ -431,7 +431,7 @@ export default function ProductAttrsUpsertRow({ productId, row, defs, defsLoadin
               fullWidth
               multiline
               minRows={4}
-              value={form.value_json}
+              value={form.value_json || ''}
               onChange={(e) => handleField('value_json', e.target.value)}
               inputProps={{
                 style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }
@@ -491,7 +491,7 @@ export default function ProductAttrsUpsertRow({ productId, row, defs, defsLoadin
               size="small"
               fullWidth
               type="number"
-              value={form.normalized_num}
+              value={form.normalized_num || ''}
               onChange={(e) => handleField('normalized_num', e.target.value)}
             />
           </Stack>
@@ -500,7 +500,7 @@ export default function ProductAttrsUpsertRow({ productId, row, defs, defsLoadin
             <TextField
               size="small"
               fullWidth
-              value={form.normalized_unit}
+              value={form.normalized_unit || ''}
               onChange={(e) => handleField('normalized_unit', e.target.value)}
             />
           </Stack>

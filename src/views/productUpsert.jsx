@@ -29,7 +29,6 @@ import {
 } from '@mui/material';
 import { uploadSingle } from 'api/upload';
 
-const STATUS_LIST = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'DISABLED'];
 const RECORD_STATUS_LIST = [
   { value: 1, label: 'ACTIVE' },
   { value: 2, label: 'INACTIVE' },
@@ -44,7 +43,6 @@ const EMPTY = {
   slug: '',
   description: '',
   spec_json: '',
-  status: 'DRAFT',
   record_status: 1
 };
 
@@ -100,6 +98,18 @@ export default function ProductUpsert() {
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
 
+  // Reset form when id is cleared (navigating to create)
+  useEffect(() => {
+    if (!id) {
+      setForm(EMPTY);
+      setBrandSel(null);
+      setCatSel(null);
+      setExistingImages([]);
+      setNewImages([]);
+      setRemovedImageIds([]);
+    }
+  }, [id]);
+
   // fetch detail for edit
   useEffect(() => {
     if (!id) return;
@@ -117,7 +127,6 @@ export default function ProductUpsert() {
       slug: product.slug || '',
       description: product.description || '',
       spec_json: product.spec_json ? JSON.stringify(product.spec_json, null, 2) : '',
-      status: product.status || 'SUBMITTED',
       record_status: product.record_status ?? 1,
     });
 
@@ -253,7 +262,6 @@ export default function ProductUpsert() {
         slug: (form.slug || slugify(form.name)).trim(),
         description: form.description || null,
         spec_json: spec || null,
-        status: 'APPROVED',
         record_status: Number(form.record_status ?? 1),
       };
 
@@ -325,7 +333,7 @@ export default function ProductUpsert() {
                 <TextField
                   size="small"
                   fullWidth
-                  value={form.name}
+                  value={form.name || ''}
                   onChange={handleNameChange}
                   placeholder="e.g., Galaxy S24"
                 />
@@ -336,7 +344,7 @@ export default function ProductUpsert() {
                 <TextField
                   size="small"
                   fullWidth
-                  value={form.slug}
+                  value={form.slug || ''}
                   onChange={(e) => handleField('slug', e.target.value)}
                   placeholder="galaxy-s24"
                 />
@@ -349,7 +357,7 @@ export default function ProductUpsert() {
                   fullWidth
                   multiline
                   minRows={4}
-                  value={form.description}
+                  value={form.description || ''}
                   onChange={(e) => handleField('description', e.target.value)}
                 />
               </Stack>

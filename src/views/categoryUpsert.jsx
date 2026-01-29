@@ -13,6 +13,7 @@ import MainCard from 'components/MainCard';
 // MUI
 import {
   Avatar,
+  Box,
   Button,
   Divider,
   InputLabel,
@@ -25,7 +26,6 @@ import {
 import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
 
-const STATUS_LIST = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'DISABLED'];
 const RECORD_STATUS_LIST = [
   { value: 1, label: 'ACTIVE' },
   { value: 2, label: 'INACTIVE' },
@@ -44,7 +44,6 @@ const EMPTY = {
   description: '',
   icon_url: '',
   level: 0,
-  status: 'APPROVED',
   record_status: 1
 };
 
@@ -115,6 +114,16 @@ export function CategoryUpsert() {
     };
   }, [parentQuery, parentPage, parentMeta?.id]);
 
+  // Reset form when id is cleared (navigating to create)
+  useEffect(() => {
+    if (!id) {
+      setForm(EMPTY);
+      setParentMeta(null);
+      setIconPreview('');
+      setIconFile(null);
+    }
+  }, [id]);
+
   // fetch existing
   useEffect(() => {
     if (!id) return;
@@ -131,7 +140,6 @@ export function CategoryUpsert() {
         slug: cat.slug || '',
         description: cat.description || '',
         icon_url: cat.icon_url || '',
-        status: 'APPROVED',
         record_status: cat.record_status || 1,
         level: Number(cat.level ?? 0)
       });
@@ -227,7 +235,6 @@ export function CategoryUpsert() {
         description: form.description || null,
         icon_url: form.icon_url || null,
         level: Number(form.level ?? 0),
-        status: 'APPROVED',
         record_status: Number(form.record_status ?? 1)
       };
 
@@ -337,7 +344,7 @@ export function CategoryUpsert() {
                 <TextField
                   size="small"
                   fullWidth
-                  value={form.name}
+                  value={form.name || ''}
                   onChange={handleNameChange}
                   placeholder="e.g., Smartphones"
                 />
@@ -348,7 +355,7 @@ export function CategoryUpsert() {
                 <TextField
                   size="small"
                   fullWidth
-                  value={form.slug}
+                  value={form.slug || ''}
                   onChange={(e) => handleField('slug', e.target.value)}
                   placeholder="smartphones"
                 />
@@ -361,7 +368,7 @@ export function CategoryUpsert() {
                   fullWidth
                   multiline
                   minRows={6}
-                  value={form.description}
+                  value={form.description || ''}
                   onChange={(e) => handleField('description', e.target.value)}
                   placeholder="Short description"
                 />
@@ -371,13 +378,40 @@ export function CategoryUpsert() {
               <Stack sx={{ gap: 1 }}>
                 <InputLabel>Icon</InputLabel>
                 <Stack direction="row" spacing={2} alignItems="center">
-                  <Avatar
-                    variant="rounded"
-                    src={iconPreview || form.icon_url || undefined}
-                    sx={{ width: 48, height: 48, borderRadius: 1 }}
-                  >
-                    {form.name?.[0]?.toUpperCase() || 'C'}
-                  </Avatar>
+                  {(iconPreview || form.icon_url) ? (
+                    <Box
+                      sx={{
+                        width: 100,
+                        height: 100,
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'grey.100',
+                        border: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                    >
+                      <img
+                        src={iconPreview || form.icon_url}
+                        alt={form.name || 'Category icon'}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          display: 'block'
+                        }}
+                      />
+                    </Box>
+                  ) : (
+                    <Avatar
+                      variant="rounded"
+                      sx={{ width: 100, height: 100, borderRadius: 1 }}
+                    >
+                      {form.name?.[0]?.toUpperCase() || 'C'}
+                    </Avatar>
+                  )}
                   <Button component="label" variant="outlined" size="small" disabled={uploadingIcon}>
                     {uploadingIcon ? `Uploading… ${uploadProgress || 0}%` : 'Upload'}
                     <input type="file" accept="image/*" hidden onChange={handleIconSelect} />
