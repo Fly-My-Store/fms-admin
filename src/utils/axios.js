@@ -5,10 +5,16 @@ import { ROUTES, STORAGE_KEYS } from './constants';
 // ⬇️ bring the store + logout action
 import { store } from '../store'; // <-- adjust import to your store file
 import { logout } from '../store/auth/authSlice'; // <-- adjust path if different
-
+console.log('Server-side API URL:', process.env.NEXT_PUBLIC_API_URL);
 const axiosServices = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/'
 });
+
+// Client-side debug
+if (typeof window !== 'undefined') {
+  console.log('Client-side axios baseURL:', axiosServices.defaults.baseURL);
+  console.log('Client-side env var:', process.env.NEXT_PUBLIC_API_URL);
+}
 
 // ---- REQUEST: attach token if present
 axiosServices.interceptors.request.use(
