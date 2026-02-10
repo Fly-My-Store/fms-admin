@@ -9,6 +9,7 @@ export default function RidersTableSection({
   rows,
   handleAddButton,
   handleEditButton,
+  handleViewButton,
   pageIndex,
   pageSize,
   totalPageCount,
@@ -16,11 +17,61 @@ export default function RidersTableSection({
 }) {
   const columns = useMemo(
     () => [
-      { header: 'User ID', accessorKey: 'user_id' },
-      { header: 'Vehicle', accessorKey: 'vehicle_type' },
-
       {
-        header: 'Status',
+        header: 'Name',
+        accessorFn: (row) => row.user?.name || row.User?.name || '—'
+      },
+      {
+        header: 'Email',
+        accessorFn: (row) => row.user?.email || row.User?.email || '—'
+      },
+      {
+        header: 'Phone',
+        accessorFn: (row) => {
+          const user = row.user || row.User || {};
+          const cc = user.country_code ? `${user.country_code} ` : '';
+          return user.phone ? `${cc}${user.phone}` : '—';
+        }
+      },
+      { header: 'Vehicle Type', accessorKey: 'vehicle_type' },
+      { header: 'Vehicle Number', accessorKey: 'vehicle_number' },
+      {
+        header: 'KYC Status',
+        accessorKey: 'kyc_status',
+        cell: (cell) => {
+          const value = cell.getValue();
+          switch (value) {
+            case 'APPROVED':
+              return <Chip color="success" label="Approved" size="small" variant="light" />;
+            case 'IN_REVIEW':
+              return <Chip color="info" label="In Review" size="small" variant="light" />;
+            case 'REJECTED':
+              return <Chip color="error" label="Rejected" size="small" variant="light" />;
+            case 'RESUBMIT':
+              return <Chip color="warning" label="Resubmit" size="small" variant="light" />;
+            case 'PENDING':
+            default:
+              return <Chip color="default" label={value || 'Pending'} size="small" variant="light" />;
+          }
+        }
+      },
+      {
+        header: 'Availability',
+        accessorKey: 'availability_status',
+        cell: (cell) => {
+          const value = cell.getValue();
+          const map = {
+            OFFLINE: { color: 'default', label: 'Offline' },
+            IDLE: { color: 'info', label: 'Idle' },
+            ASSIGNED: { color: 'warning', label: 'Assigned' },
+            ON_TRIP: { color: 'success', label: 'On Trip' }
+          };
+          const meta = map[value] || { color: 'default', label: value || 'Unknown' };
+          return <Chip color={meta.color} label={meta.label} size="small" variant="light" />;
+        }
+      },
+      {
+        header: 'Account Status',
         accessorKey: 'status',
         cell: (cell) => {
           const value = cell.getValue();
@@ -37,8 +88,11 @@ export default function RidersTableSection({
               return <Chip color="default" label="Unknown" size="small" variant="light" />;
           }
         }
+      },
+      {
+        header: 'Service Radius (km)',
+        accessorKey: 'service_radius_km'
       }
-
     ],
     []
   );
@@ -51,6 +105,7 @@ export default function RidersTableSection({
       ariaLebel="Add Rider"
       handleAddButton={handleAddButton}
       handleEditButton={handleEditButton}
+      handleViewButton={handleViewButton}
       pageIndex={pageIndex}
       pageSize={pageSize}
       totalPageCount={totalPageCount}
