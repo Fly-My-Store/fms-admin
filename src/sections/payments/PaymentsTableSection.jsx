@@ -1,9 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import Chip from '@mui/material/Chip';
 import BasicReactTable from 'components/tables/basicTable';
-import { TABLE_STATUS } from 'utils/constants';
+import { formatINR } from 'utils/currency';
 
 export default function PaymentsTableSection({
   rows,
@@ -17,7 +16,7 @@ export default function PaymentsTableSection({
   const columns = useMemo(
     () => [
       { header: 'Order ID', accessorKey: 'order_id' },
-      { header: 'Amount', accessorKey: 'amount' },
+      { header: 'Amount (₹)', id: 'amount_cents', accessorFn: (row) => formatINR(row?.amount_cents) },
       { header: 'Status', accessorKey: 'status' },
       { header: 'Gateway', accessorKey: 'gateway' },
     ],

@@ -14,16 +14,22 @@ import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
 import { actions as ordersPayments } from 'store/ordersPayments/slice';
+import { centsToRupees } from 'utils/currency';
 
 export default function PaymentsFormDialog({ open, onClose, initialData = null }) {
   const dispatch = useDispatch();
-  const [form, setForm] = useState({ order_id: '', amount: '', status: '', gateway: '' });
+  const [form, setForm] = useState({ order_id: '', amount_rupees: '', status: '', gateway: '' });
 
   useEffect(() => {
     if (initialData) {
-      setForm({ ...{ order_id: '', amount: '', status: '', gateway: '' }, ...initialData });
+      setForm({
+        order_id: initialData.order_id ?? '',
+        amount_rupees: initialData.amount_cents != null ? centsToRupees(initialData.amount_cents) : '',
+        status: initialData.status ?? '',
+        gateway: initialData.gateway ?? ''
+      });
     } else {
-      setForm({ order_id: '', amount: '', status: '', gateway: '' });
+      setForm({ order_id: '', amount_rupees: '', status: '', gateway: '' });
     }
   }, [initialData, open]);
 
@@ -33,10 +39,11 @@ export default function PaymentsFormDialog({ open, onClose, initialData = null }
   };
 
   const handleSubmit = () => {
+    const payload = { order_id: form.order_id, status: form.status, gateway: form.gateway };
     if (initialData?.id) {
-      dispatch(ordersPayments.paymentsUpdateRequest({ params: { id: initialData.id, data: form } }));
+      dispatch(ordersPayments.paymentsUpdateRequest({ params: { id: initialData.id, data: payload } }));
     } else {
-      dispatch(ordersPayments.paymentsCreateRequest({ params: form }));
+      dispatch(ordersPayments.paymentsCreateRequest({ params: payload }));
     }
     onClose();
   };
@@ -59,8 +66,8 @@ export default function PaymentsFormDialog({ open, onClose, initialData = null }
 
 
           <Stack sx={{gap: 1}}>
-            <InputLabel>Amount</InputLabel>
-            <TextField id="amount" name="amount" type="text" value={form.amount || ''} onChange={handleChange} placeholder="Amount" fullWidth />
+            <InputLabel>Amount (₹)</InputLabel>
+            <TextField id="amount_rupees" name="amount_rupees" type="text" value={form.amount_rupees || ''} onChange={handleChange} placeholder="e.g. 99.00 (display only)" fullWidth disabled={!!initialData} />
           </Stack>
 
 

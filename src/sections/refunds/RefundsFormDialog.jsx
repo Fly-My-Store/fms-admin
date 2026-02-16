@@ -14,16 +14,22 @@ import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
 import { actions as ordersPayments } from 'store/ordersPayments/slice';
+import { centsToRupees, rupeesToCents } from 'utils/currency';
 
 export default function RefundsFormDialog({ open, onClose, initialData = null }) {
   const dispatch = useDispatch();
-  const [form, setForm] = useState({ payment_id: '', amount: '', status: '', reason: '' });
+  const [form, setForm] = useState({ payment_id: '', amount_rupees: '', status: '', reason: '' });
 
   useEffect(() => {
     if (initialData) {
-      setForm({ ...{ payment_id: '', amount: '', status: '', reason: '' }, ...initialData });
+      setForm({
+        payment_id: initialData.payment_id ?? '',
+        amount_rupees: initialData.amount_cents != null ? centsToRupees(initialData.amount_cents) : '',
+        status: initialData.status ?? '',
+        reason: initialData.reason ?? ''
+      });
     } else {
-      setForm({ payment_id: '', amount: '', status: '', reason: '' });
+      setForm({ payment_id: '', amount_rupees: '', status: '', reason: '' });
     }
   }, [initialData, open]);
 
@@ -33,10 +39,12 @@ export default function RefundsFormDialog({ open, onClose, initialData = null })
   };
 
   const handleSubmit = () => {
+    const payload = { payment_id: form.payment_id, status: form.status, reason: form.reason };
     if (initialData?.id) {
-      dispatch(ordersPayments.refundsUpdateRequest({ params: { id: initialData.id, data: form } }));
+      dispatch(ordersPayments.refundsUpdateRequest({ params: { id: initialData.id, data: payload } }));
     } else {
-      dispatch(ordersPayments.refundsCreateRequest({ params: form }));
+      payload.amount_cents = rupeesToCents(form.amount_rupees);
+      dispatch(ordersPayments.refundsCreateRequest({ params: payload }));
     }
     onClose();
   };
@@ -59,8 +67,8 @@ export default function RefundsFormDialog({ open, onClose, initialData = null })
 
 
           <Stack sx={{gap: 1}}>
-            <InputLabel>Amount</InputLabel>
-            <TextField id="amount" name="amount" type="text" value={form.amount || ''} onChange={handleChange} placeholder="Amount" fullWidth />
+            <InputLabel>Amount (₹)</InputLabel>
+            <TextField id="amount_rupees" name="amount_rupees" type="text" value={form.amount_rupees || ''} onChange={handleChange} placeholder="e.g. 99.00 (rupees)" fullWidth />
           </Stack>
 
 
