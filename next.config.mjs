@@ -2,10 +2,6 @@ const nextConfig = {
   // todo: this need to set to true or remove it as default is true. set false as chart was giving error when first render
   // https://github.com/apexcharts/apexcharts.js/issues/3652
   reactStrictMode: false,
-  // Optimize build memory usage
-  swcMinify: true,
-  // Disable source maps in production to save memory
-  productionBrowserSourceMaps: false,
   modularizeImports: {
     '@mui/material': {
       transform: '@mui/material/{{member}}'

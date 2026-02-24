@@ -162,6 +162,8 @@ const platformMenu = {
         { id: 'payments-list', title: 'payments', type: 'item', url: '/payments', icon: icons.CreditCardOutlined, perm: 'payment', action: 'read' },
         { id: 'refunds', title: 'refunds', type: 'item', url: '/refunds', icon: icons.ReloadOutlined, perm: 'refund', action: 'read' },
         { id: 'fare', title: 'fare-pricing', type: 'item', url: '/fare', icon: icons.SettingOutlined, perm: 'payment', action: 'modify' },
+        { id: 'fare-bands', title: 'Fare bands', type: 'item', url: '/fare/bands', icon: icons.SlidersOutlined, perm: 'payment', action: 'modify' },
+        { id: 'fare-category-overrides', title: 'Category overrides', type: 'item', url: '/fare/category-overrides', icon: icons.TagsOutlined, perm: 'payment', action: 'modify' },
         { id: 'payouts', title: 'payouts', type: 'item', url: '/payouts', icon: icons.LineChartOutlined, perm: 'payment', action: 'modify' }
       ]
     },

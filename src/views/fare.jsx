@@ -35,6 +35,13 @@ export function FareView() {
   const [form, setForm] = useState({
     platform_fee_percent: '',
     gst_percent: '',
+    gst_on_platform_percent: '',
+    gst_on_delivery_percent: '',
+    gst_on_gateway_percent: '',
+    free_km: '',
+    km_surcharge_cents: '',
+    platform_fee_flat_cents: '',
+    payment_gateway_percent: '',
     delivery_fee_base_cents: '',
     delivery_fee_per_km_cents: '',
     rider_fee_base_cents: '',
@@ -57,6 +64,13 @@ export function FareView() {
       setForm({
         platform_fee_percent: data.platform_fee_percent ?? '',
         gst_percent: data.gst_percent ?? '',
+        gst_on_platform_percent: data.gst_on_platform_percent ?? '',
+        gst_on_delivery_percent: data.gst_on_delivery_percent ?? '',
+        gst_on_gateway_percent: data.gst_on_gateway_percent ?? '',
+        free_km: data.free_km ?? '',
+        km_surcharge_cents: formatCents(data.km_surcharge_cents),
+        platform_fee_flat_cents: formatCents(data.platform_fee_flat_cents),
+        payment_gateway_percent: data.payment_gateway_percent ?? '',
         delivery_fee_base_cents: formatCents(data.delivery_fee_base_cents),
         delivery_fee_per_km_cents: formatCents(data.delivery_fee_per_km_cents),
         rider_fee_base_cents: formatCents(data.rider_fee_base_cents),
@@ -89,6 +103,13 @@ export function FareView() {
       await updateActiveFare({
         platform_fee_percent: form.platform_fee_percent === '' ? 0 : Number(form.platform_fee_percent),
         gst_percent: form.gst_percent === '' ? 0 : Number(form.gst_percent),
+        gst_on_platform_percent: form.gst_on_platform_percent === '' ? null : Number(form.gst_on_platform_percent),
+        gst_on_delivery_percent: form.gst_on_delivery_percent === '' ? null : Number(form.gst_on_delivery_percent),
+        gst_on_gateway_percent: form.gst_on_gateway_percent === '' ? null : Number(form.gst_on_gateway_percent),
+        free_km: form.free_km === '' ? null : Number(form.free_km),
+        km_surcharge_cents: form.km_surcharge_cents === '' ? null : toCents(form.km_surcharge_cents),
+        platform_fee_flat_cents: form.platform_fee_flat_cents === '' ? null : toCents(form.platform_fee_flat_cents),
+        payment_gateway_percent: form.payment_gateway_percent === '' ? null : Number(form.payment_gateway_percent),
         delivery_fee_base_cents: toCents(form.delivery_fee_base_cents),
         delivery_fee_per_km_cents: toCents(form.delivery_fee_per_km_cents),
         rider_fee_base_cents: toCents(form.rider_fee_base_cents),
@@ -144,17 +165,36 @@ export function FareView() {
             size="small"
           />
           <TextField
-            label="GST (%)"
+            label="GST (%) default"
             type="number"
             inputProps={{ min: 0, max: 100, step: 0.01 }}
             value={form.gst_percent}
             onChange={handleChange('gst_percent')}
             fullWidth
             size="small"
+            helperText="Used when per-component GST not set"
           />
+          <Typography variant="caption" color="text.secondary">GST per component (optional, overrides default)</Typography>
+          <Stack direction="row" spacing={2}>
+            <TextField label="GST on platform (%)" type="number" inputProps={{ min: 0, max: 100, step: 0.01 }} value={form.gst_on_platform_percent} onChange={handleChange('gst_on_platform_percent')} fullWidth size="small" />
+            <TextField label="GST on delivery (%)" type="number" inputProps={{ min: 0, max: 100, step: 0.01 }} value={form.gst_on_delivery_percent} onChange={handleChange('gst_on_delivery_percent')} fullWidth size="small" />
+            <TextField label="GST on gateway (%)" type="number" inputProps={{ min: 0, max: 100, step: 0.01 }} value={form.gst_on_gateway_percent} onChange={handleChange('gst_on_gateway_percent')} fullWidth size="small" />
+          </Stack>
 
           <Typography variant="subtitle2" color="text.secondary" sx={{ pt: 1 }}>
-            Delivery fee (customer-facing)
+            Dynamic pricing (customer)
+          </Typography>
+          <Stack direction="row" spacing={2}>
+            <TextField label="Free km" type="number" inputProps={{ min: 0, step: 0.1 }} value={form.free_km} onChange={handleChange('free_km')} fullWidth size="small" />
+            <TextField label="Km surcharge (₹/km)" type="number" inputProps={{ min: 0, step: 0.01 }} value={form.km_surcharge_cents} onChange={handleChange('km_surcharge_cents')} fullWidth size="small" InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} />
+          </Stack>
+          <Stack direction="row" spacing={2}>
+            <TextField label="Platform fee flat (₹)" type="number" inputProps={{ min: 0, step: 0.01 }} value={form.platform_fee_flat_cents} onChange={handleChange('platform_fee_flat_cents')} fullWidth size="small" InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} />
+            <TextField label="Payment gateway (%)" type="number" inputProps={{ min: 0, max: 100, step: 0.01 }} value={form.payment_gateway_percent} onChange={handleChange('payment_gateway_percent')} fullWidth size="small" />
+          </Stack>
+
+          <Typography variant="subtitle2" color="text.secondary" sx={{ pt: 1 }}>
+            Delivery fee (customer-facing, fallback)
           </Typography>
           <TextField
             label="Base delivery fee (₹)"
