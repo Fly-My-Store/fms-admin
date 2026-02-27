@@ -249,8 +249,7 @@ export default function VariantUpsert() {
         enqueueSnackbar('Variant created', { variant: 'success' });
       }
 
-      const backUrl = form.product_id ? `/products/${form.product_id}?tab=variants` : '/product-variants';
-      router.push(backUrl);
+      router.back();
     } catch (err) {
       const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Something went wrong.';
       enqueueSnackbar(msg, { variant: 'error' });

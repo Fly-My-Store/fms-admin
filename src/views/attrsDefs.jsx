@@ -16,9 +16,14 @@ export function DefsView() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => {
+  const reload = () => {
     dispatch(attributes.defsListRequest({ params: { page, limit: pageSize } }));
-  }, [dispatch]);
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDialogToggle = () => {
     setOpen((prev) => !prev);
@@ -58,7 +63,7 @@ export function DefsView() {
         onPaginationChange={handlePaginationChange}
         totalCount={count}
       />
-      <DefsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
+      <DefsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={reload} />
     </>
   );
 }

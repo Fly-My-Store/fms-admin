@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useDispatch } from 'react-redux';
+import { enqueueSnackbar } from 'notistack';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -16,7 +17,7 @@ import MenuItem from '@mui/material/MenuItem';
 import { CloseOutlined } from '@ant-design/icons';
 import { actions as attributes } from 'store/attributes/slice';
 
-export default function CategoryattrsFormDialog({ open, onClose, initialData = null }) {
+export default function CategoryattrsFormDialog({ open, onClose, initialData = null, onSaved }) {
   const dispatch = useDispatch();
   const [form, setForm] = useState({ category_id: '', attribute_code: '', is_required: false, is_filterable: false });
 
@@ -41,9 +42,12 @@ export default function CategoryattrsFormDialog({ open, onClose, initialData = n
   const handleSubmit = () => {
     if (initialData?.id) {
       dispatch(attributes.categoryAttrsUpdateRequest({ params: { id: initialData.id, data: form } }));
+      enqueueSnackbar('Category attribute updated', { variant: 'success' });
     } else {
       dispatch(attributes.categoryAttrsCreateRequest({ params: form }));
+      enqueueSnackbar('Category attribute created', { variant: 'success' });
     }
+    if (onSaved) onSaved();
     onClose();
   };
 
@@ -118,5 +122,6 @@ export default function CategoryattrsFormDialog({ open, onClose, initialData = n
 CategoryattrsFormDialog.propTypes = {
   open: PropTypes.bool,
   onClose: PropTypes.func,
-  initialData: PropTypes.object
+  initialData: PropTypes.object,
+  onSaved: PropTypes.func
 };

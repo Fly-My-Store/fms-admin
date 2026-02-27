@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { enqueueSnackbar } from 'notistack';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -30,11 +31,19 @@ export default function VariantAttrsFormDialog({ open, onClose, initialData = nu
   const handleSubmit = async () => {
     try {
       const payload = { ...form };
-      if (initialData?.id) await axiosServices.put('admin/catalog/variant-attributes/' + initialData.id, payload);
-      else await axiosServices.post('admin/catalog/variant-attributes', payload);
+      if (initialData?.id) {
+        await axiosServices.put('admin/catalog/variant-attributes/' + initialData.id, payload);
+        enqueueSnackbar('Variant attribute updated', { variant: 'success' });
+      } else {
+        await axiosServices.post('admin/catalog/variant-attributes', payload);
+        enqueueSnackbar('Variant attribute created', { variant: 'success' });
+      }
       onSaved && onSaved();
       onClose();
-    } catch (e) {}
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.message || 'Failed to save variant attribute';
+      enqueueSnackbar(msg, { variant: 'error' });
+    }
   };
 
   return (

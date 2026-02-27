@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useDispatch } from 'react-redux';
+import { enqueueSnackbar } from 'notistack';
 
 // material-ui
 import Dialog from '@mui/material/Dialog';
@@ -24,7 +25,7 @@ import { actions as attributes } from 'store/attributes/slice';
 import { ATTRIBUTE_DEF_DATA_TYPES, ATTRIBUTE_DEF_STATUS, RECORD_STATUS, RECORD_STATUS_ARRAY } from 'utils/constants';
 
 
-export default function DefsFormDialog({ open, onClose, initialData = null }) {
+export default function DefsFormDialog({ open, onClose, initialData = null, onSaved }) {
   const dispatch = useDispatch();
 
   // Keep allowed_values as an editable JSON string in the UI, parse on submit
@@ -94,10 +95,13 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
           params: { code: initialData.code, data: payload }
         })
       );
+      enqueueSnackbar('Attribute updated', { variant: 'success' });
     } else {
       dispatch(attributes.defsCreateRequest({ params: payload }));
+      enqueueSnackbar('Attribute created', { variant: 'success' });
     }
-    // onClose();
+    if (onSaved) onSaved();
+    onClose();
   };
 
   return (
@@ -233,5 +237,6 @@ export default function DefsFormDialog({ open, onClose, initialData = null }) {
 DefsFormDialog.propTypes = {
   open: PropTypes.bool,
   onClose: PropTypes.func,
-  initialData: PropTypes.object
+  initialData: PropTypes.object,
+  onSaved: PropTypes.func
 };

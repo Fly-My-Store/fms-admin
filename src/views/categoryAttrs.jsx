@@ -15,9 +15,14 @@ export function CategoryattrsView() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => {
+  const reload = () => {
     dispatch(attributes.categoryAttrsListRequest({ params: { page, limit: pageSize } }));
-  }, [dispatch]);
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDialogToggle = () => {
     setOpen((prev) => !prev);
@@ -57,7 +62,7 @@ export function CategoryattrsView() {
         onPaginationChange={handlePaginationChange}
         totalCount={count}
       />
-      <CategoryattrsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
+      <CategoryattrsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={reload} />
     </>
   );
 }

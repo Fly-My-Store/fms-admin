@@ -16,9 +16,14 @@ export function GroupsView() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => {
+  const reload = () => {
     dispatch(attributes.groupsListRequest({ params: { page, limit: pageSize } }));
-  }, [dispatch]);
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDialogToggle = () => {
     setOpen((prev) => !prev);
@@ -57,7 +62,7 @@ export function GroupsView() {
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
       />
-      <GroupsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
+      <GroupsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={reload} />
     </>
   );
 }

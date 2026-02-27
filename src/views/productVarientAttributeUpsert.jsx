@@ -254,7 +254,7 @@ export default function ProductVariantAttributeUpsert() {
       } else {
         enqueueSnackbar('Attribute added', { variant: 'success' });
       }
-      router.push(`/variants/${variantId}`);
+      router.back();
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'Failed to save attribute';
       enqueueSnackbar(msg, { variant: 'error' });

@@ -252,6 +252,7 @@ export default function ProductAttributeUpsert() {
       }
       await upsertProductAttr(payload.attributeCode, payload);
       setShowConfirmation(true);
+      router.back();
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'Failed to save attribute';
       enqueueSnackbar(msg, { variant: 'error' });

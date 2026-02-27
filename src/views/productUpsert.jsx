@@ -299,7 +299,7 @@ export default function ProductUpsert() {
         enqueueSnackbar('Product created', { variant: 'success' });
       }
 
-      router.push('/products');
+      router.back();
     } catch (err) {
       const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Something went wrong.';
       enqueueSnackbar(msg, { variant: 'error' });
