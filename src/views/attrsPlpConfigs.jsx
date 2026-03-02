@@ -16,9 +16,14 @@ export function PlpconfigsView() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => {
+  const reload = () => {
     dispatch(attributes.plpConfigsListRequest({ params: { page, limit: pageSize } }));
-  }, [dispatch]);
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDialogToggle = () => {
     setOpen((prev) => !prev);
@@ -57,7 +62,7 @@ export function PlpconfigsView() {
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
       />
-      <PlpconfigsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
+      <PlpconfigsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={reload} />
     </>
   );
 }

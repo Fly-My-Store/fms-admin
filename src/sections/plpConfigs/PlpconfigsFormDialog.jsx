@@ -15,7 +15,7 @@ import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
 import { actions as attributes } from 'store/attributes/slice';
 
-export default function PlpconfigsFormDialog({ open, onClose, initialData = null }) {
+export default function PlpconfigsFormDialog({ open, onClose, initialData = null, onSaved }) {
   const dispatch = useDispatch();
   const [form, setForm] = useState({ category_id: '', sort: '', filters_json: '' });
 
@@ -37,6 +37,9 @@ export default function PlpconfigsFormDialog({ open, onClose, initialData = null
       dispatch(attributes.plpConfigsUpdateRequest({ params: { id: initialData.id, data: form } }));
     } else {
       dispatch(attributes.plpConfigsCreateRequest({ params: form }));
+    }
+    if (onSaved) {
+      onSaved();
     }
     onClose();
   };
@@ -84,5 +87,6 @@ export default function PlpconfigsFormDialog({ open, onClose, initialData = null
 PlpconfigsFormDialog.propTypes = {
   open: PropTypes.bool,
   onClose: PropTypes.func,
-  initialData: PropTypes.object
+  initialData: PropTypes.object,
+  onSaved: PropTypes.func
 };
