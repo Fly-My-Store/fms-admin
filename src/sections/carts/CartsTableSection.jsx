@@ -16,7 +16,7 @@ export default function CartsTableSection({
     () => [
       { header: 'User ID', accessorKey: 'user_id' },
       { header: 'Store ID', accessorKey: 'store_id' },
-      { header: 'Status', accessorKey: 'status' },
+      { header: 'Record Status', accessorKey: 'record_status' },
       { header: 'Items', accessorKey: 'item_count' },
     ],
     []

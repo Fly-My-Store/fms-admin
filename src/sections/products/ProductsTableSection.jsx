@@ -5,7 +5,7 @@ import Chip from '@mui/material/Chip';
 import Avatar from '@mui/material/Avatar';
 import Stack from '@mui/material/Stack';
 import BasicReactTable from 'components/tables/basicTable';
-import { TABLE_STATUS } from 'utils/constants';
+import { RECORD_STATUS } from 'utils/constants';
 
 export default function ProductsTableSection({
   rows,
@@ -53,41 +53,17 @@ export default function ProductsTableSection({
         }
       },
       {
-        header: 'State', // domain status (DRAFT/SUBMITTED/APPROVED/REJECTED/DISABLED)
-        accessorKey: 'status',
-        cell: (cell) => {
-          const v = String(cell.getValue() || '').toUpperCase();
-          switch (v) {
-            case 'APPROVED':
-              return <Chip color="success" label="APPROVED" size="small" variant="light" />;
-            case 'SUBMITTED':
-              return <Chip color="warning" label="SUBMITTED" size="small" variant="light" />;
-            case 'REJECTED':
-              return <Chip color="error" label="REJECTED" size="small" variant="light" />;
-            case 'DISABLED':
-              return <Chip color="default" label="DISABLED" size="small" variant="light" />;
-            case 'DRAFT':
-            default:
-              return <Chip color="default" label={v || 'DRAFT'} size="small" variant="light" />;
-          }
-        }
-      },
-      {
         header: 'Record', // record_status numeric → TABLE_STATUS chip
         accessorKey: 'record_status',
         cell: (cell) => {
           const value = cell.getValue();
           switch (value) {
-            case TABLE_STATUS.ACTIVE:
+            case RECORD_STATUS.ACTIVE:
               return <Chip color="success" label="Active" size="small" variant="light" />;
-            case TABLE_STATUS.INACTIVE:
+            case RECORD_STATUS.INACTIVE:
               return <Chip color="warning" label="Inactive" size="small" variant="light" />;
-            case TABLE_STATUS.SUSPENDED:
+            case RECORD_STATUS.ARCHIVED:
               return <Chip color="error" label="Suspended" size="small" variant="light" />;
-            case TABLE_STATUS.DELETED:
-              return <Chip color="default" label="Deleted" size="small" variant="light" />;
-            default:
-              return <Chip color="default" label="Unknown" size="small" variant="light" />;
           }
         }
       }

@@ -13,7 +13,6 @@ import {
 import axiosServices from 'utils/axios';
 import { listCategories } from 'api/catalog';
 
-const STATUS_LIST = ['', 'DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'DISABLED'];
 const RECORD_STATUS_LIST = [
   { value: '', label: '' },
   { value: 1, label: 'ACTIVE' },
@@ -31,7 +30,6 @@ export default function CategoriesFilters({ value, onChange }) {
   const listboxRef = useRef(null);
 
   const parent = value?.parent || null;
-  const status = value?.status ?? '';
   const record_status = value?.record_status ?? '';
 
   const load = useCallback(
@@ -74,7 +72,6 @@ export default function CategoriesFilters({ value, onChange }) {
   };
 
   const setParent = (val) => onChange({ ...value, parent: val });
-  const setStatus = (val) => onChange({ ...value, status: val });
   const setRecordStatus = (val) => onChange({ ...value, record_status: val });
 
   return (
@@ -116,24 +113,6 @@ export default function CategoriesFilters({ value, onChange }) {
         />
       </Stack>
 
-      {/* Status select */}
-      <Stack sx={{ gap: 1, minWidth: 200 }}>
-        <TextField
-          select
-          size="small"
-          variant="outlined"
-          label="Status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          {STATUS_LIST.map((s) => (
-            <MenuItem key={String(s)} value={s}>
-              {String(s)}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Stack>
-
       {/* Record status select */}
       <Stack sx={{ gap: 1, minWidth: 200 }}>
         <TextField
@@ -158,7 +137,6 @@ export default function CategoriesFilters({ value, onChange }) {
 CategoriesFilters.propTypes = {
   value: PropTypes.shape({
     parent: PropTypes.object,
-    status: PropTypes.oneOf(['', 'DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'DISABLED']),
     record_status: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
   }),
   onChange: PropTypes.func.isRequired

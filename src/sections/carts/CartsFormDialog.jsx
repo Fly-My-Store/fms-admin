@@ -15,11 +15,11 @@ import { CloseOutlined } from '@ant-design/icons';
 import axiosServices from 'utils/axios';
 
 export default function CartsFormDialog({ open, onClose, initialData = null, onSaved }) {
-  const [form, setForm] = useState({ user_id: '', store_id: '', status: '' });
+  const [form, setForm] = useState({ user_id: '', store_id: '', reacord_status: '' });
 
   useEffect(() => {
-    if (initialData) setForm({ ...{ user_id: '', store_id: '', status: '' }, ...initialData });
-    else setForm({ user_id: '', store_id: '', status: '' });
+    if (initialData) setForm({ ...{ user_id: '', store_id: '', reacord_status: '' }, ...initialData });
+    else setForm({ user_id: '', store_id: '', reacord_status: '' });
   }, [initialData, open]);
 
   const handleChange = (e) => {
@@ -34,7 +34,7 @@ export default function CartsFormDialog({ open, onClose, initialData = null, onS
       else await axiosServices.post('admin/orders-payments/carts', payload);
       onSaved && onSaved();
       onClose();
-    } catch (e) {}
+    } catch (e) { }
   };
 
   return (
@@ -48,17 +48,17 @@ export default function CartsFormDialog({ open, onClose, initialData = null, onS
 
           <Stack sx={{ gap: 1 }}>
             <InputLabel>User ID</InputLabel>
-            <TextField id="user_id" name="user_id" value={form.user_id || ''} onChange={(e)=>setForm(p=>({...p, user_id: e.target.value}))} placeholder="User ID" fullWidth />
+            <TextField id="user_id" name="user_id" value={form.user_id || ''} onChange={(e) => setForm(p => ({ ...p, user_id: e.target.value }))} placeholder="User ID" fullWidth />
           </Stack>
 
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Store ID</InputLabel>
-            <TextField id="store_id" name="store_id" value={form.store_id || ''} onChange={(e)=>setForm(p=>({...p, store_id: e.target.value}))} placeholder="Store ID" fullWidth />
+            <TextField id="store_id" name="store_id" value={form.store_id || ''} onChange={(e) => setForm(p => ({ ...p, store_id: e.target.value }))} placeholder="Store ID" fullWidth />
           </Stack>
 
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Record Status</InputLabel>
-            <TextField id="record_status" name="Record Status" value={form.record_status || ''} onChange={(e)=>setForm(p=>({...p, record_status: e.target.value}))} placeholder="Status" fullWidth />
+            <TextField id="record_status" name="Record Status" value={form.record_status || ''} onChange={(e) => setForm(p => ({ ...p, record_status: e.target.value }))} placeholder="Status" fullWidth />
           </Stack>
         </Stack>
       </DialogContent>
