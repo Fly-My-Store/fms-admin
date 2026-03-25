@@ -22,7 +22,6 @@ export function DefsView() {
 
   useEffect(() => {
     reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDialogToggle = () => {
