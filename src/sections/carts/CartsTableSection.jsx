@@ -14,10 +14,17 @@ export default function CartsTableSection({
 }) {
   const columns = useMemo(
     () => [
-      { header: 'User ID', accessorKey: 'user_id' },
-      { header: 'Store ID', accessorKey: 'store_id' },
-      { header: 'Record Status', accessorKey: 'record_status' },
+      {
+        header: 'Customer',
+        accessorFn: (row) => row.user?.name || row.user?.email || row.user_id,
+      },
+      {
+        header: 'Store',
+        accessorFn: (row) => row.store?.name || row.store_id,
+      },
+      { header: 'Status', accessorKey: 'status' },
       { header: 'Items', accessorKey: 'item_count' },
+      { header: 'Updated', accessorKey: 'updated_at' },
     ],
     []
   );

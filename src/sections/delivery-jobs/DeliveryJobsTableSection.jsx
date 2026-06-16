@@ -14,10 +14,11 @@ export default function DeliveryJobsTableSection({
 }) {
   const columns = useMemo(
     () => [
-      { header: 'ID', accessorKey: 'id' },
-      { header: 'Rider ID', accessorKey: 'rider_id' },
+      { header: 'Order', accessorKey: 'order_label' },
+      { header: 'Store', accessorKey: 'store_name' },
+      { header: 'Rider', accessorKey: 'rider_name' },
       { header: 'Status', accessorKey: 'status' },
-      { header: 'ETA', accessorKey: 'eta_at' },
+      { header: 'Created', accessorKey: 'created_at' },
     ],
     []
   );

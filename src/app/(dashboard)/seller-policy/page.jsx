@@ -1,4 +1,4 @@
-import View from 'views/stores';
+import View from 'views/seller-policy';
 
 // ==============================|| PAGE ||============================== //
 

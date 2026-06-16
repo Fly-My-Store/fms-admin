@@ -12,5 +12,5 @@ export const createStoreVariant = (storeId, data) => post(`admin/listings-invent
 export const updateStoreVariant = (storeId, id, data) => patch(`admin/listings-inventory/stores/${storeId}/variants/${id}`, data);
 export const removeStoreVariant = (storeId, id) => del(`admin/listings-inventory/stores/${storeId}/variants/${id}`);
 
-export const listInventoryMovements = (params) => get('admin/listings-inventory/inventory-movements', params);
-export const createInventoryMovement = (data) => post('admin/listings-inventory/inventory-movements', data);
+export const listInventoryMovements = (params) => get('admin/listings-inventory/inventory/movements', params);
+export const createInventoryMovement = (data) => post('admin/listings-inventory/inventory/movements', data);

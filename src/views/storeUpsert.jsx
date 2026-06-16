@@ -32,6 +32,7 @@ const RECORD_STATUS_LIST = [
 
 const STORE_STATUS = ['ACTIVE', 'INACTIVE'];
 const KYB_STATUS = ['NONE', 'PENDING', 'APPROVED', 'REJECTED'];
+const KYC_STATUSES = ['PENDING', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'RESUBMIT'];
 
 // -------------------- Helpers --------------------
 function toNumOrNull(v) {
@@ -63,12 +64,12 @@ function formatTimeValue(value) {
 // Remove empty/null/undefined values from object (recursively for nested objects)
 function removeEmptyFields(obj) {
   if (obj === null || obj === undefined) return undefined;
-  
+
   if (Array.isArray(obj)) {
     const filtered = obj.map(item => removeEmptyFields(item)).filter(item => item !== undefined);
     return filtered.length > 0 ? filtered : undefined;
   }
-  
+
   if (typeof obj === 'object') {
     const cleaned = {};
     Object.keys(obj).forEach(key => {
@@ -83,7 +84,7 @@ function removeEmptyFields(obj) {
     const keys = Object.keys(cleaned);
     return keys.length > 0 ? cleaned : undefined;
   }
-  
+
   // For primitive values, return undefined if empty string or null
   if (obj === '' || obj === null) return undefined;
   // Keep 0, false, and other falsy but valid values
@@ -117,6 +118,8 @@ const EMPTY = {
   support_email: '',
   support_phone: '',
   status: 'ACTIVE',
+  kyb_status: 'NONE',
+  kyb_reason: '',
   record_status: 1,
 
   // Seller (business) nested
@@ -128,6 +131,9 @@ const EMPTY = {
     pan: '',
     cin: '',
     kyb_status: 'PENDING',
+    kyb_reason: '',
+    kyc_status: 'PENDING',
+    kyc_reason: '',
     support_email: '',
     support_phone: ''
   },
@@ -205,6 +211,8 @@ export default function StoreUpsert() {
       support_email: data.support_email || '',
       support_phone: data.support_phone || '',
       status: data.status || 'ACTIVE',
+      kyb_status: data.kyb_status || 'NONE',
+      kyb_reason: data.kyb_reason || '',
       record_status: data.record_status ?? 1,
       seller: {
         id: seller.id || '',
@@ -214,6 +222,9 @@ export default function StoreUpsert() {
         pan: seller.pan || '',
         cin: seller.cin || '',
         kyb_status: seller.kyb_status || 'PENDING',
+        kyb_reason: seller.kyb_reason || '',
+        kyc_status: seller.kyc_status || 'PENDING',
+        kyc_reason: seller.kyc_reason || '',
         support_email: seller.support_email || '',
         support_phone: seller.support_phone || ''
       },
@@ -241,7 +252,7 @@ export default function StoreUpsert() {
     if (name === 'open_time' || name === 'close_time') {
       value = formatTimeValue(value);
     }
-    
+
     // Auto-generate slug from name when name changes (if slug hasn't been manually edited)
     if (name === 'name') {
       setForm((prev) => {
@@ -270,7 +281,7 @@ export default function StoreUpsert() {
     } else {
       setForm((p) => ({ ...p, [name]: value }));
     }
-    
+
     clearError(name);
   };
   const handleSellerField = (name, value) => {
@@ -290,7 +301,7 @@ export default function StoreUpsert() {
     // Required: store (only for create)
     if (!id && !String(f.name || '').trim()) add('name', 'Store name is required');
     if (f.name && String(f.name).trim().length < 2) add('name', 'Store name must be at least 2 characters');
-    
+
     const slugVal = String(f.slug || '').trim();
     if (!id && !slugVal) add('slug', 'Store slug is required');
     if (slugVal && !SLUG_RE.test(slugVal)) add('slug', 'Slug must contain only lowercase letters, numbers, and hyphens');
@@ -331,10 +342,10 @@ export default function StoreUpsert() {
     // Required address and code
     const addressText = String(f.address_text || '').trim();
     if (!addressText) add('address_text', 'Address is required');
-    
+
     const code = String(f.code || '').trim();
     if (!code) add('code', 'Code is required');
-    
+
     const dr = f.delivery_radius_m === '' ? null : Number(f.delivery_radius_m);
     if (dr !== null && (isNaN(dr) || dr < 0)) add('delivery_radius_m', 'Delivery radius must be a positive number');
 
@@ -346,24 +357,24 @@ export default function StoreUpsert() {
 
     // Seller fields
     const sel = f.seller || {};
-    
+
     // Required seller fields - legal_name and display_name are required by database NOT NULL constraint
     // Check if seller data is being provided (not just empty object)
     const hasSellerData = Object.keys(sel).length > 0 && Object.values(sel).some(v => v !== '' && v !== null && v !== undefined);
-    
+
     if (hasSellerData || !id) {
       // When creating a store or when seller data is provided, these fields are required
       const legalName = String(sel.legal_name || '').trim();
       if (!legalName) {
         add('seller.legal_name', 'Legal name is required');
       }
-      
+
       const displayName = String(sel.display_name || '').trim();
       if (!displayName) {
         add('seller.display_name', 'Display name is required');
       }
     }
-    
+
     // GSTIN validation - must be exactly 15 characters if provided
     const gst = String(sel.gstin || '').trim();
     if (gst && gst.length !== 15) {
@@ -379,6 +390,29 @@ export default function StoreUpsert() {
     // KYB Status validation
     if (sel.kyb_status && !KYB_STATUS.includes(sel.kyb_status)) {
       add('seller.kyb_status', `KYB status must be one of: ${KYB_STATUS.join(', ')}`);
+    }
+
+    if (sel.kyc_status && !KYC_STATUSES.includes(sel.kyc_status)) {
+      add('seller.kyc_status', `KYC status must be one of: ${KYC_STATUSES.join(', ')}`);
+    }
+
+    if (
+      (sel.kyc_status === 'REJECTED' || sel.kyc_status === 'RESUBMIT') &&
+      !String(sel.kyc_reason || '').trim()
+    ) {
+      add('seller.kyc_reason', 'KYC reason is required for REJECTED or RESUBMIT status');
+    }
+
+    if (sel.kyb_status === 'REJECTED' && !String(sel.kyb_reason || '').trim()) {
+      add('seller.kyb_reason', 'Seller KYB reason is required for REJECTED status');
+    }
+
+    if (f.kyb_status && !KYB_STATUS.includes(f.kyb_status)) {
+      add('kyb_status', `Store KYB status must be one of: ${KYB_STATUS.join(', ')}`);
+    }
+
+    if (f.kyb_status === 'REJECTED' && !String(f.kyb_reason || '').trim()) {
+      add('kyb_reason', 'Store KYB reason is required for REJECTED status');
     }
 
     // Support email validation
@@ -439,6 +473,8 @@ export default function StoreUpsert() {
         'support_email',
         'support_phone',
         'status',
+        'kyb_status',
+        'kyb_reason',
         'record_status'
       ];
 
@@ -460,6 +496,9 @@ export default function StoreUpsert() {
         'pan',
         'cin',
         'kyb_status',
+        'kyb_reason',
+        'kyc_status',
+        'kyc_reason',
         'support_email',
         'support_phone'
       ]);
@@ -469,13 +508,13 @@ export default function StoreUpsert() {
 
       // Build payload
       const rawPayload = { ...coerced };
-      
+
       // Only include seller if it has at least one non-empty field
       const hasSellerData = Object.values(sellerPayload).some(val => val !== '' && val !== null && val !== undefined);
       if (hasSellerData) {
         rawPayload.seller = sellerPayload;
       }
-      
+
       // Always include user on create (required fields validated), only if has data on update
       const hasUserData = Object.values(userPayload).some(val => val !== '' && val !== null && val !== undefined);
       if (!id || hasUserData) {
@@ -531,6 +570,68 @@ export default function StoreUpsert() {
           {loading && <LinearProgress />}
           {error && <Alert severity="error">{String(error)}</Alert>}
 
+
+
+          {/* Seller Owner (User) */}
+          <Typography variant="h6">Seller Owner</Typography>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel required={!id}>Name{!id && ' *'}</InputLabel>
+              <TextField size="small" value={form.user?.name || ''} onChange={(e) => handleUserField('name', e.target.value)} error={!!errors['user.name']} helperText={errors['user.name'] || ''} required={!id} />
+            </Stack>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel required={!id}>Email{!id && ' *'}</InputLabel>
+              <TextField size="small" type="email" value={form.user?.email || ''} onChange={(e) => handleUserField('email', e.target.value)} error={!!errors['user.email']} helperText={errors['user.email'] || ''} required={!id} />
+            </Stack>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel>Phone</InputLabel>
+              <TextField size="small" value={form.user?.phone || ''} onChange={(e) => handleUserField('phone', e.target.value)} error={!!errors['user.phone']} helperText={errors['user.phone'] || ''} />
+            </Stack>
+          </Stack>
+
+          <Divider />
+
+          {/* Seller (Business) */}
+          <Typography variant="h6">Seller</Typography>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel required>Legal Name *</InputLabel>
+              <TextField size="small" value={form.seller?.legal_name || ''} onChange={(e) => handleSellerField('legal_name', e.target.value)} error={!!errors['seller.legal_name']} helperText={errors['seller.legal_name'] || ''} required />
+            </Stack>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel required>Display Name *</InputLabel>
+              <TextField size="small" value={form.seller?.display_name || ''} onChange={(e) => handleSellerField('display_name', e.target.value)} error={!!errors['seller.display_name']} helperText={errors['seller.display_name'] || ''} required />
+            </Stack>
+          </Stack>
+
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel>GSTIN</InputLabel>
+              <TextField size="small" value={form.seller?.gstin || ''} onChange={(e) => handleSellerField('gstin', e.target.value)} error={!!errors['seller.gstin']} helperText={errors['seller.gstin'] || ''} />
+            </Stack>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel>PAN</InputLabel>
+              <TextField size="small" value={form.seller?.pan || ''} onChange={(e) => handleSellerField('pan', e.target.value)} error={!!errors['seller.pan']} helperText={errors['seller.pan'] || ''} />
+            </Stack>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel>CIN</InputLabel>
+              <TextField size="small" value={form.seller?.cin || ''} onChange={(e) => handleSellerField('cin', e.target.value)} />
+            </Stack>
+          </Stack>
+
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel>Seller Support Email</InputLabel>
+              <TextField size="small" value={form.seller?.support_email || ''} onChange={(e) => handleSellerField('support_email', e.target.value)} error={!!errors['seller.support_email']} helperText={errors['seller.support_email'] || ''} />
+            </Stack>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel>Seller Support Phone</InputLabel>
+              <TextField size="small" value={form.seller?.support_phone || ''} onChange={(e) => handleSellerField('support_phone', e.target.value)} error={!!errors['seller.support_phone']} helperText={errors['seller.support_phone'] || ''} />
+            </Stack>
+          </Stack>
+
+          <Divider />
+
           {/* Store section */}
           <Typography variant="h6">Store</Typography>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -540,12 +641,12 @@ export default function StoreUpsert() {
             </Stack>
             <Stack sx={{ gap: 1, flex: 1 }}>
               <InputLabel required={!id}>Slug{!id && ' *'}</InputLabel>
-              <TextField 
-                size="small" 
-                value={form.slug || ''} 
-                onChange={(e) => handleField('slug', e.target.value)} 
-                error={!!errors['slug']} 
-                helperText={errors['slug'] || (slugManuallyEdited ? '' : 'Auto-generated from name')} 
+              <TextField
+                size="small"
+                value={form.slug || ''}
+                onChange={(e) => handleField('slug', e.target.value)}
+                error={!!errors['slug']}
+                helperText={errors['slug'] || (slugManuallyEdited ? '' : 'Auto-generated from name')}
                 required={!id}
                 placeholder="Auto-generated from name"
               />
@@ -586,12 +687,12 @@ export default function StoreUpsert() {
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <Stack sx={{ gap: 1, flex: 1 }}>
               <InputLabel>Open Time (HH:mm)</InputLabel>
-              <TextField 
-                size="small" 
+              <TextField
+                size="small"
                 type="time"
-                value={form.open_time || ''} 
-                onChange={(e) => handleField('open_time', e.target.value)} 
-                error={!!errors['open_time']} 
+                value={form.open_time || ''}
+                onChange={(e) => handleField('open_time', e.target.value)}
+                error={!!errors['open_time']}
                 helperText={errors['open_time'] || 'Format: HH:mm (e.g., 09:00)'}
                 inputProps={{
                   step: 60, // 1 minute steps
@@ -604,12 +705,12 @@ export default function StoreUpsert() {
             </Stack>
             <Stack sx={{ gap: 1, flex: 1 }}>
               <InputLabel>Close Time (HH:mm)</InputLabel>
-              <TextField 
-                size="small" 
+              <TextField
+                size="small"
                 type="time"
-                value={form.close_time || ''} 
-                onChange={(e) => handleField('close_time', e.target.value)} 
-                error={!!errors['close_time']} 
+                value={form.close_time || ''}
+                onChange={(e) => handleField('close_time', e.target.value)}
+                error={!!errors['close_time']}
                 helperText={errors['close_time'] || 'Format: HH:mm (e.g., 18:00)'}
                 inputProps={{
                   step: 60, // 1 minute steps
@@ -632,12 +733,12 @@ export default function StoreUpsert() {
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <Stack sx={{ gap: 1, flex: 1 }}>
               <InputLabel required>Code *</InputLabel>
-              <TextField 
-                size="small" 
-                value={form.code || ''} 
-                onChange={(e) => handleField('code', e.target.value)} 
-                error={!!errors['code']} 
-                helperText={errors['code'] || (codeManuallyEdited ? '' : 'Auto-generated from name')} 
+              <TextField
+                size="small"
+                value={form.code || ''}
+                onChange={(e) => handleField('code', e.target.value)}
+                error={!!errors['code']}
+                helperText={errors['code'] || (codeManuallyEdited ? '' : 'Auto-generated from name')}
                 required
                 placeholder="Auto-generated from name"
               />
@@ -673,73 +774,81 @@ export default function StoreUpsert() {
 
           <Divider />
 
-          {/* Seller (Business) */}
-          <Typography variant="h6">Seller</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Legal Name *</InputLabel>
-              <TextField size="small" value={form.seller?.legal_name || ''} onChange={(e) => handleSellerField('legal_name', e.target.value)} error={!!errors['seller.legal_name']} helperText={errors['seller.legal_name'] || ''} required />
+          {/* Verification (KYC / KYB) */}
+          <Typography variant="h6">Verification</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
+            Seller identity (KYC), business entity (KYB), and store location (Store KYB). Reason is required when status is REJECTED (or RESUBMIT for KYC).
+          </Typography>
+
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
+            <Stack sx={{ gap: 1, flex: 1, minWidth: 200 }}>
+              <InputLabel>Seller KYC Status</InputLabel>
+              <TextField select size="small" fullWidth value={form.seller.kyc_status} onChange={(e) => handleSellerField('kyc_status', e.target.value)} error={!!errors['seller.kyc_status']} helperText={errors['seller.kyc_status'] || ''}>
+                {KYC_STATUSES.map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+              </TextField>
             </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Display Name *</InputLabel>
-              <TextField size="small" value={form.seller?.display_name || ''} onChange={(e) => handleSellerField('display_name', e.target.value)} error={!!errors['seller.display_name']} helperText={errors['seller.display_name'] || ''} required />
+            <Stack sx={{ gap: 1, flex: 2 }}>
+              <InputLabel>KYC Reason</InputLabel>
+              <TextField
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                value={form.seller?.kyc_reason || ''}
+                onChange={(e) => handleSellerField('kyc_reason', e.target.value)}
+                error={!!errors['seller.kyc_reason']}
+                helperText={errors['seller.kyc_reason'] || 'Required when KYC is REJECTED or RESUBMIT'}
+              />
             </Stack>
           </Stack>
 
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-           
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>KYB Status</InputLabel>
-              <TextField select size="small" value={form.seller.kyb_status} onChange={(e) => handleSellerField('kyb_status', e.target.value)} error={!!errors['seller.kyb_status']} helperText={errors['seller.kyb_status'] || ''}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
+            <Stack sx={{ gap: 1, flex: 1, minWidth: 200 }}>
+              <InputLabel>Seller KYB Status</InputLabel>
+              <TextField select size="small" fullWidth value={form.seller.kyb_status} onChange={(e) => handleSellerField('kyb_status', e.target.value)} error={!!errors['seller.kyb_status']} helperText={errors['seller.kyb_status'] || ''}>
                 {KYB_STATUS.map((s) => (
                   <MenuItem key={s} value={s}>{s}</MenuItem>
                 ))}
               </TextField>
             </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>GSTIN</InputLabel>
-              <TextField size="small" value={form.seller?.gstin || ''} onChange={(e) => handleSellerField('gstin', e.target.value)} error={!!errors['seller.gstin']} helperText={errors['seller.gstin'] || ''} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>PAN</InputLabel>
-              <TextField size="small" value={form.seller?.pan || ''} onChange={(e) => handleSellerField('pan', e.target.value)} error={!!errors['seller.pan']} helperText={errors['seller.pan'] || ''} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>CIN</InputLabel>
-              <TextField size="small" value={form.seller?.cin || ''} onChange={(e) => handleSellerField('cin', e.target.value)} />
+            <Stack sx={{ gap: 1, flex: 2 }}>
+              <InputLabel>Seller KYB Reason</InputLabel>
+              <TextField
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                value={form.seller?.kyb_reason || ''}
+                onChange={(e) => handleSellerField('kyb_reason', e.target.value)}
+                error={!!errors['seller.kyb_reason']}
+                helperText={errors['seller.kyb_reason'] || 'Required when seller KYB is REJECTED'}
+              />
             </Stack>
           </Stack>
 
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Seller Support Email</InputLabel>
-              <TextField size="small" value={form.seller?.support_email || ''} onChange={(e) => handleSellerField('support_email', e.target.value)} error={!!errors['seller.support_email']} helperText={errors['seller.support_email'] || ''} />
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
+            <Stack sx={{ gap: 1, flex: 1, minWidth: 200 }}>
+              <InputLabel>Store KYB Status</InputLabel>
+              <TextField select size="small" fullWidth value={form.kyb_status} onChange={(e) => handleField('kyb_status', e.target.value)} error={!!errors['kyb_status']} helperText={errors['kyb_status'] || ''}>
+                {KYB_STATUS.map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+              </TextField>
             </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Seller Support Phone</InputLabel>
-              <TextField size="small" value={form.seller?.support_phone || ''} onChange={(e) => handleSellerField('support_phone', e.target.value)} error={!!errors['seller.support_phone']} helperText={errors['seller.support_phone'] || ''} />
-            </Stack>
-          </Stack>
-
-          <Divider />
-
-          {/* Seller Owner (User) */}
-          <Typography variant="h6">Seller Owner</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required={!id}>Name{!id && ' *'}</InputLabel>
-              <TextField size="small" value={form.user?.name || ''} onChange={(e) => handleUserField('name', e.target.value)} error={!!errors['user.name']} helperText={errors['user.name'] || ''} required={!id} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required={!id}>Email{!id && ' *'}</InputLabel>
-              <TextField size="small" type="email" value={form.user?.email || ''} onChange={(e) => handleUserField('email', e.target.value)} error={!!errors['user.email']} helperText={errors['user.email'] || ''} required={!id} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Phone</InputLabel>
-              <TextField size="small" value={form.user?.phone || ''} onChange={(e) => handleUserField('phone', e.target.value)} error={!!errors['user.phone']} helperText={errors['user.phone'] || ''} />
+            <Stack sx={{ gap: 1, flex: 2 }}>
+              <InputLabel>Store KYB Reason</InputLabel>
+              <TextField
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                value={form.kyb_reason || ''}
+                onChange={(e) => handleField('kyb_reason', e.target.value)}
+                error={!!errors['kyb_reason']}
+                helperText={errors['kyb_reason'] || 'Required when store KYB is REJECTED'}
+              />
             </Stack>
           </Stack>
 

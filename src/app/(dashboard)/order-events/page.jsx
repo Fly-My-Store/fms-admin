@@ -1,6 +1,4 @@
-import View from 'views/orders';
-
-// ==============================|| PAGE ||============================== //
+import View from 'views/orderEvents';
 
 export default function Page() {
   return <View />;

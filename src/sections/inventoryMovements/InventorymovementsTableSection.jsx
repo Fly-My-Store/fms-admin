@@ -1,9 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import Chip from '@mui/material/Chip';
 import BasicReactTable from 'components/tables/basicTable';
-import { TABLE_STATUS } from 'utils/constants';
 
 export default function InventorymovementsTableSection({
   rows,
@@ -12,16 +10,21 @@ export default function InventorymovementsTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
 }) {
   const columns = useMemo(
     () => [
       { header: 'Store Variant', accessorKey: 'store_variant_id' },
-      { header: 'Qty', accessorKey: 'qty_change' },
+      {
+        header: 'SKU',
+        accessorFn: (row) => row.storeVariant?.product_variant?.sku || '—',
+      },
+      { header: 'Delta', accessorKey: 'delta' },
       { header: 'Reason', accessorKey: 'reason' },
-      { header: 'Ref', accessorKey: 'ref' },
+      { header: 'Ref Type', accessorKey: 'ref_type' },
+      { header: 'Ref ID', accessorKey: 'ref_id' },
     ],
-    []
+    [],
   );
 
   return (
@@ -36,7 +39,7 @@ export default function InventorymovementsTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
-      permissionName={'inventoryMovement'}
+      permissionName="inventoryMovement"
     />
   );
 }

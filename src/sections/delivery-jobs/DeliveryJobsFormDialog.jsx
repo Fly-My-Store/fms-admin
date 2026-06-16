@@ -10,59 +10,89 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
 import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
 import axiosServices from 'utils/axios';
 
+const DELIVERY_STATUSES = ['PENDING', 'ASSIGNED', 'REACHED_STORE', 'PICKED_UP', 'DELIVERED', 'CANCELLED', 'FAILED'];
+
 export default function DeliveryJobsFormDialog({ open, onClose, initialData = null, onSaved }) {
-  const [form, setForm] = useState({ rider_id: '', status: '', eta_at: '' });
+  const [form, setForm] = useState({ rider_id: '', status: '', notes: '' });
 
   useEffect(() => {
-    if (initialData) setForm({ ...{ rider_id: '', status: '', eta_at: '' }, ...initialData });
-    else setForm({ rider_id: '', status: '', eta_at: '' });
+    if (initialData) {
+      setForm({
+        rider_id: initialData.rider_id || '',
+        status: initialData.status || '',
+        notes: initialData.notes || '',
+      });
+    } else {
+      setForm({ rider_id: '', status: '', notes: '' });
+    }
   }, [initialData, open]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
   const handleSubmit = async () => {
+    if (!initialData?.id) return;
     try {
-      const payload = { ...form };
-      if (initialData?.id) await axiosServices.put('admin/logistics/deliveries/{deliveryId}/jobs/' + initialData.id, payload);
-      else await axiosServices.post('admin/logistics/deliveries/{deliveryId}/jobs', payload);
+      const payload = {
+        rider_id: form.rider_id || null,
+        status: form.status || undefined,
+        notes: form.notes || null,
+      };
+      await axiosServices.patch(`admin/logistics/delivery-jobs/${initialData.id}`, payload);
       onSaved && onSaved();
       onClose();
-    } catch (e) {}
+    } catch (e) {
+      // axios interceptor may surface errors
+    }
   };
 
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {initialData ? 'Edit Delivery Job' : 'Add New Delivery Job'}
+        Edit Delivery Job
         <IconButton onClick={onClose}><CloseOutlined /></IconButton>
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={2} mt={1} minWidth='420px'>
-
+        <Stack spacing={2} mt={1} minWidth="420px">
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Rider ID</InputLabel>
-            <TextField id="rider_id" name="rider_id" value={form.rider_id || ''} onChange={(e)=>setForm(p=>({...p, rider_id: e.target.value}))} placeholder="Rider ID" fullWidth />
+            <TextField
+              value={form.rider_id || ''}
+              onChange={(e) => setForm((p) => ({ ...p, rider_id: e.target.value }))}
+              placeholder="Rider user UUID"
+              fullWidth
+            />
           </Stack>
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Status</InputLabel>
-            <TextField id="status" name="status" value={form.status || ''} onChange={(e)=>setForm(p=>({...p, status: e.target.value}))} placeholder="Status" fullWidth />
+            <TextField select value={form.status || ''} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))} fullWidth>
+              {DELIVERY_STATUSES.map((s) => (
+                <MenuItem key={s} value={s}>
+                  {s}
+                </MenuItem>
+              ))}
+            </TextField>
           </Stack>
           <Stack sx={{ gap: 1 }}>
-            <InputLabel>ETA (ISO)</InputLabel>
-            <TextField id="eta_at" name="eta_at" value={form.eta_at || ''} onChange={(e)=>setForm(p=>({...p, eta_at: e.target.value}))} placeholder="ETA (ISO)" fullWidth />
+            <InputLabel>Notes</InputLabel>
+            <TextField
+              value={form.notes || ''}
+              onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+              placeholder="Optional notes"
+              fullWidth
+              multiline
+              minRows={2}
+            />
           </Stack>
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleSubmit}>{initialData ? 'Update' : 'Submit'}</Button>
+        <Button variant="contained" onClick={handleSubmit}>
+          Update
+        </Button>
       </DialogActions>
     </Dialog>
   );
@@ -72,5 +102,5 @@ DeliveryJobsFormDialog.propTypes = {
   open: PropTypes.bool,
   onClose: PropTypes.func,
   initialData: PropTypes.object,
-  onSaved: PropTypes.func
+  onSaved: PropTypes.func,
 };

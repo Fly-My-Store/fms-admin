@@ -1,4 +1,4 @@
-import View from 'views/fareCategoryOverrides';
+import View from 'views/orderDetail';
 
 export default function Page() {
   return <View />;

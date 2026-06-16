@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
 import BasicReactTable from 'components/tables/basicTable';
 import { TABLE_STATUS } from 'utils/constants';
 
@@ -9,6 +10,7 @@ export default function SellersTableSection({
   rows,
   handleAddButton,
   handleEditButton,
+  handlePayoutButton,
   pageIndex,
   pageSize,
   totalPageCount,
@@ -56,6 +58,13 @@ export default function SellersTableSection({
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'seller'}
+      tableActions={(row) =>
+        handlePayoutButton ? (
+          <Button size="small" variant="outlined" onClick={() => handlePayoutButton(row)}>
+            Payout
+          </Button>
+        ) : null
+      }
     />
   );
 }

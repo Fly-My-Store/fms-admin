@@ -91,7 +91,7 @@ const platformMenu = {
         { id: 'attribute-defs', title: 'attribute-defs', type: 'item', url: '/attribute-defs', icon: icons.ProfileOutlined, perm: 'attributeDef', action: 'read' },
         { id: 'category-attributes', title: 'category-attributes', type: 'item', url: '/category-attrs', icon: icons.DeploymentUnitOutlined, perm: 'categoryAttribute', action: 'read' },
         { id: 'product-attributes', title: 'product-attributes', type: 'item', url: '/product-attrs', icon: icons.ShoppingOutlined, perm: 'categoryAttribute', action: 'read' },
-        { id: 'varient-attributes', title: 'varient-attributes', type: 'item', url: '/varient-attrs', icon: icons.ShoppingOutlined, perm: 'categoryAttribute', action: 'read' },
+        { id: 'variant-attributes', title: 'varient-attributes', type: 'item', url: '/variant-attrs', icon: icons.ShoppingOutlined, perm: 'categoryAttribute', action: 'read' },
         { id: 'attribute-groups', title: 'attribute-groups', type: 'item', url: '/attribute-groups', icon: icons.BlockOutlined, perm: 'attributeGroup', action: 'read' },
         { id: 'plp-configs', title: 'plp-configs', type: 'item', url: '/plp-configs', icon: icons.LayoutOutlined, perm: 'categoryPLPConfig', action: 'read' }
       ]
@@ -107,16 +107,14 @@ const platformMenu = {
       children: [
         { id: 'brands', breadcrumbs: true, title: 'brands', type: 'item', url: '/brands', icon: icons.TagsOutlined, perm: 'brand', action: 'read' },
         { id: 'categories', breadcrumbs: true, title: 'categories', type: 'item', url: '/categories', icon: icons.ClusterOutlined, perm: 'category', action: 'read' },
-        { id: 'products', breadcrumbs: true, title: 'products', type: 'item', url: '/products', icon: icons.AppstoreOutlined, perm: 'product', action: 'read' },
-        // { id: 'product-variants', breadcrumbs: true, title: 'product-variants', type: 'item', url: '/product-variants', icon: icons.ReloadOutlined, perm: 'productVariant', action: 'read' },
-        // { id: 'product-approvals', breadcrumbs: true, title: 'product-approvals', type: 'item', url: '/product-approvals', icon: icons.ReloadOutlined, perm: 'product', action: 'modify' }
+        { id: 'products', breadcrumbs: true, title: 'products', type: 'item', url: '/products', icon: icons.AppstoreOutlined, perm: 'product', action: 'read' }
       ]
     },
 
-    // ===== Sellers & Stores (RENAMED) =====
+    // ===== Stores =====
     {
-      id: 'sellers-stores',
-      title: 'sellers-stores',
+      id: 'stores-menu',
+      title: 'stores',
       type: 'collapse',
       icon: icons.ShopOutlined,
       children: [
@@ -162,8 +160,6 @@ const platformMenu = {
         { id: 'payments-list', title: 'payments', type: 'item', url: '/payments', icon: icons.CreditCardOutlined, perm: 'payment', action: 'read' },
         { id: 'refunds', title: 'refunds', type: 'item', url: '/refunds', icon: icons.ReloadOutlined, perm: 'refund', action: 'read' },
         { id: 'fare', title: 'fare-pricing', type: 'item', url: '/fare', icon: icons.SettingOutlined, perm: 'payment', action: 'modify' },
-        { id: 'fare-bands', title: 'Fare bands', type: 'item', url: '/fare/bands', icon: icons.SlidersOutlined, perm: 'payment', action: 'modify' },
-        { id: 'fare-category-overrides', title: 'Category overrides', type: 'item', url: '/fare/category-overrides', icon: icons.TagsOutlined, perm: 'payment', action: 'modify' },
         { id: 'payouts', title: 'payouts', type: 'item', url: '/payouts', icon: icons.LineChartOutlined, perm: 'payment', action: 'modify' }
       ]
     },
@@ -177,8 +173,7 @@ const platformMenu = {
       children: [
         { id: 'deliveries', title: 'deliveries', type: 'item', url: '/deliveries', icon: icons.CarOutlined, perm: 'delivery', action: 'read' },
         { id: 'delivery-jobs', title: 'delivery-jobs', type: 'item', url: '/delivery-jobs', icon: icons.SyncOutlined, perm: 'deliveryJob', action: 'read' }, // NEW
-        { id: 'riders', title: 'riders', type: 'item', url: '/riders', icon: icons.TeamOutlined, perm: 'rider', action: 'read' },
-        { id: 'rider-locations', title: 'rider-locations', type: 'item', url: '/rider-locations', icon: icons.EnvironmentOutlined, perm: 'riderLocation', action: 'read' }
+        { id: 'riders', title: 'riders', type: 'item', url: '/riders', icon: icons.TeamOutlined, perm: 'rider', action: 'read' }
       ]
     },
 
@@ -190,7 +185,6 @@ const platformMenu = {
       icon: icons.TagsOutlined,
       children: [
         { id: 'banners', title: 'banners', type: 'item', url: '/banners', icon: icons.PictureOutlined, perm: 'banner', action: 'read' },
-        { id: 'reviews', title: 'reviews', type: 'item', url: '/reviews', icon: icons.StarOutlined, perm: 'review', action: 'read' }
       ]
     },
 
@@ -205,9 +199,6 @@ const platformMenu = {
         { id: 'addresses', title: 'addresses', type: 'item', url: '/addresses', icon: icons.EnvironmentOutlined, perm: 'address', action: 'read' }
       ]
     },
-
-    // ===== Analytics =====
-    { id: 'analytics', title: 'analytics', type: 'item', url: '/analytics', icon: icons.LineChartOutlined },
 
     // ===== System =====
     {

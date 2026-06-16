@@ -5,8 +5,6 @@ export const getUser = (id) => get(`admin/iam/users/${id}`);
 export const createUser = (data) => post('admin/iam/users', data);
 export const updateUser = (id, data) => patch(`admin/iam/users/${id}`, data);
 export const removeUser = (id) => del(`admin/iam/users/${id}`);
-export const listUserSessions = (id, params) => get(`admin/iam/users/${id}/sessions`, params);
-export const deleteSession = (sessionId) => del(`admin/iam/sessions/${sessionId}`);
 
 export const listRoles = (params) => get('admin/iam/roles', params);
 export const getRole = (id) => get(`admin/iam/roles/${id}`);

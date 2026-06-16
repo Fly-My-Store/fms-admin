@@ -1,24 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { enqueueSnackbar } from 'notistack';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 
 import {
   Alert,
   Avatar,
-  Box,
   Chip,
-  CircularProgress,
   Divider,
   Stack,
-  Tooltip,
   Typography,
-  Button
 } from '@mui/material';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { actions as sellersStores } from 'store/sellersStores/slice';
 
 // ========= helpers =========
@@ -46,8 +41,6 @@ const KV = ({ label, value }) => (
 // ========= page =========
 export default function StoreDetailView() {
   const params = useParams();
-  const search = useSearchParams();
-  const router = useRouter();
   const dispatch = useDispatch();
 
   const id = params?.id;
@@ -55,7 +48,6 @@ export default function StoreDetailView() {
   const { storeDetail } = useSelector((s) => s.sellersStores || {});
   const detail = storeDetail || { data: null, loading: false, error: null };
   const data = detail.data;
-
 
   const breadcrumb = useMemo(() => {
     const name = data?.name || id || 'store';
@@ -73,6 +65,16 @@ export default function StoreDetailView() {
     if (!id) return;
     dispatch(sellersStores.storesGetRequest({ params: { id } }));
   }, [dispatch, id]);
+
+  const mapsUrl = useMemo(() => {
+    if (data?.lat != null && data?.lng != null) {
+      return `https://www.google.com/maps?q=${data.lat},${data.lng}`;
+    }
+    if (data?.address_text) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.address_text)}`;
+    }
+    return null;
+  }, [data]);
 
   return (
     <>
@@ -94,7 +96,7 @@ export default function StoreDetailView() {
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                   <Chip size="small" variant="light" color={data?.is_open ? 'success' : 'default'} label={data?.is_open ? 'Open' : 'Closed'} />
                   <Chip size="small" variant="light" label={safe(data?.status)} />
-                  <Chip size="small" variant="light" label={`KYB: ${safe(data?.kyb_status)}`} />
+                  <Chip size="small" variant="light" label={`Store KYB: ${safe(data?.kyb_status)}`} />
                   <RecordStatusChip value={data?.record_status} />
                 </Stack>
               </Stack>
@@ -114,6 +116,9 @@ export default function StoreDetailView() {
                   <KV label="Close Time" value={data?.close_time} />
                 </Stack>
                 <Stack spacing={1.25} flex={1}>
+                  <KV label="Status" value={data?.status} />
+                  <KV label="Store KYB Status" value={data?.kyb_status} />
+                  <KV label="Store KYB Reason" value={data?.kyb_reason} />
                   <KV label="Delivery Radius (m)" value={data?.delivery_radius_m} />
                   <KV label="Rating" value={data?.rating != null ? `${data?.rating} (${data?.rating_count ?? 0})` : '—'} />
                   <KV label="Latitude" value={data?.lat} />
@@ -121,6 +126,18 @@ export default function StoreDetailView() {
                   <Stack spacing={0.5}>
                     <Typography variant="body2" color="text.secondary">Address</Typography>
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{safe(data?.address_text)}</Typography>
+                    {mapsUrl ? (
+                      <Typography
+                        component="a"
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        variant="body2"
+                        color="primary"
+                      >
+                        Open in Google Maps
+                      </Typography>
+                    ) : null}
                   </Stack>
                 </Stack>
               </Stack>
@@ -134,7 +151,10 @@ export default function StoreDetailView() {
                   <Stack spacing={1.25} flex={1}>
                     <KV label="Display Name" value={data?.seller?.display_name} />
                     <KV label="Legal Name" value={data?.seller?.legal_name} />
+                    <KV label="KYC Status" value={data?.seller?.kyc_status} />
+                    <KV label="KYC Reason" value={data?.seller?.kyc_reason} />
                     <KV label="KYB Status" value={data?.seller?.kyb_status} />
+                    <KV label="KYB Reason" value={data?.seller?.kyb_reason} />
                     <KV label="Onboarding Step" value={data?.seller?.onboarding_step} />
                   </Stack>
                   <Stack spacing={1.25} flex={1}>

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 import {
   Alert,
@@ -20,9 +20,11 @@ import {
 
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
+import RiderLocationsTableSection from 'sections/rider-locations/RiderLocationsTableSection';
 
 import { actions as logistics } from 'store/logistics/slice';
 import { updateRider } from 'api/logistics';
+import axiosServices from 'utils/axios';
 import { TABLE_STATUS } from 'utils/constants';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
@@ -56,10 +58,34 @@ const StatusChip = ({ value }) => {
 
 export default function RiderDetailView() {
   const { id } = useParams();
+  const router = useRouter();
   const dispatch = useDispatch();
   const { ridersDetail } = useSelector((s) => s.logistics || {});
   const detail = ridersDetail || { data: null, loading: false, error: null };
   const data = detail.data;
+
+  const [locationRows, setLocationRows] = useState([]);
+  const [locationPageIndex, setLocationPageIndex] = useState(0);
+  const [locationPageSize, setLocationPageSize] = useState(20);
+  const [locationTotalPages, setLocationTotalPages] = useState(1);
+  const [locationsLoading, setLocationsLoading] = useState(false);
+
+  const loadLocations = useCallback(async () => {
+    if (!id) return;
+    setLocationsLoading(true);
+    try {
+      const resp = await axiosServices.get(`admin/logistics/riders/${id}/locations`, {
+        params: { page: locationPageIndex + 1, limit: locationPageSize },
+      });
+      const payload = resp?.data || {};
+      setLocationRows(payload.data || []);
+      setLocationTotalPages(payload?.meta?.totalPages || 1);
+    } catch (e) {
+      enqueueSnackbar('Failed to load rider locations', { variant: 'error' });
+    } finally {
+      setLocationsLoading(false);
+    }
+  }, [id, locationPageIndex, locationPageSize]);
 
   useEffect(() => {
     if (!id) return;
@@ -67,10 +93,20 @@ export default function RiderDetailView() {
   }, [dispatch, id]);
 
   useEffect(() => {
+    loadLocations();
+  }, [loadLocations]);
+
+  useEffect(() => {
     if (detail.error) {
       enqueueSnackbar(detail.error, { variant: 'error' });
     }
   }, [detail.error]);
+
+  const handleLocationPaginationChange = (updater) => {
+    const next = typeof updater === 'function' ? updater({ pageIndex: locationPageIndex, pageSize: locationPageSize }) : updater;
+    setLocationPageIndex(next.pageIndex);
+    setLocationPageSize(next.pageSize);
+  };
 
   const breadcrumb = useMemo(() => {
     const name = data?.user?.name || id || 'rider';
@@ -115,6 +151,13 @@ export default function RiderDetailView() {
                   </Stack>
                 </Stack>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => router.push(`/payouts?payee_type=RIDER&payee_id=${id}&payee_name=${encodeURIComponent(data?.user?.name || '')}`)}
+                  >
+                    Record payout
+                  </Button>
                   <StatusChip value={data?.status} />
                   <Chip size="small" variant="light" label={`KYC: ${safe(data?.kyc_status)}`} />
                   <Chip size="small" variant="light" label={`Availability: ${safe(data?.availability_status)}`} />
@@ -235,6 +278,23 @@ export default function RiderDetailView() {
           )}
         </Stack>
       </MainCard>
+
+      <Box sx={{ mt: 2 }}>
+        <MainCard border={false} boxShadow content={false}>
+          {locationsLoading && (
+            <Alert severity="info" sx={{ m: 2 }}>
+              Loading locations…
+            </Alert>
+          )}
+          <RiderLocationsTableSection
+            rows={locationRows}
+            pageIndex={locationPageIndex}
+            pageSize={locationPageSize}
+            totalPageCount={locationTotalPages}
+            onPaginationChange={handleLocationPaginationChange}
+          />
+        </MainCard>
+      </Box>
     </>
   );
 }

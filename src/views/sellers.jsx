@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import { actions as sellersStores } from 'store/sellersStores/slice';
+import { useRouter } from 'next/navigation';
 import SellersTableSection from 'sections/sellers/SellersTableSection';
 import SellersFormDialog from 'sections/sellers/SellersFormDialog';
 
 export function SellersView() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const state = useSelector((s) => s.sellersStores || {});
   const list = state.sellers || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
@@ -46,12 +48,20 @@ export function SellersView() {
     }
   }, [error]);
 
+  const handlePayoutButton = (row) => {
+    const name = row?.display_name || row?.legal_name || '';
+    router.push(
+      `/payouts?payee_type=SELLER&payee_id=${row.id}&payee_name=${encodeURIComponent(name)}`
+    );
+  };
+
   return (
     <>
       <SellersTableSection
         rows={data}
         handleAddButton={handleAddButton}
         handleEditButton={handleEditButton}
+        handlePayoutButton={handlePayoutButton}
         pageIndex={page - 1}
         pageSize={pageSize}
         totalPageCount={totalPages}

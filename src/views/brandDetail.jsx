@@ -15,7 +15,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { actions as catalog } from 'store/catalog/slice';
 
 // --- helpers ---
@@ -64,8 +64,7 @@ const Field = ({ label, value, mono = false }) => {
 
 export function BrandDetail() {
   const dispatch = useDispatch();
-  const params = useSearchParams();
-  const id = params?.get('id') || null;
+  const { id } = useParams();
 
   const { brandDetail } = useSelector((s) => s.catalog || {});
   const detail = brandDetail || { data: null, loading: false, error: null };

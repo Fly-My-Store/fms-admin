@@ -19,7 +19,7 @@ export function StoresView() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    dispatch(sellersStores.storesListRequest({ params: { page, limit: pageSize } }));
+    dispatch(sellersStores.storesListRequest({ params: { page, limit: pageSize, sort: 'updatedAt', dir: 'DESC' } }));
   }, [dispatch]);
 
   const handleDialogToggle = () => {
@@ -41,7 +41,9 @@ export function StoresView() {
   }
   const handlePaginationChange = (updater) => {
     const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(sellersStores.storesListRequest({ params: { page: next.pageIndex + 1, limit: next.pageSize } }));
+    dispatch(sellersStores.storesListRequest({
+      params: { page: next.pageIndex + 1, limit: next.pageSize, sort: 'updatedAt', dir: 'DESC' },
+    }));
   };
 
   useEffect(() => {

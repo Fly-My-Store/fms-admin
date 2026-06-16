@@ -31,8 +31,6 @@
 
   "product-variants": "Product Variants",
   "product-variant": "Product Variant",
-  "variant-barcodes": "Variant Barcodes",
-  "product-approvals": "Product Approvals",
   "images": "Images",
   "categories": "Categories",
   "category": "Category",
@@ -57,7 +55,7 @@
   "varient-attributes": "Variant Attributes",
   "attribute-groups": "Attribute Groups",
   "plp-configs": "PLP Configs",
-  "sellers-stores": "Sellers & Stores",
+  "sellers-stores": "Stores",
   "sellers": "Sellers",
   "seller-documents": "Seller Documents",
   "seller-bank-accounts": "Seller Bank Accounts",
