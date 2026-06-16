@@ -146,7 +146,8 @@ const platformMenu = {
         { id: 'orders-list', title: 'orders', type: 'item', url: '/orders', icon: icons.ShoppingCartOutlined, perm: 'order', action: 'read' },
         { id: 'order-events', title: 'order-events', type: 'item', url: '/order-events', icon: icons.ReloadOutlined, perm: 'orderEvent', action: 'read' },
         { id: 'carts', title: 'carts', type: 'item', url: '/carts', icon: icons.ShoppingCartOutlined, perm: 'cart', action: 'read' },
-        { id: 'customers', title: 'customers', type: 'item', url: '/customers', icon: icons.UserOutlined, perm: 'user', action: 'read' }
+        { id: 'customers', title: 'customers', type: 'item', url: '/customers', icon: icons.UserOutlined, perm: 'user', action: 'read' },
+        { id: 'support-tickets', title: 'support-tickets', type: 'item', url: '/support-tickets', icon: icons.BellOutlined, perm: 'order', action: 'read' }
       ]
     },
 

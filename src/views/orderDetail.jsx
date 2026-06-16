@@ -22,7 +22,6 @@ import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 import { actions as ordersPayments } from 'store/ordersPayments/slice';
 import OrderCancelCard from 'sections/orders/OrderCancelCard';
-import OrderRefundCard from 'sections/orders/OrderRefundCard';
 import OrderRiderCard from 'sections/orders/OrderRiderCard';
 import OrderTrackingPanel from 'sections/orders/OrderTrackingPanel';
 
@@ -314,9 +313,6 @@ export default function OrderDetailView() {
 
           <Grid item xs={12} md={6}>
             <OrderCancelCard order={order} onSuccess={handleActionDone} />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <OrderRefundCard order={order} onSuccess={handleActionDone} />
           </Grid>
           <Grid item xs={12} md={6}>
             <OrderRiderCard order={order} onSuccess={handleActionDone} />

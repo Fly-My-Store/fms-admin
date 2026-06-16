@@ -2,10 +2,10 @@
 
 import { useMemo } from 'react';
 import BasicReactTable from 'components/tables/basicTable';
-import { formatINR } from 'utils/currency';
 
-export default function RefundsTableSection({
+export default function SupportTicketsTableSection({
   rows,
+  handleViewButton,
   pageIndex,
   pageSize,
   totalPageCount,
@@ -13,10 +13,12 @@ export default function RefundsTableSection({
 }) {
   const columns = useMemo(
     () => [
-      { header: 'Payment ID', accessorKey: 'payment_id' },
-      { header: 'Amount (₹)', id: 'amount_cents', accessorFn: (row) => formatINR(row?.amount_cents) },
+      { header: 'Subject', accessorKey: 'subject' },
+      { header: 'Requester', accessorKey: 'requester_label' },
+      { header: 'Type', accessorKey: 'requester_type' },
+      { header: 'Category', accessorKey: 'category_label' },
       { header: 'Status', accessorKey: 'status' },
-      { header: 'Reason', accessorKey: 'reason' },
+      { header: 'Created', accessorKey: 'created_at' }
     ],
     []
   );
@@ -25,13 +27,14 @@ export default function RefundsTableSection({
     <BasicReactTable
       columns={columns}
       data={rows}
-      title="Refunds"
+      title="Support Tickets"
+      ariaLebel="View Support Ticket"
+      handleViewButton={handleViewButton}
       pageIndex={pageIndex}
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
-      permissionName={'refund'}
-      showActions={false}
+      permissionName="order"
     />
   );
 }
