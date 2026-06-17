@@ -1,25 +1,18 @@
 'use client';
 
-import MainCard from 'components/MainCard';
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useState } from 'react';
+import useAxiosPaginatedList from 'hooks/useAxiosPaginatedList';
 import UserTableSection from 'sections/users/UserTableSection';
 import UserFormDialog from 'sections/users/UserFormDialog';
-import { clearError, fetchUsersRequest } from 'store/user/userSlice';
-import { enqueueSnackbar } from 'notistack';
 
-export function UsersView() {
-  const dispatch = useDispatch();
-  const { usersData, error } = useSelector((state) => state.user);
-  const { count, page, pageSize, totalPages, data } = usersData;
-
+export default function UsersView() {
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  useEffect(() => {
-    dispatch(fetchUsersRequest({ page, limit: pageSize, type: 'ADMIN' }));
-  }, [dispatch]);
-
+  const { rows, pageIndex, pageSize, totalPages, load, handlePaginationChange } = useAxiosPaginatedList(
+    'admin/iam/users',
+    { params: { type: 'ADMIN' }, errorMessage: 'Failed to load admin users' }
+  );
 
   const handleDialogToggle = () => {
     setOpen((prev) => !prev);
@@ -32,40 +25,22 @@ export function UsersView() {
   };
 
   const handleEditButton = (row) => {
-    if (row.subType !== 'admin') {
-      setSelectedUser(row);
-      setOpen(true);
-    } else {
-      enqueueSnackbar('You dont have access to update this user profile.', { variant: 'warning' });
-    }
+    setSelectedUser(row);
+    setOpen(true);
   };
-
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(fetchUsersRequest({ page: next.pageIndex + 1, limit: next.pageSize }));
-  };
-
-  useEffect(() => {
-    if (error) {
-      enqueueSnackbar(error, { variant: 'error' });
-      dispatch(clearError());
-    }
-  }, [error]);
 
   return (
     <>
       <UserTableSection
-        users={data}
+        users={rows}
         handleAddButton={handleAddButton}
         handleEditButton={handleEditButton}
-        pageIndex={page - 1}
+        pageIndex={pageIndex}
         pageSize={pageSize}
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
       />
-      <UserFormDialog open={open} onClose={handleDialogToggle} initialData={selectedUser} />
+      <UserFormDialog open={open} onClose={handleDialogToggle} initialData={selectedUser} onSaved={load} />
     </>
   );
 }
-
-export default UsersView;

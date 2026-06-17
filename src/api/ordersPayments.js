@@ -7,9 +7,6 @@ export const updateOrder = (id, data) => patch(`admin/orders-payments/orders/${i
 export const cancelOrder = (id, data) => post(`admin/orders-payments/orders/${id}/cancel`, data);
 export const assignRiderToOrder = (id, data) => post(`admin/orders-payments/orders/${id}/assign-rider`, data);
 export const listOrderItems = (id) => get(`admin/orders-payments/orders/${id}/items`);
-export const listOrderEvents = (id) => get(`admin/orders-payments/orders/${id}/events`);
-export const listAllOrderEvents = (params) => get('admin/orders-payments/order-events', params);
-export const createOrderEvent = (id, data) => post(`admin/orders-payments/orders/${id}/events`, data);
 export const initiateRefundForOrder = (id, data) => post(`admin/orders-payments/orders/${id}/refund`, data);
 export const retryPaymentForOrder = (id) => post(`admin/orders-payments/orders/${id}/retry-payment`);
 
@@ -21,3 +18,5 @@ export const listRefunds = (params) => get('admin/orders-payments/refunds', para
 export const getRefund = (id) => get(`admin/orders-payments/refunds/${id}`);
 export const createRefund = (data) => post('admin/orders-payments/refunds', data);
 export const updateRefund = (id, data) => patch(`admin/orders-payments/refunds/${id}`, data);
+
+export const listCarts = (params) => get('admin/orders-payments/carts', params);

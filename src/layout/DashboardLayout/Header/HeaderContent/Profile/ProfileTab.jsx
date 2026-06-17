@@ -1,5 +1,8 @@
+'use client';
+
 import PropTypes from 'prop-types';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 // material-ui
 import List from '@mui/material/List';
@@ -12,11 +15,11 @@ import EditOutlined from '@ant-design/icons/EditOutlined';
 import ProfileOutlined from '@ant-design/icons/ProfileOutlined';
 import LogoutOutlined from '@ant-design/icons/LogoutOutlined';
 import UserOutlined from '@ant-design/icons/UserOutlined';
-import WalletOutlined from '@ant-design/icons/WalletOutlined';
 
 // ==============================|| HEADER PROFILE - PROFILE TAB ||============================== //
 
 export default function ProfileTab({ handleLogout }) {
+  const router = useRouter();
   const [selectedIndex, setSelectedIndex] = useState();
   const handleListItemClick = (event, index) => {
     setSelectedIndex(index);
@@ -24,13 +27,25 @@ export default function ProfileTab({ handleLogout }) {
 
   return (
     <List component="nav" sx={{ p: 0, '& .MuiListItemIcon-root': { minWidth: 32 } }}>
-      <ListItemButton selected={selectedIndex === 0} onClick={(event) => handleListItemClick(event, 0)}>
+      <ListItemButton
+        selected={selectedIndex === 0}
+        onClick={() => {
+          handleListItemClick(null, 0);
+          router.push('/profile/personal');
+        }}
+      >
         <ListItemIcon>
           <EditOutlined />
         </ListItemIcon>
         <ListItemText primary="Edit Profile" />
       </ListItemButton>
-      <ListItemButton selected={selectedIndex === 1} onClick={(event) => handleListItemClick(event, 1)}>
+      <ListItemButton
+        selected={selectedIndex === 1}
+        onClick={() => {
+          handleListItemClick(null, 1);
+          router.push('/profile/personal');
+        }}
+      >
         <ListItemIcon>
           <UserOutlined />
         </ListItemIcon>

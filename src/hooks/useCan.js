@@ -8,7 +8,7 @@ const norm = (s) =>
 export function useCan() {
   const { user, permissionsByName, isLoaded } = useSelector((s) => s.auth || {});
 
-  const isAdminBypass = user?.subType === 'admin';
+  const isAdminBypass = String(user?.type || '').toUpperCase() === 'ADMIN' && Object.keys(permissionsByName || {}).length === 0;
 
   const can = (permissionName, action) => {
     if (!isLoaded) return false; // avoid flicker until auth loaded

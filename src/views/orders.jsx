@@ -15,7 +15,7 @@ const PAYMENT_STATUSES = ['', 'PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'];
 export function OrdersView() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const state = useSelector((s) => s.orderspayments || {});
+  const state = useSelector((s) => s.ordersPayments || {});
   const list = state.orders || { rows: [], meta: { page: 1, pageSize: 20, total: 0, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, total = 0, totalPages = 1 } = {}, error } = list;
 

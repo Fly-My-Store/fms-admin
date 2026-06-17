@@ -17,13 +17,13 @@ import { actions as iam } from 'store/iam/slice';
 
 export default function RolesFormDialog({ open, onClose, initialData = null }) {
   const dispatch = useDispatch();
-  const [form, setForm] = useState({ name: '', description: '' });
+  const [form, setForm] = useState({ name: '', code: '', description: '' });
 
   useEffect(() => {
     if (initialData) {
-      setForm({ ...{ name: '', description: '' }, ...initialData });
+      setForm({ name: '', code: '', description: '', ...initialData });
     } else {
-      setForm({ name: '', description: '' });
+      setForm({ name: '', code: '', description: '' });
     }
   }, [initialData, open]);
 
@@ -33,10 +33,21 @@ export default function RolesFormDialog({ open, onClose, initialData = null }) {
   };
 
   const handleSubmit = () => {
+    const payload = initialData?.id
+      ? form
+      : {
+          ...form,
+          domain: 'ADMIN',
+          code: String(form.code || form.name || '')
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9]+/g, '_')
+            .replace(/^_|_$/g, '') || `ROLE_${Date.now()}`
+        };
     if (initialData?.id) {
-      dispatch(iam.rolesUpdateRequest({ params: { id: initialData.id, data: form } }));
+      dispatch(iam.rolesUpdateRequest({ params: { id: initialData.id, data: payload } }));
     } else {
-      dispatch(iam.rolesCreateRequest({ params: form }));
+      dispatch(iam.rolesCreateRequest({ params: payload }));
     }
     onClose();
   };
@@ -52,13 +63,19 @@ export default function RolesFormDialog({ open, onClose, initialData = null }) {
       <DialogContent>
         <Stack spacing={2} mt={1} minWidth='400px'>
 
-          <Stack sx={{gap: 1}}>
+          <Stack sx={{ gap: 1 }}>
             <InputLabel>Name</InputLabel>
             <TextField id="name" name="name" type="text" value={form.name || ''} onChange={handleChange} placeholder="Name" fullWidth />
           </Stack>
 
+          {!initialData && (
+            <Stack sx={{ gap: 1 }}>
+              <InputLabel>Code (optional)</InputLabel>
+              <TextField id="code" name="code" value={form.code || ''} onChange={handleChange} placeholder="Generated from name if empty" fullWidth />
+            </Stack>
+          )}
 
-          <Stack sx={{gap: 1}}>
+          <Stack sx={{ gap: 1 }}>
             <InputLabel>Description</InputLabel>
             <TextField id="description" name="description" type="text" value={form.description || ''} onChange={handleChange} placeholder="Description" fullWidth />
           </Stack>

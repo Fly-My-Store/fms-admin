@@ -12,6 +12,7 @@ import Chip from '@mui/material/Chip';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
@@ -25,6 +26,10 @@ import { FormattedMessage } from 'react-intl';
 import { MenuOrientation, ThemeMode, NavActionType } from 'config';
 import useConfig from 'hooks/useConfig';
 import { handlerHorizontalActiveItem, handlerActiveItem, handlerDrawerOpen, useGetMenuMaster } from 'api/menu';
+import { matchesMenuRoute } from 'utils/menuRoute';
+
+// assets
+import InfoCircleOutlined from '@ant-design/icons/InfoCircleOutlined';
 
 // ==============================|| NAVIGATION - LIST ITEM ||============================== //
 
@@ -67,12 +72,39 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
 
   // active menu item on page load
   useEffect(() => {
-    if (pathname === item.url) handlerActiveItem(item.id);
+    if (item.url && matchesMenuRoute(pathname, item.url)) handlerActiveItem(item.id);
     // eslint-disable-next-line
   }, [pathname]);
 
   const textColor = mode === ThemeMode.DARK ? 'grey.400' : 'text.primary';
   const iconSelectedColor = mode === ThemeMode.DARK && drawerOpen ? 'text.primary' : 'primary.main';
+  const isLegacy = Boolean(item.legacy);
+  const labelColor = isLegacy && !isSelected ? 'text.disabled' : isSelected ? iconSelectedColor : textColor;
+
+  const itemLabel = (
+    <Typography
+      variant="h6"
+      noWrap
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
+        color: labelColor,
+        fontStyle: isLegacy && !isSelected ? 'italic' : 'normal'
+      }}
+    >
+      <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <FormattedMessage id={item.title} />
+      </Box>
+      {isLegacy && (
+        <Tooltip title="Not used in production. Open for details." placement="right" arrow>
+          <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0, lineHeight: 0, opacity: 0.55 }}>
+            <InfoCircleOutlined style={{ fontSize: 12 }} />
+          </Box>
+        </Tooltip>
+      )}
+    </Typography>
+  );
 
   return (
     <>
@@ -115,7 +147,7 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
               <ListItemIcon
                 sx={(theme) => ({
                   minWidth: 28,
-                  color: isSelected ? iconSelectedColor : textColor,
+                  color: isLegacy && !isSelected ? 'text.disabled' : isSelected ? iconSelectedColor : textColor,
                   ...(!drawerOpen && {
                     borderRadius: 1.5,
                     width: 36,
@@ -137,11 +169,8 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
             )}
             {(drawerOpen || (!drawerOpen && level !== 1)) && (
               <ListItemText
-                primary={
-                  <Typography variant="h6" sx={{ color: isSelected ? iconSelectedColor : textColor }}>
-                    <FormattedMessage id={item.title} />
-                  </Typography>
-                }
+                sx={{ flex: 1, minWidth: 0 }}
+                primary={itemLabel}
               />
             )}
             {(drawerOpen || (!drawerOpen && level !== 1)) && item.chip && (
@@ -151,6 +180,7 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
                 size={item.chip.size}
                 label={item.chip.label}
                 avatar={item.chip.avatar && <Avatar>{item.chip.avatar}</Avatar>}
+                sx={{ flexShrink: 0, ml: 0.5 }}
               />
             )}
           </ListItemButton>
@@ -246,19 +276,17 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
             </ListItemIcon>
           )}
           <ListItemText
-            primary={
-              <Typography variant="h6" color={isSelected ? 'primary.main' : 'secondary.dark'}>
-                <FormattedMessage id={item.title} />
-              </Typography>
-            }
+            sx={{ flex: 1, minWidth: 0 }}
+            primary={itemLabel}
           />
-          {(drawerOpen || (!drawerOpen && level !== 1)) && item.chip && (
+          {item.chip && (
             <Chip
               color={item.chip.color}
               variant={item.chip.variant}
               size={item.chip.size}
               label={item.chip.label}
               avatar={item.chip.avatar && <Avatar>{item.chip.avatar}</Avatar>}
+              sx={{ flexShrink: 0, ml: 0.5 }}
             />
           )}
         </ListItemButton>

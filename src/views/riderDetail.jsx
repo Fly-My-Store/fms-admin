@@ -3,46 +3,60 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
-import { useParams, useRouter } from 'next/navigation';
-
+import { useParams } from 'next/navigation';
 import {
   Alert,
   Avatar,
-  Box,
   Chip,
-  Divider,
   Stack,
-  Typography,
-  Button,
-  TextField,
-  MenuItem
+  Typography
 } from '@mui/material';
-
+import Grid from '@mui/material/Grid2';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
-import RiderLocationsTableSection from 'sections/rider-locations/RiderLocationsTableSection';
-
+import RiderLocationMap from 'sections/riders/RiderLocationMap';
+import RiderDeliveriesCard from 'sections/riders/RiderDeliveriesCard';
+import RiderPayoutsCard from 'sections/riders/RiderPayoutsCard';
 import { actions as logistics } from 'store/logistics/slice';
-import { updateRider } from 'api/logistics';
-import axiosServices from 'utils/axios';
-import { TABLE_STATUS } from 'utils/constants';
+import { TABLE_STATUS, RECORD_STATUS } from 'utils/constants';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
-const KYC_STATUSES = ['PENDING', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'RESUBMIT'];
-const AVAILABILITY_STATUSES = ['OFFLINE', 'IDLE', 'ASSIGNED', 'ON_TRIP'];
+const formatDate = (iso) => {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+};
 
-const KV = ({ label, value }) => (
-  <Stack direction="row" spacing={1.5} alignItems="baseline">
-    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 160 }}>
-      {label}
-    </Typography>
-    <Typography variant="body2">{safe(value)}</Typography>
-  </Stack>
-);
+const accountStatusLabel = (value) => {
+  switch (Number(value)) {
+    case TABLE_STATUS.ACTIVE:
+      return 'Active';
+    case TABLE_STATUS.INACTIVE:
+      return 'Inactive';
+    case TABLE_STATUS.SUSPENDED:
+      return 'Suspended';
+    case TABLE_STATUS.DELETED:
+      return 'Deleted';
+    default:
+      return safe(value);
+  }
+};
 
-const StatusChip = ({ value }) => {
-  switch (value) {
+const recordStatusLabel = (value) => {
+  switch (Number(value)) {
+    case RECORD_STATUS.ACTIVE:
+      return 'Active';
+    case RECORD_STATUS.INACTIVE:
+      return 'Inactive';
+    case RECORD_STATUS.ARCHIVED:
+      return 'Archived';
+    default:
+      return safe(value);
+  }
+};
+
+function AccountStatusChip({ value }) {
+  switch (Number(value)) {
     case TABLE_STATUS.ACTIVE:
       return <Chip size="small" color="success" label="Active" variant="light" />;
     case TABLE_STATUS.INACTIVE:
@@ -54,38 +68,35 @@ const StatusChip = ({ value }) => {
     default:
       return <Chip size="small" color="default" label={safe(value)} variant="light" />;
   }
-};
+}
+
+function KycChip({ value }) {
+  const color =
+    value === 'APPROVED' ? 'success' : value === 'REJECTED' ? 'error' : value === 'IN_REVIEW' ? 'warning' : 'default';
+  return <Chip size="small" color={color} label={value ? `KYC: ${value}` : 'KYC: —'} variant="outlined" />;
+}
+
+function AvailabilityChip({ value }) {
+  const color = value === 'ON_TRIP' || value === 'ASSIGNED' ? 'primary' : value === 'IDLE' ? 'success' : 'default';
+  return <Chip size="small" color={color} label={value || 'OFFLINE'} variant="outlined" />;
+}
+
+const KV = ({ label, value }) => (
+  <Stack direction="row" spacing={1.5} alignItems="baseline">
+    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
+      {label}
+    </Typography>
+    <Typography variant="body2">{safe(value)}</Typography>
+  </Stack>
+);
 
 export default function RiderDetailView() {
   const { id } = useParams();
-  const router = useRouter();
   const dispatch = useDispatch();
+  const [deliveriesRefreshKey, setDeliveriesRefreshKey] = useState(0);
   const { ridersDetail } = useSelector((s) => s.logistics || {});
   const detail = ridersDetail || { data: null, loading: false, error: null };
   const data = detail.data;
-
-  const [locationRows, setLocationRows] = useState([]);
-  const [locationPageIndex, setLocationPageIndex] = useState(0);
-  const [locationPageSize, setLocationPageSize] = useState(20);
-  const [locationTotalPages, setLocationTotalPages] = useState(1);
-  const [locationsLoading, setLocationsLoading] = useState(false);
-
-  const loadLocations = useCallback(async () => {
-    if (!id) return;
-    setLocationsLoading(true);
-    try {
-      const resp = await axiosServices.get(`admin/logistics/riders/${id}/locations`, {
-        params: { page: locationPageIndex + 1, limit: locationPageSize },
-      });
-      const payload = resp?.data || {};
-      setLocationRows(payload.data || []);
-      setLocationTotalPages(payload?.meta?.totalPages || 1);
-    } catch (e) {
-      enqueueSnackbar('Failed to load rider locations', { variant: 'error' });
-    } finally {
-      setLocationsLoading(false);
-    }
-  }, [id, locationPageIndex, locationPageSize]);
 
   useEffect(() => {
     if (!id) return;
@@ -93,20 +104,8 @@ export default function RiderDetailView() {
   }, [dispatch, id]);
 
   useEffect(() => {
-    loadLocations();
-  }, [loadLocations]);
-
-  useEffect(() => {
-    if (detail.error) {
-      enqueueSnackbar(detail.error, { variant: 'error' });
-    }
+    if (detail.error) enqueueSnackbar(detail.error, { variant: 'error' });
   }, [detail.error]);
-
-  const handleLocationPaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex: locationPageIndex, pageSize: locationPageSize }) : updater;
-    setLocationPageIndex(next.pageIndex);
-    setLocationPageSize(next.pageSize);
-  };
 
   const breadcrumb = useMemo(() => {
     const name = data?.user?.name || id || 'rider';
@@ -120,182 +119,105 @@ export default function RiderDetailView() {
     };
   }, [data?.user?.name, id]);
 
-  const handleQuickUpdate = async (patch) => {
-    if (!id) return;
-    try {
-      await updateRider(id, patch);
-      enqueueSnackbar('Rider updated', { variant: 'success' });
-      dispatch(logistics.ridersGetRequest({ params: { id } }));
-    } catch (err) {
-      const msg = err?.response?.data?.message || 'Update failed';
-      enqueueSnackbar(msg, { variant: 'error' });
-    }
-  };
+  const handlePayoutRecorded = useCallback(() => {
+    setDeliveriesRefreshKey((k) => k + 1);
+  }, []);
 
   return (
     <>
       <Breadcrumbs custom heading={breadcrumb.heading} links={breadcrumb.links} />
-      <MainCard border={false} boxShadow>
-        <Stack spacing={2}>
-          {detail.loading && <Alert severity="info">Loading…</Alert>}
-          {!detail.loading && data && (
-            <>
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
+
+      {detail.loading && <Alert severity="info">Loading rider…</Alert>}
+
+      {!detail.loading && data && (
+        <Grid container spacing={2}>
+          <Grid size={12}>
+            <MainCard border={false} boxShadow>
+              <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}>
                 <Stack direction="row" spacing={2} alignItems="center">
-                  <Avatar>{(data?.user?.name || 'R').slice(0, 1).toUpperCase()}</Avatar>
-                  <Stack spacing={0.25}>
+                  <Avatar sx={{ width: 48, height: 48 }}>{(data?.user?.name || 'R').slice(0, 1).toUpperCase()}</Avatar>
+                  <Stack spacing={0.5}>
                     <Typography variant="h5">{safe(data?.user?.name)}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {safe(data?.user?.email)}
+                      {safe(data?.user?.phone)} · {safe(data?.user?.email)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" fontFamily="monospace">
+                      {data.id}
                     </Typography>
                   </Stack>
                 </Stack>
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => router.push(`/payouts?payee_type=RIDER&payee_id=${id}&payee_name=${encodeURIComponent(data?.user?.name || '')}`)}
-                  >
-                    Record payout
-                  </Button>
-                  <StatusChip value={data?.status} />
-                  <Chip size="small" variant="light" label={`KYC: ${safe(data?.kyc_status)}`} />
-                  <Chip size="small" variant="light" label={`Availability: ${safe(data?.availability_status)}`} />
+                <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                  <AccountStatusChip value={data?.user?.status} />
+                  <KycChip value={data?.kyc_status} />
+                  <AvailabilityChip value={data?.availability_status} />
                 </Stack>
               </Stack>
+            </MainCard>
+          </Grid>
 
-              <Divider />
-
-              <Typography variant="overline">User</Typography>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                <Stack spacing={1.25} flex={1}>
-                  <KV label="Name" value={data?.user?.name} />
-                  <KV label="Email" value={data?.user?.email} />
-                  <KV label="Phone" value={data?.user?.phone} />
-                  <KV label="Country Code" value={data?.user?.country_code} />
-                </Stack>
-                <Stack spacing={1.25} flex={1}>
-                  <KV label="Status" value={data?.user?.status} />
-                  <KV label="Rating" value={data?.user?.rating} />
-                  <KV label="Rating Count" value={data?.user?.rating_count} />
-                  <KV label="Created At" value={data?.user?.created_at} />
-                </Stack>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <MainCard title="Profile">
+              <Stack spacing={1}>
+                <KV label="Phone" value={data?.user?.phone} />
+                <KV label="Email" value={data?.user?.email} />
+                <KV label="Country code" value={data?.user?.country_code} />
+                <KV label="Account status" value={accountStatusLabel(data?.user?.status)} />
+                <KV label="Rating" value={data?.user?.rating != null ? `${data.user.rating} (${data.user.rating_count ?? 0})` : '—'} />
+                <KV label="Joined" value={formatDate(data?.user?.created_at)} />
               </Stack>
+            </MainCard>
+          </Grid>
 
-              <Divider />
-
-              <Typography variant="overline">Vehicle</Typography>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                <Stack spacing={1.25} flex={1}>
-                  <KV label="Vehicle Type" value={data?.vehicle_type} />
-                  <KV label="Vehicle Number" value={data?.vehicle_number} />
-                  <KV label="DL Number" value={data?.dl_number} />
-                </Stack>
-                <Stack spacing={1.25} flex={1}>
-                  <KV label="Aadhar Last 4" value={data?.aadhar_last4} />
-                </Stack>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <MainCard title="Vehicle & service">
+              <Stack spacing={1}>
+                <KV label="Vehicle type" value={data?.vehicle_type} />
+                <KV label="Vehicle number" value={data?.vehicle_number} />
+                <KV label="DL number" value={data?.dl_number} />
+                <KV label="Aadhar last 4" value={data?.aadhar_last4} />
+                <KV label="Service radius" value={data?.service_radius_km != null ? `${data.service_radius_km} km` : '—'} />
+                <KV label="Capacity" value={data?.capacity_kg != null ? `${data.capacity_kg} kg` : '—'} />
               </Stack>
+            </MainCard>
+          </Grid>
 
-              <Divider />
+          <Grid size={{ xs: 12, md: 6 }}>
+            <RiderLocationMap riderId={id} />
+          </Grid>
 
-              <Typography variant="overline">Service & Availability</Typography>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                <Stack spacing={1.25} flex={1}>
-                  <KV label="Availability" value={data?.availability_status} />
-                  <KV label="Service Radius (km)" value={data?.service_radius_km} />
-                  <KV label="Capacity (kg)" value={data?.capacity_kg} />
-                </Stack>
-                <Stack spacing={1.25} flex={1}>
-                  <KV label="Record Status" value={data?.record_status} />
-                  <KV label="Created At" value={data?.created_at} />
-                  <KV label="Updated At" value={data?.updated_at} />
-                </Stack>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <MainCard title="Status">
+              <Stack spacing={1}>
+                <KV label="Account status" value={accountStatusLabel(data?.user?.status)} />
+                <KV label="KYC status" value={data?.kyc_status} />
+                <KV label="KYC reason" value={data?.kyc_reason} />
+                <KV label="Availability" value={data?.availability_status} />
+                <KV label="Record status" value={recordStatusLabel(data?.record_status)} />
+                <KV label="Updated" value={formatDate(data?.updated_at)} />
               </Stack>
+            </MainCard>
+          </Grid>
 
-              <Divider />
+          <Grid size={12}>
+            <RiderDeliveriesCard
+              riderUserId={data?.user_id || data?.user?.id}
+              refreshKey={deliveriesRefreshKey}
+            />
+          </Grid>
 
-              <Typography variant="overline">KYC</Typography>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                <Stack spacing={1.25} flex={1}>
-                  <KV label="KYC Status" value={data?.kyc_status} />
-                  <KV label="KYC Reason" value={data?.kyc_reason} />
-                </Stack>
-              </Stack>
+          <Grid size={12}>
+            <RiderPayoutsCard
+              riderId={id}
+              riderName={data?.user?.name}
+              onPayoutRecorded={handlePayoutRecorded}
+            />
+          </Grid>
+        </Grid>
+      )}
 
-              <Divider />
-
-              <Typography variant="overline">Quick Status Update</Typography>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    select
-                    size="small"
-                    label="KYC Status"
-                    defaultValue={data?.kyc_status || 'PENDING'}
-                    onChange={(e) => handleQuickUpdate({ kyc_status: e.target.value })}
-                    sx={{ mr: 2, minWidth: 160 }}
-                  >
-                    {KYC_STATUSES.map((s) => (
-                      <MenuItem key={s} value={s}>
-                        {s}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    select
-                    size="small"
-                    label="Availability"
-                    defaultValue={data?.availability_status || 'OFFLINE'}
-                    onChange={(e) => handleQuickUpdate({ availability_status: e.target.value })}
-                    sx={{ mr: 2, minWidth: 160 }}
-                  >
-                    {AVAILABILITY_STATUSES.map((s) => (
-                      <MenuItem key={s} value={s}>
-                        {s}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <TextField
-                    select
-                    size="small"
-                    label="Account Status"
-                    defaultValue={data?.status ?? TABLE_STATUS.ACTIVE}
-                    onChange={(e) => handleQuickUpdate({ status: Number(e.target.value) })}
-                    sx={{ mr: 2, minWidth: 160 }}
-                  >
-                    <MenuItem value={TABLE_STATUS.ACTIVE}>ACTIVE</MenuItem>
-                    <MenuItem value={TABLE_STATUS.INACTIVE}>INACTIVE</MenuItem>
-                    <MenuItem value={TABLE_STATUS.SUSPENDED}>SUSPENDED</MenuItem>
-                    <MenuItem value={TABLE_STATUS.DELETED}>DELETED</MenuItem>
-                  </TextField>
-                </Box>
-              </Stack>
-            </>
-          )}
-        </Stack>
-      </MainCard>
-
-      <Box sx={{ mt: 2 }}>
-        <MainCard border={false} boxShadow content={false}>
-          {locationsLoading && (
-            <Alert severity="info" sx={{ m: 2 }}>
-              Loading locations…
-            </Alert>
-          )}
-          <RiderLocationsTableSection
-            rows={locationRows}
-            pageIndex={locationPageIndex}
-            pageSize={locationPageSize}
-            totalPageCount={locationTotalPages}
-            onPaginationChange={handleLocationPaginationChange}
-          />
-        </MainCard>
-      </Box>
+      {!detail.loading && !data && !detail.error && (
+        <Alert severity="warning">Rider not found.</Alert>
+      )}
     </>
   );
 }
-

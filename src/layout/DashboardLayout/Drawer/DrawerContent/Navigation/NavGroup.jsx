@@ -60,11 +60,7 @@ export default function NavGroup({
   remItems,
   lastItemId,
   selectedID,
-  setSelectedID,
-  setSelectedItems,
-  selectedItems,
-  setSelectedLevel,
-  selectedLevel
+  setSelectedID
 }) {
   const pathname = usePathname();
   const { menuOrientation } = useConfig();
@@ -145,16 +141,7 @@ export default function NavGroup({
     switch (menuItem.type) {
       case 'collapse':
         return (
-          <NavCollapse
-            key={menuItem.id}
-            menu={menuItem}
-            setSelectedItems={setSelectedItems}
-            setSelectedLevel={setSelectedLevel}
-            selectedLevel={selectedLevel}
-            selectedItems={selectedItems}
-            level={1}
-            parentId={currentItem.id}
-          />
+          <NavCollapse key={menuItem.id} menu={menuItem} level={1} parentId={currentItem.id} />
         );
       case 'item':
         return <NavItem key={menuItem.id} item={menuItem} level={1} />;
@@ -183,16 +170,7 @@ export default function NavGroup({
         switch (menu.type) {
           case 'collapse':
             return (
-              <NavCollapse
-                key={menu.id}
-                menu={menu}
-                level={1}
-                parentId={currentItem.id}
-                setSelectedItems={setSelectedItems}
-                setSelectedLevel={setSelectedLevel}
-                selectedLevel={selectedLevel}
-                selectedItems={selectedItems}
-              />
+              <NavCollapse key={menu.id} menu={menu} level={1} parentId={currentItem.id} />
             );
           case 'item':
             return <NavItem key={menu.id} item={menu} level={1} />;
@@ -212,16 +190,7 @@ export default function NavGroup({
     switch (menu?.type) {
       case 'collapse':
         return (
-          <NavCollapse
-            key={menu.id}
-            menu={menu}
-            level={1}
-            parentId={currentItem.id}
-            setSelectedItems={setSelectedItems}
-            setSelectedLevel={setSelectedLevel}
-            selectedLevel={selectedLevel}
-            selectedItems={selectedItems}
-          />
+          <NavCollapse key={menu.id} menu={menu} level={1} parentId={currentItem.id} />
         );
       case 'item':
         return <NavItem key={menu.id} item={menu} level={1} />;
@@ -323,9 +292,5 @@ NavGroup.propTypes = {
   remItems: PropTypes.array,
   lastItemId: PropTypes.string,
   selectedID: PropTypes.oneOfType([PropTypes.any, PropTypes.string]),
-  setSelectedID: PropTypes.oneOfType([PropTypes.any, PropTypes.func]),
-  setSelectedItems: PropTypes.oneOfType([PropTypes.any, PropTypes.func]),
-  selectedItems: PropTypes.oneOfType([PropTypes.any, PropTypes.string]),
-  setSelectedLevel: PropTypes.func,
-  selectedLevel: PropTypes.number
+  setSelectedID: PropTypes.oneOfType([PropTypes.any, PropTypes.func])
 };

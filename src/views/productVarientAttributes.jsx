@@ -6,6 +6,7 @@ import { enqueueSnackbar } from 'notistack';
 import { actions as attributes } from 'store/attributes/slice';
 import VariantAttrsTableSection from 'sections/variant-attributes/VariantAttrsTableSection';
 import { useRouter } from 'next/navigation';
+import OutOfScopeAttributeNotice from 'components/OutOfScopeAttributeNotice';
 
 export function ProductVarientAttrsView({ variant_id, variantName, category_id }) {
   const dispatch = useDispatch();

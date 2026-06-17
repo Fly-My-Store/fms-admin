@@ -18,8 +18,7 @@ import {
   Typography,
   Checkbox,
   TablePagination,
-  TextField,
-  Grid
+  TextField
 } from '@mui/material';
 import { useParams, useSearchParams } from 'next/navigation';
 import { actions as catalog } from 'store/catalog/slice';

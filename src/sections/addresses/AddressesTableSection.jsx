@@ -12,31 +12,39 @@ export default function AddressesTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  hideUserIdColumn = false,
+  showActions = true,
+  showTitle = true
 }) {
   const columns = useMemo(
-    () => [
+    () => {
+      const cols = [
       { header: 'User ID', accessorKey: 'user_id' },
       { header: 'Line 1', accessorKey: 'line1' },
       { header: 'City', accessorKey: 'city' },
-      { header: 'Pincode', accessorKey: 'pincode' },
-    ],
-    []
+      { header: 'Pincode', accessorKey: 'postal_code' },
+    ];
+      return hideUserIdColumn ? cols.filter((c) => c.accessorKey !== 'user_id') : cols;
+    },
+    [hideUserIdColumn]
   );
 
   return (
     <BasicReactTable
       columns={columns}
       data={rows}
-      title="Addresss"
+      title="Addresses"
+      showTitle={showTitle}
       ariaLebel="Add Address"
-      handleAddButton={handleAddButton}
-      handleEditButton={handleEditButton}
+      handleAddButton={showActions ? handleAddButton : undefined}
+      handleEditButton={showActions ? handleEditButton : undefined}
       pageIndex={pageIndex}
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'addresse'}
+      showActions={showActions}
     />
   );
 }

@@ -4,8 +4,8 @@ export async function get(path, params) {
   const r = await axiosServices.get(path, { params });
   return r.data;
 }
-export async function post(path, data) {
-  const r = await axiosServices.post(path, data);
+export async function post(path, data, config) {
+  const r = await axiosServices.post(path, data, config);
   return r.data;
 }
 export async function patch(path, data) {

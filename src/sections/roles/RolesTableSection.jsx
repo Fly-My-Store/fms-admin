@@ -47,7 +47,7 @@ export default function RolesTableSection({
     <BasicReactTable
       columns={columns}
       data={rows}
-      title="Roles"
+      title="Admin Roles"
       ariaLebel="Add Role"
       handleAddButton={handleAddButton}
       handleEditButton={handleEditButton}

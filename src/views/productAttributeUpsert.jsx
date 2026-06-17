@@ -5,6 +5,7 @@ import { enqueueSnackbar } from 'notistack';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import MainCard from 'components/MainCard';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
+import OutOfScopeAttributeNotice from 'components/OutOfScopeAttributeNotice';
 // Stable stringify ensures consistent key order so Select value matches MenuItem values
 function stableStringify(v) {
   const t = typeof v;

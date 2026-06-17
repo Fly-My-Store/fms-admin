@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
-import { actions as sellersStores } from 'store/sellersStores/slice';
 import { useRouter } from 'next/navigation';
+import { actions as sellersStores } from 'store/sellersStores/slice';
 import SellersTableSection from 'sections/sellers/SellersTableSection';
-import SellersFormDialog from 'sections/sellers/SellersFormDialog';
 
 export function SellersView() {
   const dispatch = useDispatch();
@@ -15,27 +14,9 @@ export function SellersView() {
   const list = state.sellers || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
-
   useEffect(() => {
     dispatch(sellersStores.sellersListRequest({ params: { page, limit: pageSize } }));
   }, [dispatch]);
-
-  const handleDialogToggle = () => {
-    setOpen((prev) => !prev);
-    if (open) setSelected(null);
-  };
-
-  const handleAddButton = () => {
-    setSelected(null);
-    setOpen(true);
-  };
-
-  const handleEditButton = (row) => {
-    setSelected(row);
-    setOpen(true);
-  };
 
   const handlePaginationChange = (updater) => {
     const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
@@ -55,20 +36,22 @@ export function SellersView() {
     );
   };
 
+  const handleViewStoreButton = (row) => {
+    const storeId =
+      row?.primary_store_id || row?.default_store_id || row?.primary_store?.id || row?.stores?.[0]?.id;
+    if (storeId) router.push(`/stores/${storeId}`);
+  };
+
   return (
-    <>
-      <SellersTableSection
-        rows={data}
-        handleAddButton={handleAddButton}
-        handleEditButton={handleEditButton}
-        handlePayoutButton={handlePayoutButton}
-        pageIndex={page - 1}
-        pageSize={pageSize}
-        totalPageCount={totalPages}
-        onPaginationChange={handlePaginationChange}
-      />
-      <SellersFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
-    </>
+    <SellersTableSection
+      rows={data}
+      handleViewStoreButton={handleViewStoreButton}
+      handlePayoutButton={handlePayoutButton}
+      pageIndex={page - 1}
+      pageSize={pageSize}
+      totalPageCount={totalPages}
+      onPaginationChange={handlePaginationChange}
+    />
   );
 }
 

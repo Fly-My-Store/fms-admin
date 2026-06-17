@@ -27,8 +27,6 @@ export default function Navigation() {
   const downLG = useMediaQuery((theme) => theme.breakpoints.down('lg'));
 
   const [selectedID, setSelectedID] = useState('');
-  const [selectedItems, setSelectedItems] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState(0);
 
   const isHorizontal = menuOrientation === MenuOrientation.HORIZONTAL && !downLG;
 
@@ -69,11 +67,7 @@ export default function Navigation() {
           <NavGroup
             key={item.id}
             setSelectedID={setSelectedID}
-            setSelectedItems={setSelectedItems}
-            setSelectedLevel={setSelectedLevel}
-            selectedLevel={selectedLevel}
             selectedID={selectedID}
-            selectedItems={selectedItems}
             lastItem={lastItem}
             remItems={remItems}
             lastItemId={lastItemId}

@@ -13,31 +13,33 @@ import Stack from '@mui/material/Stack';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
-import axiosServices from 'utils/axios';
+import { upsertVariantAttr } from 'api/attributes';
 
 export default function VariantAttrsFormDialog({ open, onClose, initialData = null, onSaved }) {
   const [form, setForm] = useState({ variant_id: '', code: '', value_text: '' });
 
   useEffect(() => {
-    if (initialData) setForm({ ...{ variant_id: '', code: '', value_text: '' }, ...initialData });
-    else setForm({ variant_id: '', code: '', value_text: '' });
+    if (initialData) {
+      setForm({
+        variant_id: initialData.variant_id || '',
+        code: initialData.attribute_code || initialData.code || '',
+        value_text: initialData.value_text || ''
+      });
+    } else {
+      setForm({ variant_id: '', code: '', value_text: '' });
+    }
   }, [initialData, open]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
 
   const handleSubmit = async () => {
     try {
-      const payload = { ...form };
-      if (initialData?.id) {
-        await axiosServices.put('admin/catalog/variant-attributes/' + initialData.id, payload);
-        enqueueSnackbar('Variant attribute updated', { variant: 'success' });
-      } else {
-        await axiosServices.post('admin/catalog/variant-attributes', payload);
-        enqueueSnackbar('Variant attribute created', { variant: 'success' });
-      }
+      const attribute_code = form.code;
+      const payload = {
+        variant_id: form.variant_id,
+        attribute_code,
+        value_text: form.value_text
+      };
+      await upsertVariantAttr(attribute_code, payload);
+      enqueueSnackbar(initialData ? 'Variant attribute updated' : 'Variant attribute created', { variant: 'success' });
       onSaved && onSaved();
       onClose();
     } catch (e) {
@@ -62,7 +64,7 @@ export default function VariantAttrsFormDialog({ open, onClose, initialData = nu
 
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Code</InputLabel>
-            <TextField id="code" name="code" value={form.code || ''} onChange={(e)=>setForm(p=>({...p, code: e.target.value}))} placeholder="Code" fullWidth />
+            <TextField id="code" name="code" value={form.code || ''} onChange={(e)=>setForm(p=>({...p, code: e.target.value}))} placeholder="Code" fullWidth disabled={!!initialData} />
           </Stack>
 
           <Stack sx={{ gap: 1 }}>

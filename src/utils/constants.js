@@ -27,73 +27,6 @@ export const TABLE_STATUS = {
   DELETED: 4
 };
 
-export const PERMISSION_NAMES = [
-  'branch',
-  'branchAccess',
-  'business',
-  'businessConfiguration',
-  'city',
-  'constructionActivity',
-  'constructionActivityLevel',
-  'constructionActivityType',
-  'constructionPlan',
-  'constructionPlanActivityConfig',
-  'constructionPlanConfig',
-  'constructionPlanEventLog',
-  'constructionPlanMedia',
-  'district',
-  'loan',
-  'loanAuthRequest',
-  'loanDisbursal',
-  'loanDisbursalRequest',
-  'loanProperty',
-  'loanPropertyStructureType',
-  'loanType',
-  'permission',
-  'role',
-  'rolePermission',
-  'session',
-  'state',
-  'user',
-  'zone'
-];
-
-export const PERMISSION_SCOPE_MAP = {
-  // Platform-managed resources
-  business: 'platform',
-  permission: 'platform',
-  role: 'platform',
-  rolePermission: 'platform',
-  state: 'platform',
-  district: 'platform',
-  constructionActivity: 'platform',
-  constructionActivityLevel: 'platform',
-  constructionActivityType: 'platform',
-  loanType: 'platform',
-  loanPropertyStructureType: 'platform',
-
-  // Business-managed resources (loan domain + local config)
-  branch: 'business',
-  branchAccess: 'business',
-  businessConfiguration: 'business',
-  city: 'business',
-  zone: 'business',
-  constructionPlan: 'business',
-  constructionPlanActivityConfig: 'business',
-  constructionPlanConfig: 'business',
-  constructionPlanEventLog: 'business',
-  constructionPlanMedia: 'business',
-  loan: 'business',
-  loanAuthRequest: 'business',
-  loanDisbursal: 'business',
-  loanDisbursalRequest: 'business',
-  loanProperty: 'business',
-
-  // Shared / generic
-  user: 'both',
-  session: 'both'
-};
-
 // ==============================
 // Global Application Enums
 // ==============================
@@ -124,12 +57,6 @@ export const USER_TYPES = Object.freeze({
 export const ROLE_DOMAIN = Object.freeze({
   ADMIN: 'ADMIN',
   SELLER: 'SELLER'
-});
-
-export const DEVICE_PLATFORMS = Object.freeze({
-  ANDROID: 'ANDROID',
-  IOS: 'IOS',
-  WEB: 'WEB'
 });
 
 export const ATTRIBUTE_DEF_DATA_TYPES = Object.freeze({
@@ -280,13 +207,6 @@ export const SUPPORT_TICKET_STATUS = Object.freeze({
   CLOSED: 'CLOSED'
 });
 
-export const NOTIFICATION_TYPE = Object.freeze({
-  SYSTEM: 'SYSTEM',
-  ORDER: 'ORDER',
-  PAYMENT: 'PAYMENT',
-  PROMOTION: 'PROMOTION'
-});
-
 export const REFUND_STATUS = Object.freeze({
   PENDING: 'PENDING',
   PROCESSED: 'PROCESSED',
@@ -304,18 +224,4 @@ export const RIDER_AVAILABILITY_STATUS = Object.freeze({
   IDLE: 'IDLE',
   ASSIGNED: 'ASSIGNED',
   ON_TRIP: 'ON_TRIP'
-});
-
-// Generic owner types used by ServiceArea
-export const OWNER_TYPE = Object.freeze({
-  SELLER: 'SELLER',
-  STORE: 'STORE',
-  RIDER: 'RIDER'
-});
-
-// Webhook processing state used by WebhookEvent model
-export const WEBHOOK_STATUS = Object.freeze({
-  PENDING: 'PENDING',
-  PROCESSED: 'PROCESSED',
-  FAILED: 'FAILED'
 });

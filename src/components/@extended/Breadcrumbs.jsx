@@ -1,7 +1,7 @@
 'use client';
 import PropTypes from 'prop-types';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // next
 import NextLink from 'next/link';
@@ -19,7 +19,7 @@ import { FormattedMessage } from 'react-intl';
 
 // project imports
 import MainCard from 'components/MainCard';
-import navigation from 'menu-items';
+import useMenuItems from 'hooks/useMenuItems';
 import { ThemeDirection } from 'config';
 
 // assets
@@ -29,6 +29,34 @@ import HomeFilled from '@ant-design/icons/HomeFilled';
 import { Stack } from '@mui/system';
 import { IconButton } from '@mui/material';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+
+function resolveMenuTrail(menuGroups, pathname) {
+  const walk = (nodes, ancestors) => {
+    for (const node of nodes || []) {
+      if (node.url === pathname) {
+        const collapses = ancestors.filter((a) => a.type === 'collapse');
+        return {
+          main: collapses[collapses.length - 1] || null,
+          item: node
+        };
+      }
+      if (node.children?.length) {
+        const hit = walk(node.children, [...ancestors, node]);
+        if (hit) return hit;
+      }
+    }
+    return null;
+  };
+
+  for (const group of menuGroups || []) {
+    if (group?.type === 'group' && group.children?.length) {
+      const hit = walk(group.children, []);
+      if (hit) return hit;
+    }
+  }
+
+  return { main: null, item: null };
+}
 
 export default function Breadcrumbs({
   card = false,
@@ -43,15 +71,17 @@ export default function Breadcrumbs({
   separator,
   title = true,
   titleBottom = true,
+  showBack,
   sx,
   ...others
 }) {
   const theme = useTheme();
   const location = usePathname();
   const router = useRouter();
+  const menuItems = useMenuItems();
 
-  const [main, setMain] = useState();
-  const [item, setItem] = useState();
+  const [main, setMain] = useState(null);
+  const [item, setItem] = useState(null);
 
   const iconSX = {
     marginRight: theme.direction === ThemeDirection.RTL ? 0 : theme.spacing(0.75),
@@ -61,82 +91,50 @@ export default function Breadcrumbs({
     color: theme.palette.secondary.main
   };
 
-  const customLocation = location;
+  const menuKey = useMemo(() => JSON.stringify(menuItems.items || []), [menuItems.items]);
 
   useEffect(() => {
-    // Skip auto-detection when custom breadcrumbs are provided
-    if (custom) return;
-    
-    navigation?.items?.map((menu) => {
-      if (menu.type && menu.type === 'group') {
-        if (menu?.url && menu.url === customLocation) {
-          setMain(menu);
-          setItem(menu);
-        } else {
-          getCollapse(menu);
-        }
-      }
-      return false;
-    });
-  });
-
-  // set active item state
-  const getCollapse = (menu) => {
-    if (!custom && menu.children) {
-      menu.children.filter((collapse) => {
-        if (collapse.type && collapse.type === 'collapse') {
-          getCollapse(collapse);
-          if (collapse.url === customLocation) {
-            setMain(collapse);
-            setItem(collapse);
-          }
-        } else if (collapse.type && collapse.type === 'item') {
-          if (customLocation === collapse.url) {
-            setMain(menu);
-            setItem(collapse);
-          }
-        }
-        return false;
-      });
+    if (custom) {
+      setMain(null);
+      setItem(null);
+      return;
     }
-  };
 
-  // item separator
+    const trail = resolveMenuTrail(menuItems.items, location);
+    setMain(trail?.main ?? null);
+    setItem(trail?.item ?? null);
+  }, [custom, location, menuKey, menuItems.items]);
+
   const SeparatorIcon = separator;
   const separatorIcon = separator ? <SeparatorIcon style={{ fontSize: '0.75rem', marginTop: 2 }} /> : '/';
 
   let mainContent;
   let itemContent;
-  let breadcrumbContent = <Typography />;
-  let itemTitle = '';
+  let breadcrumbContent = null;
   let CollapseIcon;
   let ItemIcon;
 
-  // collapse item (only when not using custom breadcrumbs)
-  if (!custom && main && main.type === 'collapse' && !main.breadcrumbs) {
+  if (!custom && main && main.type === 'collapse' && main.breadcrumbs !== false) {
     CollapseIcon = main.icon ? main.icon : ApartmentOutlined;
     mainContent = (
-      <Typography
-        {...(main.url && { component: NextLink, href: main.url })}
-        variant={window.location.pathname === main.url ? 'subtitle1' : 'h6'}
-        sx={{ textDecoration: 'none' }}
-        color={window.location.pathname === main.url ? 'text.primary' : 'text.secondary'}
-      >
+      <Typography variant="h6" color="text.secondary" sx={{ textDecoration: 'none' }}>
         {icons && <CollapseIcon style={iconSX} />}
-        <FormattedMessage id={main?.title} />
+        <FormattedMessage id={main.title} />
       </Typography>
     );
   }
 
-  // items
-  if ((item && item.type === 'item') || (item?.type === 'group' && item?.url) || custom) {
+  const showAuto = !custom && item && (item.type === 'item' || (item.type === 'group' && item.url));
+  const showCustom = custom && links?.length > 0;
+  const showBackButton = showBack ?? custom;
+
+  if (showAuto || showCustom) {
     let tempContent;
-    
-    // When custom is true, only use custom links, skip auto-detection
-    if (custom && links && links?.length > 0) {
+
+    if (showCustom) {
       tempContent = (
         <MuiBreadcrumbs aria-label="breadcrumb" maxItems={maxItems || 8} separator={separatorIcon}>
-          {links?.map((link, index) => {
+          {links.map((link, index) => {
             CollapseIcon = link.icon ? link.icon : ApartmentOutlined;
             return (
               <Typography
@@ -154,19 +152,23 @@ export default function Breadcrumbs({
         </MuiBreadcrumbs>
       );
     } else {
-      // Auto-detected breadcrumbs (only when not custom)
-      itemTitle = item?.title;
       ItemIcon = item?.icon ? item.icon : ApartmentOutlined;
       itemContent = (
         <Typography variant="subtitle1" color="text.primary">
           {icons && <ItemIcon style={iconSX} />}
-          <FormattedMessage id={itemTitle} />
+          <FormattedMessage id={item.title} />
         </Typography>
       );
 
       tempContent = (
         <MuiBreadcrumbs aria-label="breadcrumb" maxItems={maxItems || 8} separator={separatorIcon}>
-          <Typography component={NextLink} href="/" color="text.secondary" variant="h6" sx={{ textDecoration: 'none' }}>
+          <Typography
+            component={NextLink}
+            href="/dashboard"
+            color="text.secondary"
+            variant="h6"
+            sx={{ textDecoration: 'none' }}
+          >
             {icons && <HomeOutlined style={iconSX} />}
             {icon && !icons && <HomeFilled style={{ ...iconSX, marginRight: 0 }} />}
             {(!icon || icons) && <FormattedMessage id="home" />}
@@ -177,7 +179,6 @@ export default function Breadcrumbs({
       );
     }
 
-    // main
     if (item?.breadcrumbs !== false || custom) {
       breadcrumbContent = (
         <MainCard
@@ -197,9 +198,11 @@ export default function Breadcrumbs({
             {title && !titleBottom && (
               <Grid>
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <IconButton onClick={() => router.back()}>
-                    <ArrowLeftOutlined />
-                  </IconButton>
+                  {showBackButton && (
+                    <IconButton onClick={() => router.back()} aria-label="go back">
+                      <ArrowLeftOutlined />
+                    </IconButton>
+                  )}
                   <Typography variant="h2">
                     <FormattedMessage id={custom ? heading : item?.title} />
                   </Typography>
@@ -210,9 +213,11 @@ export default function Breadcrumbs({
             {title && titleBottom && (
               <Grid sx={{ mt: card === false ? 0.25 : 1 }}>
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <IconButton onClick={() => router.back()} color='primary'>
-                    <ArrowLeftOutlined />
-                  </IconButton>
+                  {showBackButton && (
+                    <IconButton onClick={() => router.back()} color="primary" aria-label="go back">
+                      <ArrowLeftOutlined />
+                    </IconButton>
+                  )}
                   <Typography variant="h2">
                     <FormattedMessage id={custom ? heading : item?.title} />
                   </Typography>
@@ -242,6 +247,7 @@ Breadcrumbs.propTypes = {
   separator: PropTypes.any,
   title: PropTypes.bool,
   titleBottom: PropTypes.bool,
+  showBack: PropTypes.bool,
   sx: PropTypes.any,
   others: PropTypes.any
 };

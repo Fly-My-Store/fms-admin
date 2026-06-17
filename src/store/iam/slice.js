@@ -4,10 +4,8 @@ const initialList = () => ({ rows: [], meta: { page: 1, pageSize: 20, total: 0, 
 const initialEntity = () => ({ data: null, loading: false, error: null });
 
 const initialState = {
-  users: initialList(),
   roles: initialList(),
   permissions: initialList(),
-  usersDetail: initialEntity(),
   rolesDetail: initialEntity(),
   permissionsDetail: initialEntity()
 };
@@ -16,67 +14,6 @@ const slice = createSlice({
   name: 'admin/iam',
   initialState,
   reducers: {
-    usersListRequest(state) {
-      state.users.loading = true;
-      state.users.error = null;
-    },
-    usersListSuccess(state, action) {
-      state.users.loading = false;
-      state.users.rows = action.payload?.data || [];
-      state.users.meta = action.payload?.meta || state.users.meta;
-    },
-    usersListFailure(state, action) {
-      state.users.loading = false;
-      state.users.error = action.payload;
-    },
-    usersGetRequest(state) {
-      state.usersDetail.loading = true;
-      state.usersDetail.error = null;
-    },
-    usersGetSuccess(state, action) {
-      state.usersDetail.loading = false;
-      state.usersDetail.data = action.payload?.data || action.payload;
-    },
-    usersGetFailure(state, action) {
-      state.usersDetail.loading = false;
-      state.usersDetail.error = action.payload;
-    },
-    usersCreateRequest(state) {
-      state.usersDetail.loading = true;
-      state.usersDetail.error = null;
-    },
-    usersCreateSuccess(state, action) {
-      state.usersDetail.loading = false;
-      state.usersDetail.data = action.payload?.data || action.payload;
-    },
-    usersCreateFailure(state, action) {
-      state.usersDetail.loading = false;
-      state.usersDetail.error = action.payload;
-    },
-    usersUpdateRequest(state) {
-      state.usersDetail.loading = true;
-      state.usersDetail.error = null;
-    },
-    usersUpdateSuccess(state, action) {
-      state.usersDetail.loading = false;
-      state.usersDetail.data = action.payload?.data || action.payload;
-    },
-    usersUpdateFailure(state, action) {
-      state.usersDetail.loading = false;
-      state.usersDetail.error = action.payload;
-    },
-    usersRemoveRequest(state) {
-      state.usersDetail.loading = true;
-      state.usersDetail.error = null;
-    },
-    usersRemoveSuccess(state) {
-      state.usersDetail.loading = false;
-    },
-    usersRemoveFailure(state, action) {
-      state.usersDetail.loading = false;
-      state.usersDetail.error = action.payload;
-    },
-
     rolesListRequest(state) {
       state.roles.loading = true;
       state.roles.error = null;

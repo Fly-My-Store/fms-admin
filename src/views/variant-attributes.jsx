@@ -1,38 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { enqueueSnackbar } from 'notistack';
+import { useState } from 'react';
 import __TABLE__ from 'sections/variant-attributes/VariantAttrsTableSection';
 import __FORM__ from 'sections/variant-attributes/VariantAttrsFormDialog';
-import axiosServices from 'utils/axios';
+import useAxiosPaginatedList from 'hooks/useAxiosPaginatedList';
+import OutOfScopeAttributeNotice from 'components/OutOfScopeAttributeNotice';
 
 export default function VariantAttrsView() {
-  const [rows, setRows] = useState([]);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [totalPages, setTotalPages] = useState(1);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  const { rows, pageIndex, pageSize, totalPages, load, handlePaginationChange } = useAxiosPaginatedList(
+    'admin/attributes/variant-attrs'
+  );
 
   const handleDialogToggle = () => { setOpen((p) => !p); if (open) setSelected(null); };
   const handleAddButton = () => { setSelected(null); setOpen(true); };
   const handleEditButton = (row) => { setSelected(row); setOpen(true); };
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
-    setPageIndex(next.pageIndex);
-    setPageSize(next.pageSize);
-  };
-
-  const load = async () => {
-    try {
-      const resp = await axiosServices.get('admin/catalog/variant-attributes', { params: { page: pageIndex + 1, limit: pageSize } });
-      const payload = resp?.data || {}
-      setRows(payload.data || []);
-      setTotalPages(payload?.meta?.totalPages || 1);
-    } catch (e) { enqueueSnackbar('Failed to load', { variant: 'error' }); }
-  };
-
-  useEffect(() => { {load()}; }, [pageIndex, pageSize]);
 
   return (
     <>

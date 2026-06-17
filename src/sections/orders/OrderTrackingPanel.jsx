@@ -1,12 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Stack, Typography } from '@mui/material';
-import Map, { Marker } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import { Alert, Stack, Typography } from '@mui/material';
 import MainCard from 'components/MainCard';
-import MapControl from 'components/third-party/map/MapControl';
-import MapContainerStyled from 'components/third-party/map/MapContainerStyled';
+import GoogleMapView from 'components/third-party/map/GoogleMapView';
 import { getOrderTracking } from 'api/ordersPayments';
 
 const ACTIVE_DELIVERY = ['ASSIGNED', 'REACHED_STORE', 'PICKED_UP'];
@@ -56,7 +53,7 @@ export default function OrderTrackingPanel({ orderId, deliveryStatus }) {
     const pts = [];
     const store = tracking.store;
     if (store?.lat != null && store?.lng != null) {
-      pts.push({ id: 'store', lat: store.lat, lng: store.lng, label: 'Store' });
+      pts.push({ id: 'store', lat: Number(store.lat), lng: Number(store.lng), label: 'Store' });
     }
     const addr = tracking.delivery_address;
     if (addr?.lat != null && addr?.lng != null) {
@@ -64,13 +61,10 @@ export default function OrderTrackingPanel({ orderId, deliveryStatus }) {
     }
     const rider = tracking.rider_location;
     if (rider?.lat != null && rider?.lng != null) {
-      pts.push({ id: 'rider', lat: rider.lat, lng: rider.lng, label: 'Rider' });
+      pts.push({ id: 'rider', lat: Number(rider.lat), lng: Number(rider.lng), label: 'Rider' });
     }
     return pts;
   }, [tracking]);
-
-  const mapToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-  const center = markers[0] || { lat: 20.5937, lng: 78.9629 };
 
   if (!showPanel) return null;
 
@@ -106,41 +100,7 @@ export default function OrderTrackingPanel({ orderId, deliveryStatus }) {
               <Alert severity="info">Waiting for rider GPS update.</Alert>
             )}
 
-            {mapToken && markers.length > 0 ? (
-              <MapContainerStyled>
-                <Map
-                  mapboxAccessToken={mapToken}
-                  initialViewState={{ longitude: center.lng, latitude: center.lat, zoom: 12 }}
-                  style={{ width: '100%', height: 320 }}
-                  mapStyle="mapbox://styles/mapbox/streets-v12"
-                >
-                  <MapControl />
-                  {markers.map((m) => (
-                    <Marker key={m.id} longitude={m.lng} latitude={m.lat} anchor="bottom">
-                      <Box
-                        sx={{
-                          bgcolor: m.id === 'rider' ? 'primary.main' : 'grey.700',
-                          color: 'common.white',
-                          px: 1,
-                          py: 0.5,
-                          borderRadius: 1,
-                          fontSize: 11,
-                          fontWeight: 600
-                        }}
-                      >
-                        {m.label}
-                      </Box>
-                    </Marker>
-                  ))}
-                </Map>
-              </MapContainerStyled>
-            ) : (
-              !mapToken && (
-                <Alert severity="warning">
-                  Set NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to enable the tracking map. Milestone data is still shown above.
-                </Alert>
-              )
-            )}
+            {markers.length > 0 ? <GoogleMapView markers={markers} height={320} /> : null}
           </>
         )}
       </Stack>

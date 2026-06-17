@@ -1,10 +1,9 @@
 // src/api/upload.js
-import axiosServices from 'utils/axios';
+import { post } from 'utils/api';
 
 const endpoints = {
-  // Adjust the prefix if your router is mounted differently
   uploadSingle: 'upload/uploadSingle',
-  uploadMany: 'upload/uploadMany'
+  uploadMany: 'upload/uploadMany',
 };
 
 /**
@@ -17,11 +16,10 @@ export async function uploadSingle(file, onUploadProgress) {
   const form = new FormData();
   form.append('file', file);
 
-  const response = await axiosServices.post(endpoints.uploadSingle, form, {
+  return post(endpoints.uploadSingle, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    onUploadProgress
+    onUploadProgress,
   });
-  return response.data;
 }
 
 /**
@@ -32,12 +30,10 @@ export async function uploadSingle(file, onUploadProgress) {
  */
 export async function uploadMany(files, onUploadProgress) {
   const form = new FormData();
-  // Multer config on server expects field name 'file' for each
   Array.from(files).forEach((f) => form.append('file', f));
 
-  const response = await axiosServices.post(endpoints.uploadMany, form, {
+  return post(endpoints.uploadMany, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    onUploadProgress
+    onUploadProgress,
   });
-  return response.data;
 }

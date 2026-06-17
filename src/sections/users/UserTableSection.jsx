@@ -29,10 +29,6 @@ export default function UserTableSection({
         accessorKey: 'phone'
       },
       {
-        header: 'Role',
-        accessorKey: 'role'
-      },
-      {
         header: 'Status',
         accessorKey: 'status',
         cell: (cell) => {
@@ -58,7 +54,7 @@ export default function UserTableSection({
   return <BasicReactTable
     columns={columns}
     data={users}
-    title="Users"
+    title="Admin Users"
     ariaLebel="Add User"
     handleAddButton={handleAddButton}
     handleEditButton={handleEditButton}

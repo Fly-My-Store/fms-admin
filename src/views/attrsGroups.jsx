@@ -6,6 +6,7 @@ import { enqueueSnackbar } from 'notistack';
 import { actions as attributes } from 'store/attributes/slice';
 import GroupsTableSection from 'sections/groups/GroupsTableSection';
 import GroupsFormDialog from 'sections/groups/GroupsFormDialog';
+import OutOfScopeAttributeNotice from 'components/OutOfScopeAttributeNotice';
 
 export function GroupsView() {
   const dispatch = useDispatch();
@@ -53,6 +54,7 @@ export function GroupsView() {
 
   return (
     <>
+      <OutOfScopeAttributeNotice feature="attribute-groups" />
       <GroupsTableSection
         rows={data}
         handleAddButton={handleAddButton}

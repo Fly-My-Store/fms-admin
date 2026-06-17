@@ -1,51 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { enqueueSnackbar } from 'notistack';
-import __TABLE__ from 'sections/customers/CustomersTableSection';
-import __FORM__ from 'sections/customers/CustomersFormDialog';
-import axiosServices from 'utils/axios';
+import { useRouter } from 'next/navigation';
+import CustomersTableSection from 'sections/customers/CustomersTableSection';
+import useAxiosPaginatedList from 'hooks/useAxiosPaginatedList';
 
 export default function CustomersView() {
-  const [rows, setRows] = useState([]);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [totalPages, setTotalPages] = useState(1);
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const router = useRouter();
 
-  const handleDialogToggle = () => { setOpen((p) => !p); if (open) setSelected(null); };
-  const handleAddButton = () => { setSelected(null); setOpen(true); };
-  const handleEditButton = (row) => { setSelected(row); setOpen(true); };
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
-    setPageIndex(next.pageIndex);
-    setPageSize(next.pageSize);
+  const { rows, pageIndex, pageSize, totalPages, handlePaginationChange } = useAxiosPaginatedList(
+    'admin/iam/users',
+    { params: { type: 'CUSTOMER' } }
+  );
+
+  const handleEditButton = (row) => {
+    if (!row?.id) return;
+    router.push(`/customers/edit/${row.id}`);
   };
 
-  const load = async () => {
-    try {
-      const resp = await axiosServices.get('admin/iam/users?type=CUSTOMER', { params: { page: pageIndex+1, limit: pageSize } });
-      const payload = resp?.data || {};
-      setRows(payload.data || []);
-      setTotalPages(payload?.meta?.totalPages || 1);
-    } catch (e) { enqueueSnackbar('Failed to load', { variant: 'error' }); }
+  const handleViewButton = (row) => {
+    if (!row?.id) return;
+    router.push(`/customers/${row.id}`);
   };
-
-  useEffect(() => { {load()}; }, [pageIndex, pageSize]);
 
   return (
-    <>
-      <__TABLE__
-        rows={rows}
-        handleAddButton={handleAddButton}
-        handleEditButton={handleEditButton}
-        pageIndex={pageIndex}
-        pageSize={pageSize}
-        totalPageCount={totalPages}
-        onPaginationChange={handlePaginationChange}
-      />
-      <__FORM__ open={open} onClose={handleDialogToggle} initialData={selected} onSaved={load} />
-    </>
+    <CustomersTableSection
+      rows={rows}
+      handleEditButton={handleEditButton}
+      handleViewButton={handleViewButton}
+      pageIndex={pageIndex}
+      pageSize={pageSize}
+      totalPageCount={totalPages}
+      onPaginationChange={handlePaginationChange}
+    />
   );
 }

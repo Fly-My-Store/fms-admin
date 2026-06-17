@@ -1,33 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { enqueueSnackbar } from 'notistack';
-import { actions as logistics } from 'store/logistics/slice';
-import DeliveriesTableSection from 'sections/deliveries/DeliveriesTableSection';
-import DeliveriesFormDialog from 'sections/deliveries/DeliveriesFormDialog';
+import { useState } from 'react';
+import { Button, MenuItem, Stack, TextField } from '@mui/material';
+import DeliveriesList from 'sections/deliveries/DeliveriesList';
+import DeliveryJobsFormDialog from 'sections/delivery-jobs/DeliveryJobsFormDialog';
 
-export function DeliveriesView() {
-  const dispatch = useDispatch();
-  const state = useSelector((s) => s.logistics || {});
-  const list = state.deliveries || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
-  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
+const DELIVERY_STATUSES = ['', 'PENDING', 'ASSIGNED', 'REACHED_STORE', 'PICKED_UP', 'DELIVERED', 'CANCELLED', 'FAILED'];
 
+export default function DeliveriesView() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
-
-  useEffect(() => {
-    dispatch(logistics.deliveriesListRequest({ params: { page, limit: pageSize } }));
-  }, [dispatch]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({ q: '', status: '', rider_id: '', order_id: '' });
 
   const handleDialogToggle = () => {
-    setOpen((prev) => !prev);
+    setOpen((p) => !p);
     if (open) setSelected(null);
-  };
-
-  const handleAddButton = () => {
-    setSelected(null);
-    setOpen(true);
   };
 
   const handleEditButton = (row) => {
@@ -35,31 +24,61 @@ export function DeliveriesView() {
     setOpen(true);
   };
 
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(logistics.deliveriesListRequest({ params: { page: next.pageIndex + 1, limit: next.pageSize } }));
+  const handleSearch = () => setFilters((p) => ({ ...p, q: searchQuery.trim() }));
+
+  const updateFilter = (key, value) => {
+    setFilters((p) => ({ ...p, [key]: value }));
   };
 
-  useEffect(() => {
-    if (error) {
-      enqueueSnackbar(error, { variant: 'error' });
-    }
-  }, [error]);
+  const handleSaved = () => setRefreshKey((k) => k + 1);
 
   return (
     <>
-      <DeliveriesTableSection
-        rows={data}
-        handleAddButton={handleAddButton}
-        handleEditButton={handleEditButton}
-        pageIndex={page - 1}
-        pageSize={pageSize}
-        totalPageCount={totalPages}
-        onPaginationChange={handlePaginationChange}
-      />
-      <DeliveriesFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+        <TextField
+          size="small"
+          label="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Order, rider, store…"
+          sx={{ minWidth: 200 }}
+        />
+        <TextField
+          select
+          size="small"
+          label="Status"
+          value={filters.status}
+          onChange={(e) => updateFilter('status', e.target.value)}
+          sx={{ minWidth: 160 }}
+        >
+          {DELIVERY_STATUSES.map((s) => (
+            <MenuItem key={s || 'all'} value={s}>
+              {s || 'All'}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          size="small"
+          label="Rider ID"
+          value={filters.rider_id}
+          onChange={(e) => updateFilter('rider_id', e.target.value)}
+          sx={{ minWidth: 280 }}
+        />
+        <TextField
+          size="small"
+          label="Order ID"
+          value={filters.order_id}
+          onChange={(e) => updateFilter('order_id', e.target.value)}
+          sx={{ minWidth: 280 }}
+        />
+        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
+          Search
+        </Button>
+      </Stack>
+
+      <DeliveriesList filters={filters} variant="page" onEdit={handleEditButton} refreshKey={refreshKey} />
+      <DeliveryJobsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={handleSaved} />
     </>
   );
 }
-
-export default DeliveriesView;

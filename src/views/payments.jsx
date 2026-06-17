@@ -9,7 +9,7 @@ import PaymentsFormDialog from 'sections/payments/PaymentsFormDialog';
 
 export function PaymentsView() {
   const dispatch = useDispatch();
-  const state = useSelector((s) => s.orderspayments || {});
+  const state = useSelector((s) => s.ordersPayments || {});
   const list = state.payments || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
 

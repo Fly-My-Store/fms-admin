@@ -6,7 +6,6 @@ import iam from './iam/slice';
 import catalog from './catalog/slice';
 import attributes from './attributes/slice';
 import sellersStores from './sellersStores/slice';
-import listingsInventory from './listingsInventory/slice';
 import ordersPayments from './ordersPayments/slice';
 import logistics from './logistics/slice';
 import content from './content/slice';
@@ -21,7 +20,6 @@ const appReducer = combineReducers({
   catalog,
   attributes,
   sellersStores,
-  listingsInventory,
   ordersPayments,
   logistics,
   content,

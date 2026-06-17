@@ -9,7 +9,6 @@ import {
   Alert,
   Chip,
   Divider,
-  Grid,
   Stack,
   Table,
   TableBody,
@@ -18,6 +17,7 @@ import {
   TableRow,
   Typography
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 import { actions as ordersPayments } from 'store/ordersPayments/slice';
@@ -63,7 +63,7 @@ function StatusChip({ value }) {
 export default function OrderDetailView() {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const { ordersDetail } = useSelector((s) => s.orderspayments || {});
+  const { ordersDetail } = useSelector((s) => s.ordersPayments || {});
   const detail = ordersDetail || { data: null, loading: false, error: null };
   const order = detail.data;
 
@@ -127,7 +127,7 @@ export default function OrderDetailView() {
 
       {!detail.loading && order && (
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <MainCard border={false} boxShadow>
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}>
                 <Stack spacing={0.5}>
@@ -147,7 +147,7 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <MainCard title="Customer">
               <Stack spacing={1}>
                 <KV label="Name" value={order.customer?.name} />
@@ -162,7 +162,7 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <MainCard title="Store & delivery">
               <Stack spacing={1}>
                 <KV label="Store" value={order.store?.name} />
@@ -173,7 +173,7 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <MainCard title="Items">
               <Table size="small">
                 <TableHead>
@@ -209,7 +209,7 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <MainCard title="Totals">
               <Stack spacing={1}>
                 <KV label="Items" value={formatINR(order.items_total_cents)} />
@@ -222,7 +222,7 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <MainCard title="Delivery">
               <Stack spacing={1}>
                 <KV label="Rider" value={order.delivery?.rider?.name || 'Unassigned'} />
@@ -236,7 +236,7 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <MainCard title="Payments">
               {payments.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
@@ -258,7 +258,7 @@ export default function OrderDetailView() {
           </Grid>
 
           {allRefunds.length > 0 && (
-            <Grid item xs={12}>
+            <Grid size={12}>
               <MainCard title="Refunds">
                 <Table size="small">
                   <TableHead>
@@ -286,7 +286,7 @@ export default function OrderDetailView() {
             </Grid>
           )}
 
-          <Grid item xs={12}>
+          <Grid size={12}>
             <MainCard title="Timeline">
               <Stack spacing={1.5}>
                 {events.map((ev) => (
@@ -311,13 +311,13 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <OrderCancelCard order={order} onSuccess={handleActionDone} />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <OrderRiderCard order={order} onSuccess={handleActionDone} />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <OrderTrackingPanel orderId={order.id} deliveryStatus={order.delivery?.status} />
           </Grid>
         </Grid>

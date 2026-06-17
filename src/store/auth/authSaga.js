@@ -45,7 +45,7 @@ function* handleChangePassword(action) {
     yield put(changePasswordSuccess(response));
     if (action.payload.callback) action.payload.callback();
   } catch (err) {
-    const errorMessage = err?.message || 'Change password failed';
+    const errorMessage = err?.response?.data?.message || err?.message || 'Change password failed';
     yield put(changePasswordFailure(errorMessage));
     if (action.payload.onError) action.payload.onError(errorMessage);
   }

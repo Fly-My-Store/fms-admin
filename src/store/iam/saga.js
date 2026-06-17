@@ -3,55 +3,6 @@ import { getErrorMessage } from '../../utils/errors';
 import { actions } from './slice';
 import * as api from '../../api/iam';
 
-function* usersListWorker(action) {
-  try {
-    const resp = yield call(api.listUsers, action.payload?.params || {});
-    yield put(actions.usersListSuccess(resp));
-  } catch (err) {
-    const msg = getErrorMessage(err, 'Failed to load');
-    yield put(actions.usersListFailure(msg));
-  }
-}
-function* usersGetWorker(action) {
-  try {
-    const { id } = action.payload?.params || {};
-    const resp = yield call(api.getUser, id);
-    yield put(actions.usersGetSuccess(resp));
-  } catch (err) {
-    const msg = getErrorMessage(err, 'Failed to fetch');
-    yield put(actions.usersGetFailure(msg));
-  }
-}
-function* usersCreateWorker(action) {
-  try {
-    const resp = yield call(api.createUser, action.payload?.params);
-    yield put(actions.usersCreateSuccess(resp));
-  } catch (err) {
-    const msg = getErrorMessage(err, 'Create failed');
-    yield put(actions.usersCreateFailure(msg));
-  }
-}
-function* usersUpdateWorker(action) {
-  try {
-    const { id, data } = action.payload?.params || {};
-    const resp = yield call(api.updateUser, id, data);
-    yield put(actions.usersUpdateSuccess(resp));
-  } catch (err) {
-    const msg = getErrorMessage(err, 'Update failed');
-    yield put(actions.usersUpdateFailure(msg));
-  }
-}
-function* usersRemoveWorker(action) {
-  try {
-    const { id } = action.payload?.params || {};
-    const resp = yield call(api.removeUser, id);
-    yield put(actions.usersRemoveSuccess(resp));
-  } catch (err) {
-    const msg = getErrorMessage(err, 'Delete failed');
-    yield put(actions.usersRemoveFailure(msg));
-  }
-}
-
 function* rolesListWorker(action) {
   try {
     const resp = yield call(api.listRoles, action.payload?.params || {});
@@ -152,11 +103,6 @@ function* permissionsRemoveWorker(action) {
 
 export default function* iamSaga() {
   yield all([
-    takeLatest(actions.usersListRequest.type, usersListWorker),
-    takeLatest(actions.usersGetRequest.type, usersGetWorker),
-    takeLatest(actions.usersCreateRequest.type, usersCreateWorker),
-    takeLatest(actions.usersUpdateRequest.type, usersUpdateWorker),
-    takeLatest(actions.usersRemoveRequest.type, usersRemoveWorker),
     takeLatest(actions.rolesListRequest.type, rolesListWorker),
     takeLatest(actions.rolesGetRequest.type, rolesGetWorker),
     takeLatest(actions.rolesCreateRequest.type, rolesCreateWorker),

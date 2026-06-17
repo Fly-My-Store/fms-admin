@@ -8,10 +8,14 @@ export default function PaymentsTableSection({
   rows,
   handleAddButton,
   handleEditButton,
+  handleViewButton,
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  showActions = true,
+  topActionsLeft,
+  showTitle = true
 }) {
   const columns = useMemo(
     () => [
@@ -28,14 +32,18 @@ export default function PaymentsTableSection({
       columns={columns}
       data={rows}
       title="Payments"
+      showTitle={showTitle}
       ariaLebel="Add Payment"
-      handleAddButton={handleAddButton}
-      handleEditButton={handleEditButton}
+      handleAddButton={showActions ? handleAddButton : undefined}
+      handleEditButton={showActions ? handleEditButton : undefined}
+      handleViewButton={handleViewButton}
       pageIndex={pageIndex}
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'payment'}
+      showActions={showActions}
+      topActionsLeft={topActionsLeft}
     />
   );
 }

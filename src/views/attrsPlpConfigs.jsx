@@ -6,6 +6,7 @@ import { enqueueSnackbar } from 'notistack';
 import { actions as attributes } from 'store/attributes/slice';
 import PlpconfigsTableSection from 'sections/plpConfigs/PlpconfigsTableSection';
 import PlpconfigsFormDialog from 'sections/plpConfigs/PlpconfigsFormDialog';
+import OutOfScopeAttributeNotice from 'components/OutOfScopeAttributeNotice';
 
 export function PlpconfigsView() {
   const dispatch = useDispatch();
@@ -53,6 +54,7 @@ export function PlpconfigsView() {
 
   return (
     <>
+      <OutOfScopeAttributeNotice feature="plp-configs" />
       <PlpconfigsTableSection
         rows={data}
         handleAddButton={handleAddButton}

@@ -17,7 +17,7 @@ export function RolesView() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    dispatch(iam.rolesListRequest({ params: { page, limit: pageSize } }));
+    dispatch(iam.rolesListRequest({ params: { page, limit: pageSize, domain: 'ADMIN' } }));
   }, [dispatch]);
 
   const handleDialogToggle = () => {
@@ -37,7 +37,7 @@ export function RolesView() {
 
   const handlePaginationChange = (updater) => {
     const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(iam.rolesListRequest({ params: { page: next.pageIndex + 1, limit: next.pageSize } }));
+    dispatch(iam.rolesListRequest({ params: { page: next.pageIndex + 1, limit: next.pageSize, domain: 'ADMIN' } }));
   };
 
   useEffect(() => {

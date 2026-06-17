@@ -17,7 +17,9 @@ const initialState = {
 function indexPermissions(rows = []) {
   const map = {};
   for (const r of rows) {
-    const name = String(r?.name || '').trim();
+    const name = String(r?.name || '')
+      .trim()
+      .toLowerCase();
     if (!name) continue;
     map[name] = {
       create: !!r.create,
@@ -154,6 +156,11 @@ const authSlice = createSlice({
     changePasswordFailure: (state, action) => {
       state.loading = false;
       state.error = action.payload;
+    },
+    updateAuthUser(state, action) {
+      if (!action.payload) return;
+      state.user = { ...(state.user || {}), ...action.payload };
+      saveToStorage({ user: state.user, token: state.token, permissions: state.permissions });
     }
   }
 });
@@ -173,7 +180,8 @@ export const {
   resetPasswordFailure,
   changePasswordRequest,
   changePasswordSuccess,
-  changePasswordFailure
+  changePasswordFailure,
+  updateAuthUser
 } = authSlice.actions;
 
 export default authSlice.reducer;

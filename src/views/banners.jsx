@@ -40,6 +40,10 @@ export function BannersView() {
     dispatch(content.bannersListRequest({ params: { page: next.pageIndex + 1, limit: next.pageSize } }));
   };
 
+  const handleSaved = () => {
+    dispatch(content.bannersListRequest({ params: { page, limit: pageSize } }));
+  };
+
   useEffect(() => {
     if (error) {
       enqueueSnackbar(error, { variant: 'error' });
@@ -57,7 +61,7 @@ export function BannersView() {
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
       />
-      <BannersFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
+      <BannersFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={handleSaved} />
     </>
   );
 }

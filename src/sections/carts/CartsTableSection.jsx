@@ -10,10 +10,15 @@ export default function CartsTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  hideCustomerColumn = false,
+  showActions = true,
+  topActionsLeft,
+  showTitle = true
 }) {
   const columns = useMemo(
-    () => [
+    () => {
+      const cols = [
       {
         header: 'Customer',
         accessorFn: (row) => row.user?.name || row.user?.email || row.user_id,
@@ -25,8 +30,10 @@ export default function CartsTableSection({
       { header: 'Status', accessorKey: 'status' },
       { header: 'Items', accessorKey: 'item_count' },
       { header: 'Updated', accessorKey: 'updated_at' },
-    ],
-    []
+    ];
+      return hideCustomerColumn ? cols.filter((c) => c.header !== 'Customer') : cols;
+    },
+    [hideCustomerColumn]
   );
 
   return (
@@ -34,14 +41,17 @@ export default function CartsTableSection({
       columns={columns}
       data={rows}
       title="Carts"
+      showTitle={showTitle}
       ariaLebel="Add Cart"
-      handleAddButton={handleAddButton}
-      handleEditButton={handleEditButton}
+      handleAddButton={showActions ? handleAddButton : undefined}
+      handleEditButton={showActions ? handleEditButton : undefined}
       pageIndex={pageIndex}
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName={'cart'}
+      showActions={showActions}
+      topActionsLeft={topActionsLeft}
     />
   );
 }

@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { at } from 'lodash-es';
 import { RECORD_STATUS } from 'utils/constants';
 import { upsertProductAttr } from 'api/attributes';
+import OutOfScopeAttributeNotice from 'components/OutOfScopeAttributeNotice';
 
 export function ProductAttrsView({ product_id, productName, category_id }) {
   const dispatch = useDispatch();

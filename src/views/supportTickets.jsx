@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { enqueueSnackbar } from 'notistack';
 import { useRouter } from 'next/navigation';
-import { Button, MenuItem, Stack, TextField } from '@mui/material';
+import { Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import SupportTicketsTableSection from 'sections/support-tickets/SupportTicketsTableSection';
 import { listSupportTickets } from 'api/support';
 
@@ -78,6 +78,9 @@ export default function SupportTicketsView() {
 
   return (
     <>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Tickets from customer, seller, and rider apps. Filter by role or open a ticket for full context.
+      </Typography>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
         <TextField
           size="small"
@@ -105,7 +108,7 @@ export default function SupportTicketsView() {
         <TextField
           select
           size="small"
-          label="Requester"
+          label="Role"
           value={filters.requester_type}
           onChange={(e) => setFilters((p) => ({ ...p, requester_type: e.target.value }))}
           sx={{ minWidth: 140 }}

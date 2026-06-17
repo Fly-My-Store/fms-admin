@@ -8,13 +8,13 @@ import {
   Alert,
   Button,
   Chip,
-  Grid,
   Link as MuiLink,
   MenuItem,
   Stack,
   TextField,
   Typography
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 import { getSupportTicket, updateSupportTicket } from 'api/support';
@@ -117,7 +117,7 @@ export default function SupportTicketDetailView() {
 
       {!loading && ticket && (
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <MainCard border={false} boxShadow>
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}>
                 <Stack spacing={0.5}>
@@ -135,7 +135,7 @@ export default function SupportTicketDetailView() {
             </MainCard>
           </Grid>
 
-          <Grid item xs={12} md={7}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <MainCard title="Details">
               <Stack spacing={1.5}>
                 <KV label="Category" value={ticket.category_label || ticket.category} />
@@ -166,7 +166,7 @@ export default function SupportTicketDetailView() {
             </MainCard>
           </Grid>
 
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Stack spacing={2}>
               <MainCard title="Requester">
                 <Stack spacing={1}>

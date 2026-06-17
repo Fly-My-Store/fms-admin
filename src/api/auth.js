@@ -1,4 +1,4 @@
-import axiosServices from 'utils/axios';
+import { post } from 'utils/api';
 
 const endpoints = {
   login: 'auth/login',
@@ -8,18 +8,17 @@ const endpoints = {
 };
 
 export async function loginUser(payload) {
-  const response = await axiosServices.post(endpoints.login, payload);
-  return response.data;
+  return post(endpoints.login, payload);
 }
+
 export async function forgotPassword(payload) {
-  const response = await axiosServices.post(endpoints.forgotPassword, payload);
-  return response.data;
+  return post(endpoints.forgotPassword, payload);
 }
+
 export async function resetPassword(payload) {
-  const response = await axiosServices.post(endpoints.resetPassword, payload);
-  return response.data;
+  return post(endpoints.resetPassword, payload);
 }
+
 export async function changePassword(payload) {
-  const response = await axiosServices.post(endpoints.changePassword, payload);
-  return response.data;
+  return post(endpoints.changePassword, payload);
 }

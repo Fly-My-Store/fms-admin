@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 
 // next
 import Link from 'next/link';
@@ -31,6 +31,7 @@ import { MenuOrientation, ThemeMode } from 'config';
 import useConfig from 'hooks/useConfig';
 import useMenuCollapse from 'hooks/useMenuCollapse';
 import { handlerActiveItem, useGetMenuMaster } from 'api/menu';
+import { matchesMenuRoute } from 'utils/menuRoute';
 
 // third-party
 import { FormattedMessage } from 'react-intl';
@@ -77,7 +78,7 @@ const PopperStyled = styled(Popper)(({ theme }) => ({
   }
 }));
 
-export default function NavCollapse({ menu, level, parentId, setSelectedItems, selectedItems, setSelectedLevel, selectedLevel }) {
+export default function NavCollapse({ menu, level, parentId }) {
   const { menuMaster } = useGetMenuMaster();
   const drawerOpen = menuMaster.isDashboardDrawerOpened;
 
@@ -102,11 +103,12 @@ export default function NavCollapse({ menu, level, parentId, setSelectedItems, s
 
   const handleClick = (event, isRedirect) => {
     setAnchorEl(null);
-    setSelectedLevel(level);
     if (drawerOpen) {
-      setOpen(!open);
-      setSelected(!selected ? menu.id : null);
-      setSelectedItems(!selected ? menu.id : '');
+      setOpen((prev) => {
+        const next = !prev;
+        setSelected(next ? menu.id : null);
+        return next;
+      });
       if (menu.url && isRedirect) router.push(`${menu.url}`);
     } else {
       setAnchorEl(event?.currentTarget);
@@ -140,31 +142,13 @@ export default function NavCollapse({ menu, level, parentId, setSelectedItems, s
     setAnchorEl(null);
   };
 
-  useMemo(() => {
-    if (selected === selectedItems) {
-      if (level === 1) {
-        setOpen(true);
-      }
-    } else {
-      if (level === selectedLevel) {
-        setOpen(false);
-        if (!miniMenuOpened && !drawerOpen && !selected) {
-          setSelected(null);
-        }
-        if (drawerOpen) {
-          setSelected(null);
-        }
-      }
-    }
-  }, [selectedItems, level, selected, miniMenuOpened, drawerOpen, selectedLevel]);
-
   const pathname = usePathname();
 
   // menu collapse for sub-levels
   useMenuCollapse(menu, pathname, miniMenuOpened, setSelected, setOpen, setAnchorEl);
 
   useEffect(() => {
-    if (menu.url === pathname) {
+    if (menu.url && matchesMenuRoute(pathname, menu.url)) {
       handlerActiveItem(menu.id);
       setSelected(menu.id);
       setAnchorEl(null);
@@ -178,10 +162,6 @@ export default function NavCollapse({ menu, level, parentId, setSelectedItems, s
         return (
           <NavCollapse
             key={item.id}
-            setSelectedItems={setSelectedItems}
-            setSelectedLevel={setSelectedLevel}
-            selectedLevel={selectedLevel}
-            selectedItems={selectedItems}
             menu={item}
             level={level + 1}
             parentId={parentId}
@@ -420,9 +400,5 @@ export default function NavCollapse({ menu, level, parentId, setSelectedItems, s
 NavCollapse.propTypes = {
   menu: PropTypes.any,
   level: PropTypes.number,
-  parentId: PropTypes.string,
-  setSelectedItems: PropTypes.oneOfType([PropTypes.any, PropTypes.func]),
-  selectedItems: PropTypes.oneOfType([PropTypes.string, PropTypes.any]),
-  setSelectedLevel: PropTypes.func,
-  selectedLevel: PropTypes.number
+  parentId: PropTypes.string
 };

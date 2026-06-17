@@ -5,7 +5,6 @@ import iam from './iam/saga';
 import catalog from './catalog/saga';
 import attributes from './attributes/saga';
 import sellersStores from './sellersStores/saga';
-import listingsInventory from './listingsInventory/saga';
 import ordersPayments from './ordersPayments/saga';
 import logistics from './logistics/saga';
 import content from './content/saga';
@@ -22,7 +21,6 @@ export default function* rootSaga() {
     catalog(),
     attributes(),
     sellersStores(),
-    listingsInventory(),
     ordersPayments(),
     logistics(),
     content(),
