@@ -77,56 +77,73 @@ export default function AppReleasesSection({ appType, title, subtitle }) {
     }
   }, [appType]);
 
-  const loadList = useCallback(async () => {
-    try {
-      const res = await listReleases(appType, { page, limit: pageSize });
-      setRows(res?.data || []);
-      setTotalPages(res?.meta?.totalPages || 1);
-      setError(null);
-    } catch (e) {
-      setError(e?.message || 'Failed to load releases');
-    }
-  }, [appType, page, pageSize]);
+  const fetchList = useCallback(
+    async (pageNo = page, size = pageSize) => {
+      try {
+        const res = await listReleases(appType, { page: pageNo, limit: size });
+        const data = res?.data || [];
+        setRows(data);
+        setTotalPages(res?.meta?.totalPages || 1);
+        setError(null);
+        return data;
+      } catch (e) {
+        setError(e?.message || 'Failed to load releases');
+        return [];
+      }
+    },
+    [appType, page, pageSize],
+  );
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([loadCurrent(), loadList()]);
-  }, [loadCurrent, loadList]);
+    await Promise.all([loadCurrent(), fetchList()]);
+  }, [loadCurrent, fetchList]);
 
   useEffect(() => {
     loadCurrent();
   }, [loadCurrent]);
 
   useEffect(() => {
-    loadList();
-  }, [loadList]);
+    fetchList();
+  }, [fetchList]);
 
-  const handleCopyLink = async (url) => {
+  const handleCopyLink = useCallback(async (url) => {
     const ok = await copyText(url);
     enqueueSnackbar(ok ? 'Download link copied' : 'Could not copy link', {
       variant: ok ? 'success' : 'error',
     });
-  };
+  }, []);
 
-  const handleSetCurrent = async (row) => {
+  const handleSetCurrent = useCallback(async (row) => {
     try {
       await setCurrentRelease(row.id);
       enqueueSnackbar('Set as current release', { variant: 'success' });
-      refreshAll();
+      await refreshAll();
     } catch (e) {
       enqueueSnackbar(e?.message || 'Failed to update current release', { variant: 'error' });
     }
-  };
+  }, [refreshAll]);
 
-  const handleDelete = async (row) => {
+  const handleDelete = useCallback(async (row) => {
     if (!window.confirm(`Delete ${row.file_name}? This cannot be undone.`)) return;
     try {
       await deleteRelease(row.id);
+      setRows((prev) => prev.filter((r) => r.id !== row.id));
+      if (current?.id === row.id) {
+        setCurrent(null);
+      }
       enqueueSnackbar('Release deleted', { variant: 'success' });
-      refreshAll();
+      const data = await fetchList(page, pageSize);
+      if (data.length === 0 && page > 1) {
+        const prevPage = page - 1;
+        setPage(prevPage);
+        await fetchList(prevPage, pageSize);
+      }
+      await loadCurrent();
     } catch (e) {
       enqueueSnackbar(e?.message || 'Failed to delete release', { variant: 'error' });
+      await refreshAll();
     }
-  };
+  }, [current?.id, fetchList, loadCurrent, page, pageSize, refreshAll]);
 
   const handlePaginationChange = (updater) => {
     const next = typeof updater === 'function'
@@ -209,7 +226,7 @@ export default function AppReleasesSection({ appType, title, subtitle }) {
         },
       },
     ],
-    [],
+    [handleCopyLink, handleDelete, handleSetCurrent],
   );
 
   return (
@@ -310,9 +327,9 @@ export default function AppReleasesSection({ appType, title, subtitle }) {
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
         appType={appType}
-        onSaved={() => {
+        onSaved={async () => {
           setUploadOpen(false);
-          refreshAll();
+          await refreshAll();
         }}
       />
     </Stack>
