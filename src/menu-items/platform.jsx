@@ -25,7 +25,8 @@ import {
   ProfileOutlined,
   LayoutOutlined,
   ControlOutlined,
-  DeploymentUnitOutlined
+  DeploymentUnitOutlined,
+  MobileOutlined
 } from '@ant-design/icons';
 
 // ==============================|| ICON MAPPING ||============================== //
@@ -55,7 +56,8 @@ const icons = {
   FileSearchOutlined,
   ReloadOutlined,
   BellOutlined,
-  DeploymentUnitOutlined
+  DeploymentUnitOutlined,
+  MobileOutlined
 };
 
 // ==============================|| MENU ITEMS - FLY MY STORE (PLATFORM) ||============================== //
@@ -161,6 +163,19 @@ const platformMenu = {
       children: [
         { id: 'fare', title: 'fare-pricing', type: 'item', url: '/fare', icon: icons.SettingOutlined, perm: 'payment', action: 'modify' },
         { id: 'webhook-events', title: 'webhook-events', type: 'item', url: '/webhook-events', icon: icons.BellOutlined, perm: 'webhookEvent', action: 'read' }
+      ]
+    },
+
+    // ===== App releases =====
+    {
+      id: 'app-releases',
+      title: 'app-releases',
+      type: 'collapse',
+      icon: icons.MobileOutlined,
+      children: [
+        { id: 'app-releases-customer', title: 'customer-apk', type: 'item', url: '/app-releases/customer', icon: icons.MobileOutlined, perm: 'appRelease', action: 'read' },
+        { id: 'app-releases-seller', title: 'seller-apk', type: 'item', url: '/app-releases/seller', icon: icons.MobileOutlined, perm: 'appRelease', action: 'read' },
+        { id: 'app-releases-rider', title: 'rider-apk', type: 'item', url: '/app-releases/rider', icon: icons.MobileOutlined, perm: 'appRelease', action: 'read' }
       ]
     },
 

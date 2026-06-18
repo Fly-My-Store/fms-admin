@@ -99,5 +99,9 @@
   "analytics": "Analytics",
   "system": "System",
   "webhook-events": "Webhook Events",
-  "audit-logs": "Audit Logs"
+  "audit-logs": "Audit Logs",
+  "app-releases": "App Releases",
+  "customer-apk": "Customer APK",
+  "seller-apk": "Seller APK",
+  "rider-apk": "Rider APK"
 }
