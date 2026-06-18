@@ -173,6 +173,7 @@ const platformMenu = {
       type: 'collapse',
       icon: icons.MobileOutlined,
       children: [
+        { id: 'app-releases-overview', title: 'app-releases-overview', type: 'item', url: '/app-releases', icon: icons.MobileOutlined, perm: 'appRelease', action: 'read' },
         { id: 'app-releases-customer', title: 'customer-apk', type: 'item', url: '/app-releases/customer', icon: icons.MobileOutlined, perm: 'appRelease', action: 'read' },
         { id: 'app-releases-seller', title: 'seller-apk', type: 'item', url: '/app-releases/seller', icon: icons.MobileOutlined, perm: 'appRelease', action: 'read' },
         { id: 'app-releases-rider', title: 'rider-apk', type: 'item', url: '/app-releases/rider', icon: icons.MobileOutlined, perm: 'appRelease', action: 'read' }
