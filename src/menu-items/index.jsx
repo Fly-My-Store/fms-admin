@@ -1,7 +1,7 @@
-import platform from './platform';
+import platformMenuGroups from './platform';
 
 const menuItems = {
-  items: [platform]
+  items: platformMenuGroups
 };
 
 export default menuItems;

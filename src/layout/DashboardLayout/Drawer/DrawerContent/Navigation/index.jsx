@@ -1,13 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 
 import useMediaQuery from '@mui/material/useMediaQuery';
-import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
-// project imports
 import NavItem from './NavItem';
 import NavGroup from './NavGroup';
 
@@ -35,9 +33,6 @@ export default function Navigation() {
   let remItems = [];
   let lastItemId;
 
-  //  first it checks menu item is more than giving HORIZONTAL_MAX_ITEM after that get lastItemid by giving horizontal max
-  // item and it sets horizontal menu by giving horizontal max item lastly slice menuItem from array and set into remItems
-
   if (lastItem && lastItem < menuItems.items.length) {
     lastItemId = menuItems.items[lastItem - 1].id;
     lastItemIndex = lastItem - 1;
@@ -45,47 +40,47 @@ export default function Navigation() {
       title: item.title,
       elements: item.children,
       icon: item.icon,
-      ...(item.url && {
-        url: item.url
-      })
+      ...(item.url && { url: item.url })
     }));
   }
 
   const navGroups = menuItems.items.slice(0, lastItemIndex + 1).map((item, index) => {
-    switch (item.type) {
-      case 'group':
-        if (item.url && item.id !== lastItemId) {
-          return (
-            <List key={item.id} {...(isHorizontal && { sx: { mt: 0.5 } })}>
-              {!isHorizontal && index !== 0 && <Divider sx={{ my: 0.5 }} />}
-              <NavItem item={item} level={1} isParents setSelectedID={setSelectedID} />
-            </List>
-          );
-        }
-
-        return (
-          <NavGroup
-            key={item.id}
-            setSelectedID={setSelectedID}
-            selectedID={selectedID}
-            lastItem={lastItem}
-            remItems={remItems}
-            lastItemId={lastItemId}
-            item={item}
-          />
-        );
-      default:
-        return (
-          <Typography key={item.id} variant="h6" color="error" align="center">
-            Fix - Navigation Group
-          </Typography>
-        );
+    if (item.type !== 'group') {
+      return (
+        <Typography key={item.id} variant="h6" color="error" align="center">
+          Fix - Navigation Group
+        </Typography>
+      );
     }
+
+    if (item.url && item.id !== lastItemId) {
+      return (
+        <List key={item.id} disablePadding {...(isHorizontal && { sx: { mt: 0.5 } })}>
+          <NavItem item={item} level={1} isParents setSelectedID={setSelectedID} />
+        </List>
+      );
+    }
+
+    return (
+      <Fragment key={item.id}>
+        <NavGroup
+          setSelectedID={setSelectedID}
+          selectedID={selectedID}
+          lastItem={lastItem}
+          remItems={remItems}
+          lastItemId={lastItemId}
+          item={item}
+        />
+      </Fragment>
+    );
   });
 
   return (
     <Box
       sx={{
+        px: drawerOpen ? 0 : 0.5,
+        pt: 0.5,
+        pb: 1,
         ...(!isHorizontal && { '& > ul:first-of-type': { mt: 0 } }),
         display: isHorizontal ? { xs: 'block', lg: 'flex' } : 'block'
       }}

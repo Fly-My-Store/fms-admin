@@ -83,13 +83,14 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
 
   const itemLabel = (
     <Typography
-      variant="h6"
+      variant="body2"
       noWrap
       sx={{
         display: 'flex',
         alignItems: 'center',
         gap: 0.5,
         color: labelColor,
+        fontWeight: isSelected ? 600 : 500,
         fontStyle: isLegacy && !isSelected ? 'italic' : 'normal'
       }}
     >
@@ -106,84 +107,97 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
     </Typography>
   );
 
+  const itemPadding = drawerOpen ? { pl: 2, pr: 1.5 } : { pl: 1.5, pr: 1.5 };
+
+  const listItem = (
+    <ListItemButton
+      component={Link}
+      href={item.url}
+      target={itemTarget}
+      disabled={item.disabled}
+      selected={isSelected}
+      sx={(theme) => ({
+        zIndex: 1201,
+        ...itemPadding,
+        py: !drawerOpen && level === 1 ? 0.875 : 0.75,
+        borderRadius: 1,
+        mx: drawerOpen ? 1 : 0,
+        mb: 0.25,
+        ...(drawerOpen && {
+          '&:hover': { bgcolor: 'primary.lighter', ...theme.applyStyles('dark', { bgcolor: 'divider' }) },
+          '&.Mui-selected': {
+            bgcolor: 'primary.lighter',
+            ...theme.applyStyles('dark', { bgcolor: 'divider' }),
+            color: iconSelectedColor,
+            '&:hover': { color: iconSelectedColor, bgcolor: 'primary.lighter', ...theme.applyStyles('dark', { bgcolor: 'divider' }) }
+          }
+        }),
+        ...(!drawerOpen && {
+          justifyContent: 'center',
+          '&:hover': { bgcolor: 'transparent' },
+          '&.Mui-selected': { '&:hover': { bgcolor: 'transparent' }, bgcolor: 'transparent' }
+        })
+      })}
+      {...(downLG && {
+        onClick: () => {
+          handlerDrawerOpen(false);
+          itemHandler();
+        }
+      })}
+    >
+      {itemIcon && (
+        <ListItemIcon
+          sx={(theme) => ({
+            minWidth: drawerOpen ? 32 : 0,
+            color: isLegacy && !isSelected ? 'text.disabled' : isSelected ? iconSelectedColor : textColor,
+            ...(!drawerOpen && {
+              borderRadius: 1,
+              width: 40,
+              height: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+              '&:hover': { bgcolor: 'secondary.lighter', ...theme.applyStyles('dark', { bgcolor: 'secondary.light' }) }
+            }),
+            ...(!drawerOpen &&
+              isSelected && {
+                bgcolor: 'primary.lighter',
+                ...theme.applyStyles('dark', { bgcolor: 'primary.900' }),
+                '&:hover': { bgcolor: 'primary.lighter', ...theme.applyStyles('dark', { bgcolor: 'primary.darker' }) }
+              })
+          })}
+        >
+          {itemIcon}
+        </ListItemIcon>
+      )}
+      {(drawerOpen || (!drawerOpen && level !== 1)) && (
+        <ListItemText sx={{ flex: 1, minWidth: 0 }} primary={itemLabel} />
+      )}
+      {(drawerOpen || (!drawerOpen && level !== 1)) && item.chip && (
+        <Chip
+          color={item.chip.color}
+          variant={item.chip.variant}
+          size={item.chip.size}
+          label={item.chip.label}
+          avatar={item.chip.avatar && <Avatar>{item.chip.avatar}</Avatar>}
+          sx={{ flexShrink: 0, ml: 0.5 }}
+        />
+      )}
+    </ListItemButton>
+  );
+
   return (
     <>
       {menuOrientation === MenuOrientation.VERTICAL || downLG ? (
         <Box sx={{ position: 'relative' }}>
-          <ListItemButton
-            component={Link}
-            href={item.url}
-            target={itemTarget}
-            disabled={item.disabled}
-            selected={isSelected}
-            sx={(theme) => ({
-              zIndex: 1201,
-              pl: drawerOpen ? `${level * 28}px` : 1.5,
-              py: !drawerOpen && level === 1 ? 1.25 : 1,
-              ...(drawerOpen && {
-                '&:hover': { bgcolor: 'primary.lighter', ...theme.applyStyles('dark', { bgcolor: 'divider' }) },
-                '&.Mui-selected': {
-                  bgcolor: 'primary.lighter',
-                  ...theme.applyStyles('dark', { bgcolor: 'divider' }),
-                  borderRight: '2px solid',
-                  borderColor: 'primary.main',
-                  color: iconSelectedColor,
-                  '&:hover': { color: iconSelectedColor, bgcolor: 'primary.lighter', ...theme.applyStyles('dark', { bgcolor: 'divider' }) }
-                }
-              }),
-              ...(!drawerOpen && {
-                '&:hover': { bgcolor: 'transparent' },
-                '&.Mui-selected': { '&:hover': { bgcolor: 'transparent' }, bgcolor: 'transparent' }
-              })
-            })}
-            {...(downLG && {
-              onClick: () => {
-                handlerDrawerOpen(false);
-                itemHandler();
-              }
-            })}
-          >
-            {itemIcon && (
-              <ListItemIcon
-                sx={(theme) => ({
-                  minWidth: 28,
-                  color: isLegacy && !isSelected ? 'text.disabled' : isSelected ? iconSelectedColor : textColor,
-                  ...(!drawerOpen && {
-                    borderRadius: 1.5,
-                    width: 36,
-                    height: 36,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    '&:hover': { bgcolor: 'secondary.lighter', ...theme.applyStyles('dark', { bgcolor: 'secondary.light' }) }
-                  }),
-                  ...(!drawerOpen &&
-                    isSelected && {
-                      bgcolor: 'primary.lighter',
-                      ...theme.applyStyles('dark', { bgcolor: 'primary.900' }),
-                      '&:hover': { bgcolor: 'primary.lighter', ...theme.applyStyles('dark', { bgcolor: 'primary.darker' }) }
-                    })
-                })}
-              >
-                {itemIcon}
-              </ListItemIcon>
-            )}
-            {(drawerOpen || (!drawerOpen && level !== 1)) && (
-              <ListItemText
-                sx={{ flex: 1, minWidth: 0 }}
-                primary={itemLabel}
-              />
-            )}
-            {(drawerOpen || (!drawerOpen && level !== 1)) && item.chip && (
-              <Chip
-                color={item.chip.color}
-                variant={item.chip.variant}
-                size={item.chip.size}
-                label={item.chip.label}
-                avatar={item.chip.avatar && <Avatar>{item.chip.avatar}</Avatar>}
-                sx={{ flexShrink: 0, ml: 0.5 }}
-              />
-            )}
-          </ListItemButton>
+          {!drawerOpen && level === 1 ? (
+            <Tooltip title={<FormattedMessage id={item.title} />} placement="right" arrow>
+              <Box component="span" sx={{ display: 'block' }}>
+                {listItem}
+              </Box>
+            </Tooltip>
+          ) : (
+            listItem
+          )}
           {(drawerOpen || (!drawerOpen && level !== 1)) &&
             item?.actions &&
             item?.actions.map((action, index) => {

@@ -130,7 +130,7 @@ export default function AppReleasesOverviewSection() {
             const release = releases[appType];
             return (
               <Grid key={appType} size={{ xs: 12, md: 4 }}>
-                <Card variant="outlined" sx={{ height: '100%' }} onClick={() => router.push(manageHref)}>
+                <Card variant="outlined" sx={{ height: '100%' }} >
                   <CardContent>
                     <Stack spacing={2} sx={{ height: '100%' }}>
                       <Box>

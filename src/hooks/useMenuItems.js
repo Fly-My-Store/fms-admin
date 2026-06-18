@@ -1,7 +1,7 @@
 'use client';
 
 import { useSelector } from 'react-redux';
-import platform from 'menu-items/platform';
+import platformMenuGroups from 'menu-items/platform';
 
 const norm = (s) =>
   String(s || '')
@@ -26,6 +26,10 @@ function filterTree(node, can) {
   return node;
 }
 
+function filterGroups(groups, can) {
+  return groups.map((g) => filterTree(g, can)).filter(Boolean);
+}
+
 export default function useMenuItems() {
   const { isLoaded, permissionsByName, user } = useSelector((s) => s.auth || {});
 
@@ -36,7 +40,7 @@ export default function useMenuItems() {
 
   // Admin app: full menu when login has not yet returned role permissions
   if (isAdmin && !hasPermissions) {
-    return { items: [platform] };
+    return { items: platformMenuGroups };
   }
 
   const can = (perm, action = 'read') => {
@@ -44,7 +48,5 @@ export default function useMenuItems() {
     return !!row?.[action];
   };
 
-  const filtered = filterTree(platform, can);
-
-  return { items: filtered ? [filtered] : [] };
+  return { items: filterGroups(platformMenuGroups, can) };
 }
