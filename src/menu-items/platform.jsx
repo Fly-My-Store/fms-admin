@@ -224,7 +224,8 @@ const platformMenuGroups = [
         id: 'app-releases-overview',
         title: 'app-releases-overview',
         type: 'item',
-        url: '/app-releases',
+        url: '/downloads',
+        target: true,
         icon: icons.MobileOutlined,
         perm: 'appRelease',
         action: 'read'

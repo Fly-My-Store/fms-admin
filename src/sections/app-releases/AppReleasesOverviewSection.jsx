@@ -13,34 +13,37 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid2';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import MainCard from 'components/MainCard';
-import { CopyOutlined, LinkOutlined, UploadOutlined } from '@ant-design/icons';
+import { CopyOutlined, DownloadOutlined, LinkOutlined, UploadOutlined } from '@ant-design/icons';
 import {
   APP_RELEASE_TYPES,
   formatFileSize,
-  getCurrentRelease,
+  getPublicLatestRelease,
+  normalizeReleaseRow,
 } from 'api/appReleases';
+import { useCan } from 'hooks/useCan';
 import UploadApkDialog from './UploadApkDialog';
-import { useRouter } from 'next/navigation';
 
 const APPS = [
   {
     appType: APP_RELEASE_TYPES.CUSTOMER,
     label: 'Customer',
-    description: 'Fly My Store customer app',
+    description: 'Shop from local stores and track deliveries',
     manageHref: '/app-releases/customer',
+    accent: '#2563eb',
   },
   {
     appType: APP_RELEASE_TYPES.SELLER,
     label: 'Seller',
-    description: 'Seller / store management app',
+    description: 'Manage your store, orders, and inventory',
     manageHref: '/app-releases/seller',
+    accent: '#16a34a',
   },
   {
     appType: APP_RELEASE_TYPES.RIDER,
     label: 'Rider',
-    description: 'Delivery rider app',
+    description: 'Accept delivery jobs and track earnings',
     manageHref: '/app-releases/rider',
+    accent: '#d97706',
   },
 ];
 
@@ -61,8 +64,16 @@ async function copyText(text) {
   }
 }
 
+const actionBtnSx = {
+  flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 auto' },
+  minWidth: { xs: 0, sm: 'auto' },
+};
+
 export default function AppReleasesOverviewSection() {
-  const router = useRouter();
+  const { canModify, canRead } = useCan();
+  const canUpload = canModify('appRelease');
+  const canManage = canRead('appRelease');
+
   const [releases, setReleases] = useState({
     [APP_RELEASE_TYPES.CUSTOMER]: null,
     [APP_RELEASE_TYPES.SELLER]: null,
@@ -79,8 +90,8 @@ export default function AppReleasesOverviewSection() {
       const results = await Promise.all(
         APPS.map(async ({ appType }) => {
           try {
-            const res = await getCurrentRelease(appType);
-            return [appType, res?.data || null];
+            const res = await getPublicLatestRelease(appType);
+            return [appType, normalizeReleaseRow(res?.data || null)];
           } catch (e) {
             const msg = String(e?.message || e || '');
             if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('no current')) {
@@ -110,88 +121,141 @@ export default function AppReleasesOverviewSection() {
   };
 
   return (
-    <MainCard>
-      <Stack spacing={1} sx={{ mb: 3 }}>
-        <Typography variant="h4">App releases</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Latest Android APK for each app. Upload here or open a app page for full history.
+    <Box>
+      <Stack spacing={1} sx={{ mb: { xs: 2, sm: 3 } }}>
+        <Typography variant="h3" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' }, fontWeight: 700 }}>
+          Fly My Store apps
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 560 }}>
+          Install the latest Android APK for each Fly My Store app. 
         </Typography>
       </Stack>
 
-      {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
+      {error ? (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      ) : null}
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
       ) : (
-        <Grid container spacing={2}>
-          {APPS.map(({ appType, label, description, manageHref }) => {
+        <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+          {APPS.map(({ appType, label, description, manageHref, accent }) => {
             const release = releases[appType];
-            return (
-              <Grid key={appType} size={{ xs: 12, md: 4 }}>
-                <Card variant="outlined" sx={{ height: '100%' }} >
-                  <CardContent>
-                    <Stack spacing={2} sx={{ height: '100%' }}>
-                      <Box>
-                        <Typography variant="h6">{label}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {description}
-                        </Typography>
-                      </Box>
+            const downloadUrl = release?.file_url;
 
-                      {release ? (
-                        <Stack spacing={1}>
-                          <Stack direction="row" spacing={1} flexWrap="wrap">
+            return (
+              <Grid key={appType} size={12}>
+                <Card
+                  variant="outlined"
+                  sx={{
+                    borderLeftWidth: 4,
+                    borderLeftColor: accent,
+                    borderRadius: 2,
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2, sm: 2.5 }, '&:last-child': { pb: { xs: 2, sm: 2.5 } } }}>
+                    <Stack spacing={2}>
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1.5}
+                        justifyContent="space-between"
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      >
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="h5" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+                            {label}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {description}
+                          </Typography>
+                        </Box>
+
+                        {release ? (
+                          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                             <Chip label={`v${release.version}`} color="primary" size="small" />
                             {release.version_code != null ? (
-                              <Chip label={`code ${release.version_code}`} size="small" variant="outlined" />
+                              <Chip label={`build ${release.version_code}`} size="small" variant="outlined" />
                             ) : null}
                           </Stack>
-                          <Typography variant="body2" fontFamily="monospace" noWrap title={release.file_name}>
+                        ) : null}
+                      </Stack>
+
+                      {release ? (
+                        <Stack spacing={0.75}>
+                          <Typography
+                            variant="body2"
+                            fontFamily="monospace"
+                            sx={{ wordBreak: 'break-all' }}
+                          >
                             {release.file_name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {formatFileSize(release.file_size_bytes)} · {formatDate(release.createdAt)}
+                            {formatFileSize(release.file_size_bytes)} · Updated {formatDate(release.createdAt)}
                           </Typography>
                         </Stack>
                       ) : (
-                        <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
-                          No current release. Upload an APK to enable downloads.
+                        <Typography variant="body2" color="text.secondary">
+                          No release available yet. Check back soon.
                         </Typography>
                       )}
 
-                      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 'auto', pt: 1 }}>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={<UploadOutlined />}
-                          onClick={() => setUploadAppType(appType)}
-                        >
-                          Upload
-                        </Button>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        {downloadUrl ? (
+                          <Button
+                            size="medium"
+                            variant="contained"
+                            component="a"
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            startIcon={<DownloadOutlined />}
+                            sx={actionBtnSx}
+                          >
+                            Download APK
+                          </Button>
+                        ) : null}
+
                         {release ? (
                           <>
                             <Button
-                              size="small"
+                              size="medium"
                               variant="outlined"
                               startIcon={<CopyOutlined />}
-                              onClick={() => handleCopyLink(release.file_url)}
+                              onClick={() => handleCopyLink(downloadUrl)}
+                              sx={actionBtnSx}
                             >
                               Copy link
                             </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              component="a"
-                              href={release.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              startIcon={<LinkOutlined />}
-                            >
-                              Open
-                            </Button>
                           </>
+                        ) : null}
+
+                        {canUpload ? (
+                          <Button
+                            size="medium"
+                            variant="outlined"
+                            color="secondary"
+                            startIcon={<UploadOutlined />}
+                            onClick={() => setUploadAppType(appType)}
+                            sx={actionBtnSx}
+                          >
+                            Upload
+                          </Button>
+                        ) : null}
+
+                        {canManage ? (
+                          <Button
+                            size="medium"
+                            variant="outlined"
+                            component={Link}
+                            href={manageHref}
+                            sx={actionBtnSx}
+                          >
+                            Manage history
+                          </Button>
                         ) : null}
                       </Stack>
                     </Stack>
@@ -212,6 +276,6 @@ export default function AppReleasesOverviewSection() {
           await loadAll();
         }}
       />
-    </MainCard>
+    </Box>
   );
 }

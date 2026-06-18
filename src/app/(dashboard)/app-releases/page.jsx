@@ -1,5 +1,5 @@
-import View from 'views/app-releases';
+import { redirect } from 'next/navigation';
 
-export default function Page() {
-  return <View />;
+export default function AppReleasesOverviewPage() {
+  redirect('/downloads');
 }

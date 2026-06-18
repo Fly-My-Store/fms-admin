@@ -17,7 +17,8 @@ export const ROUTES = {
   CHECK_MAIL: '/check-mail',
   ERROR_500: '/500',
   COMING_SOON: '/coming-soon',
-  UNDER_CONSTRUCTION: '/pages/under-construction'
+  UNDER_CONSTRUCTION: '/pages/under-construction',
+  APP_DOWNLOADS: '/downloads'
 };
 
 export const TABLE_STATUS = {

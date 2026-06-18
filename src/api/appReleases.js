@@ -13,6 +13,18 @@ export const listReleases = (appType, params = {}) =>
 export const getCurrentRelease = (appType) =>
   get('admin/app-releases/current', { app_type: appType });
 
+/** Public endpoint — no auth required */
+export const getPublicLatestRelease = (appType) =>
+  get(`public/app-releases/${String(appType).toLowerCase()}/latest`);
+
+export function normalizeReleaseRow(data) {
+  if (!data) return null;
+  return {
+    ...data,
+    file_url: data.file_url || data.download_url || null,
+  };
+}
+
 export const setCurrentRelease = (id) =>
   patch(`admin/app-releases/${id}/set-current`, {});
 

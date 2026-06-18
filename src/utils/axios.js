@@ -43,9 +43,13 @@ const hardLogout = () => {
     // 2) Best-effort header cleanup on this runtime instance
     delete axiosServices.defaults.headers.common['Authorization'];
 
-    // 3) Redirect away from protected routes
-    if (typeof window !== 'undefined' && !window.location.pathname.includes(ROUTES.LOGIN)) {
-      window.location.replace(ROUTES.LOGIN);
+    // 3) Redirect away from protected routes (keep public pages like /downloads)
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      const isPublicPath = path === ROUTES.APP_DOWNLOADS || path.startsWith(`${ROUTES.APP_DOWNLOADS}/`);
+      if (!isPublicPath && !path.includes(ROUTES.LOGIN)) {
+        window.location.replace(ROUTES.LOGIN);
+      }
     }
   } finally {
     // small delay to prevent rapid re-entry; optional but helpful with bursty 401s
