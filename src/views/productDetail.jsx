@@ -129,7 +129,6 @@ export default function ProductDetail() {
                       {data?.slug}
                     </Typography>
                     <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
-                      <StatusChip value={data?.status} />
                       <RecordStatusChip value={data?.record_status} />
                     </Stack>
                   </Stack>

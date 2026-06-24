@@ -126,7 +126,6 @@ export default function StoreDetailView() {
                     color={data?.is_open ? 'success' : 'default'}
                     label={data?.is_open ? 'Open' : 'Closed'}
                   />
-                  <Chip size="small" variant="light" label={safe(data?.status)} />
                   <KybChip value={data?.kyb_status} />
                   <RecordStatusChip value={data?.record_status} />
                 </Stack>

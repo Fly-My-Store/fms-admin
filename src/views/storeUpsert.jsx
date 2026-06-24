@@ -210,7 +210,6 @@ export default function StoreUpsert() {
       code: data.code || '',
       support_email: data.support_email || '',
       support_phone: data.support_phone || '',
-      status: data.status || 'ACTIVE',
       kyb_status: data.kyb_status || 'NONE',
       kyb_reason: data.kyb_reason || '',
       record_status: data.record_status ?? 1,

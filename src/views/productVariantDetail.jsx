@@ -163,7 +163,6 @@ export default function VariantDetailView() {
                   <Stack>
                     <Typography variant="h6">{data?.sku || '—'}</Typography>
                     <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
-                      <StatusChip value={data?.status} />
                       <RecordStatusChip value={data?.record_status} />
                       {data?.is_active != null && (
                         <Chip size="small" variant="light" color={data.is_active ? 'success' : 'default'} label={data.is_active ? 'Active' : 'Inactive'} />
