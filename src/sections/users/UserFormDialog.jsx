@@ -43,12 +43,12 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
     try {
       const payload = {
         name: form.name.trim(),
-        email: form.email.trim(),
+        email: form.email.trim().toLowerCase(),
         phone: form.phone.trim() || undefined,
         status: Number(form.status),
         type: 'ADMIN'
       };
-      if (form.password) payload.password_hash = form.password;
+      if (form.password) payload.password = form.password;
 
       if (initialData?.id) {
         await updateUser(initialData.id, payload);
