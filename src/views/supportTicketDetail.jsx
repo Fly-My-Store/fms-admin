@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Alert,
+  Box,
   Button,
   Chip,
   Link as MuiLink,
@@ -29,6 +30,15 @@ const formatDate = (iso) => {
 };
 
 const shortId = (id) => (id ? String(id).slice(0, 8) : '—');
+
+const IMAGE_EXT_RE = /\.(jpe?g|png|gif|webp)(\?.*)?$/i;
+
+const isSupportAttachmentImage = (attachment) => {
+  const mime = String(attachment?.mime_type || '').toLowerCase();
+  if (mime.startsWith('image/')) return true;
+  const name = String(attachment?.file_name || attachment?.file_url || '');
+  return IMAGE_EXT_RE.test(name);
+};
 
 const KV = ({ label, value, children }) => (
   <Stack direction="row" spacing={1.5} alignItems="baseline">
@@ -153,12 +163,46 @@ export default function SupportTicketDetailView() {
                     <Typography variant="subtitle2" sx={{ pt: 1 }}>
                       Attachments
                     </Typography>
-                    <Stack spacing={0.5}>
-                      {ticket.attachments.map((a) => (
-                        <MuiLink key={a.id || a.file_url} href={a.file_url} target="_blank" rel="noopener">
-                          {a.file_name || 'Attachment'}
-                        </MuiLink>
-                      ))}
+                    <Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap">
+                      {ticket.attachments.map((a) => {
+                        const label = a.file_name || 'Attachment';
+                        if (isSupportAttachmentImage(a)) {
+                          return (
+                            <Box
+                              key={a.id || a.file_url}
+                              component="a"
+                              href={a.file_url}
+                              target="_blank"
+                              rel="noopener"
+                              sx={{ display: 'block', textDecoration: 'none', width: 120 }}
+                            >
+                              <Box
+                                component="img"
+                                src={a.file_url}
+                                alt={label}
+                                sx={{
+                                  width: 120,
+                                  height: 120,
+                                  objectFit: 'cover',
+                                  borderRadius: 1,
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                  display: 'block',
+                                  bgcolor: 'background.default',
+                                }}
+                              />
+                              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }} noWrap>
+                                {label}
+                              </Typography>
+                            </Box>
+                          );
+                        }
+                        return (
+                          <MuiLink key={a.id || a.file_url} href={a.file_url} target="_blank" rel="noopener">
+                            {label}
+                          </MuiLink>
+                        );
+                      })}
                     </Stack>
                   </>
                 )}
