@@ -19,18 +19,25 @@ import { actions as attributes } from 'store/attributes/slice';
 
 export default function CategoryattrsFormDialog({ open, onClose, initialData = null, onSaved }) {
   const dispatch = useDispatch();
-  const [form, setForm] = useState({ category_id: '', attribute_code: '', is_required: false, is_filterable: false });
+  const [form, setForm] = useState({
+    category_id: '',
+    attribute_code: '',
+    is_required: false,
+    is_variant_axis: false,
+    is_filterable: false,
+  });
 
   useEffect(() => {
     if (initialData) {
-      setForm({ 
-        ...{ category_id: '', attribute_code: '', is_required: false, is_filterable: false }, 
+      setForm({
+        ...{ category_id: '', attribute_code: '', is_required: false, is_variant_axis: false, is_filterable: false },
         ...initialData,
         is_required: initialData.is_required ?? false,
-        is_filterable: initialData.is_filterable ?? false
+        is_variant_axis: initialData.is_variant_axis ?? false,
+        is_filterable: initialData.is_filterable ?? false,
       });
     } else {
-      setForm({ category_id: '', attribute_code: '', is_required: false, is_filterable: false });
+      setForm({ category_id: '', attribute_code: '', is_required: false, is_variant_axis: false, is_filterable: false });
     }
   }, [initialData, open]);
 
@@ -99,6 +106,22 @@ export default function CategoryattrsFormDialog({ open, onClose, initialData = n
               select
               value={form.is_filterable ? 'true' : 'false'} 
               onChange={(e) => handleChange({ target: { name: 'is_filterable', value: e.target.value === 'true' } })} 
+              fullWidth
+              size="small"
+            >
+              <MenuItem value="true">True</MenuItem>
+              <MenuItem value="false">False</MenuItem>
+            </TextField>
+          </Stack>
+
+          <Stack sx={{gap: 1}}>
+            <InputLabel>Variant picker axis</InputLabel>
+            <TextField
+              id="is_variant_axis"
+              name="is_variant_axis"
+              select
+              value={form.is_variant_axis ? 'true' : 'false'}
+              onChange={(e) => handleChange({ target: { name: 'is_variant_axis', value: e.target.value === 'true' } })}
               fullWidth
               size="small"
             >

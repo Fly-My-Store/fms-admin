@@ -5,7 +5,6 @@ import { enqueueSnackbar } from 'notistack';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import MainCard from 'components/MainCard';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
-import OutOfScopeAttributeNotice from 'components/OutOfScopeAttributeNotice';
 // Stable stringify ensures consistent key order so Select value matches MenuItem values
 function stableStringify(v) {
   const t = typeof v;
@@ -107,8 +106,8 @@ export default function ProductVariantAttributeUpsert() {
           data_type: row?.attributeDef?.data_type || '',
           allowed_values: Array.isArray(row?.attributeDef?.allowed_values) ? row.attributeDef.allowed_values : null,
           value_text: row?.value_text ?? '',
-          value_int: row?.value_int ?? '',
-          value_decimal: row?.value_decimal ?? '',
+          value_int: row?.value_int != null && row?.value_int !== '' ? Number(row.value_int) : '',
+          value_decimal: row?.value_decimal != null && row?.value_decimal !== '' ? Number(row.value_decimal) : '',
           value_bool: row?.value_bool ?? null,
           value_json: row?.value_json ? stableStringify(row.value_json) : '',
           normalized_num: row?.normalized_num ?? '',
@@ -130,7 +129,7 @@ export default function ProductVariantAttributeUpsert() {
         setDefsLoading(true);
         const res = await listCategoryAttrs({ q: defQuery, category_id, limit: 20 });
         const rows = res?.data || res?.data?.rows || [];
-        setDefs(rows.map((r) => r.attributeDef));
+        setDefs(rows.map((r) => ({ ...r.attributeDef, is_variant_axis: r.is_variant_axis })));
       } catch (e) {
         setDefs([]);
         enqueueSnackbar('Failed to load attribute defs', { variant: 'error' });
@@ -225,14 +224,19 @@ export default function ProductVariantAttributeUpsert() {
         return enqueueSnackbar('Provide a value', { variant: 'warning' });
       }
 
+      const valuesMatchAllowed = (allowedVal, pickedVal, kind) => {
+        if (kind === 'json') return String(allowedVal) === String(pickedVal);
+        if (kind === 'bool') return !!allowedVal === !!pickedVal;
+        if (kind === 'int' || kind === 'decimal') {
+          return Number(allowedVal) === Number(pickedVal);
+        }
+        return String(allowedVal).trim() === String(pickedVal).trim();
+      };
+
       if (Array.isArray(form.allowed_values) && form.allowed_values.length > 0) {
-        const allowed = normalizeAllowedList(pickedKind || 'text', form.allowed_values);
-        const pickedCoerced = coerceByKind(pickedKind || 'text', pickedVal);
-        // For JSON, compare by stringified form
-        const match = allowed.some((av) => {
-          if (pickedKind === 'json') return String(av) === String(pickedCoerced);
-          return av === pickedCoerced;
-        });
+        const allowed = normalizeAllowedList(pickedKind || form.data_type || 'text', form.allowed_values);
+        const pickedCoerced = coerceByKind(pickedKind || form.data_type || 'text', pickedVal);
+        const match = allowed.some((av) => valuesMatchAllowed(av, pickedCoerced, pickedKind || form.data_type || 'text'));
         if (!match) {
           return enqueueSnackbar('Value must be one of the allowed values', { variant: 'warning' });
         }
@@ -519,7 +523,10 @@ export default function ProductVariantAttributeUpsert() {
                 options={defs}
                 loading={defsLoading}
                 onChange={onDefChange}
-                getOptionLabel={(o) => (o?.name ? `${o.name} (${o.code})` : o?.code || '')}
+                getOptionLabel={(o) => {
+                  const base = o?.name ? `${o.name} (${o.code})` : o?.code || '';
+                  return o?.is_variant_axis ? `${base} · Picker` : base;
+                }}
                 renderInput={(params) => (
                   <TextField
                     {...params}

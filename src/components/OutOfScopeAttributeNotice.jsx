@@ -15,8 +15,7 @@ export default function OutOfScopeAttributeNotice({ feature }) {
 
   return (
     <Alert severity="warning" sx={{ mb: 2 }}>
-      <strong>{label}</strong> are out of scope and not used in production. Use product <strong>spec_json</strong> and
-      variant <strong>option_signature</strong> instead. Do not add new data here.
+      <strong>{label}</strong> are out of scope and not used in production. Do not add new data here.
     </Alert>
   );
 }

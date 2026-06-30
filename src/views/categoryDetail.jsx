@@ -9,18 +9,20 @@ import MainCard from 'components/MainCard';
 import {
   Avatar,
   Box,
-  Button,
   Chip,
   CircularProgress,
   Divider,
+  FormControlLabel,
   Stack,
+  Switch,
   Tooltip,
   Typography,
   Checkbox,
   TablePagination,
   TextField
 } from '@mui/material';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { updateCategoryAttr } from 'api/attributes';
 import { actions as catalog } from 'store/catalog/slice';
 import { actions as attributes } from 'store/attributes/slice';
 
@@ -70,9 +72,10 @@ const Field = ({ label, value, mono = false, copy = false }) => {
   );
 };
 
+const MAX_VARIANT_AXES = 3;
+
 export function CategoryDetail() {
   const dispatch = useDispatch();
-  const params = useSearchParams();
   const { id } = useParams();
 
   const { categoryDetail } = useSelector((s) => s.catalog || {});
@@ -90,11 +93,32 @@ export function CategoryDetail() {
   // Pending optimistic overrides: { [attribute_code]: boolean }
   const [pendingMap, setPendingMap] = useState({});
 
-  // Backend-assigned attributes as a Set (derived from redux)
+  // Backend-assigned attributes (redux stores rows, not data)
+  const categoryAttrRows = categoryAttrs?.rows ?? [];
+
   const backendAssignedSet = useMemo(() => {
-    const rows = (categoryAttrs?.data || categoryAttrs?.rows || []);
-    return new Set(rows.map((r) => r.attribute_code));
-  }, [categoryAttrs]);
+    return new Set(categoryAttrRows.map((r) => r.attribute_code));
+  }, [categoryAttrRows]);
+
+  const assignedRows = useMemo(() => {
+    return categoryAttrRows.map((row) => ({
+      ...row,
+      def: row.attributeDef || {},
+    }));
+  }, [categoryAttrRows]);
+
+  const axisCount = useMemo(
+    () => assignedRows.filter((r) => r.is_variant_axis).length,
+    [assignedRows],
+  );
+
+  const assignedRowByCode = useMemo(() => {
+    const map = {};
+    assignedRows.forEach((row) => {
+      map[row.attribute_code] = row;
+    });
+    return map;
+  }, [assignedRows]);
 
   // Read helper: if we have a pending override, use it; else use backend
   const isChecked = (code) => (Object.prototype.hasOwnProperty.call(pendingMap, code) ? !!pendingMap[code] : backendAssignedSet.has(code));
@@ -113,7 +137,7 @@ export function CategoryDetail() {
   useEffect(() => {
     if (!id) return;
     // pull a large page to materialize a set client-side
-    dispatch(attributes.categoryAttrsListRequest({ params: { category_id: id, page: 1, limit: 1000 } }));
+    dispatch(attributes.categoryAttrsListRequest({ params: { category_id: id, page: 1, limit: 100 } }));
   }, [dispatch, id]);
 
   // Reconcile pending selections when backend catches up
@@ -146,9 +170,21 @@ export function CategoryDetail() {
     } else {
       dispatch(attributes.categoryAttrsRemoveRequest({ params: { category_id: id, attribute_code: code } }));
     }
+  };
 
-    // ask backend for fresh mapping; reconciliation effect will clear pending when it matches
-    dispatch(attributes.categoryAttrsListRequest({ params: { category_id: id, page: 1, limit: 1000 } }));
+  const handleToggleCategoryAttrFlag = async (row, field, nextValue) => {
+    if (!row?.id) return;
+    if (field === 'is_variant_axis' && nextValue && axisCount >= MAX_VARIANT_AXES && !row.is_variant_axis) {
+      enqueueSnackbar(`Maximum ${MAX_VARIANT_AXES} variant picker attributes allowed`, { variant: 'warning' });
+      return;
+    }
+    try {
+      await updateCategoryAttr(row.id, { [field]: nextValue });
+      dispatch(attributes.categoryAttrsListRequest({ params: { category_id: id, page: 1, limit: 100 } }));
+      enqueueSnackbar('Category attribute updated', { variant: 'success' });
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Update failed', { variant: 'error' });
+    }
   };
 
   const breadcrumb = useMemo(() => {
@@ -227,6 +263,10 @@ export function CategoryDetail() {
               <Stack flex={2} spacing={2}>
                 <Typography variant="subtitle1">Attributes</Typography>
 
+                <Typography variant="subtitle2" color="text.secondary">
+                  Select attributes
+                </Typography>
+
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
                   <TextField
                     size="small"
@@ -238,7 +278,7 @@ export function CategoryDetail() {
                   />
                 </Stack>
 
-                {((defs?.data || defs?.rows || []).length > 0) ? (
+                {((defs?.rows || []).length > 0) ? (
                   <Box sx={{
                     display: 'grid',
                     gridTemplateColumns: {
@@ -249,17 +289,33 @@ export function CategoryDetail() {
                     },
                     gap: 1.5
                   }}>
-                    {(defs?.data || defs?.rows || []).map((def) => {
+                    {(defs?.rows || []).map((def) => {
+                      const assigned = assignedRowByCode[def.code];
+                      const checked = isChecked(def.code);
                       return (
-                        <Box key={def.code} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.25, bgcolor: 'background.paper' }}>
+                        <Box
+                          key={def.code}
+                          sx={{
+                            border: '1px solid',
+                            borderColor: checked ? 'primary.main' : 'divider',
+                            borderRadius: 1,
+                            p: 1.25,
+                            bgcolor: checked ? 'action.selected' : 'background.paper',
+                          }}
+                        >
                           <Stack direction="row" spacing={1.25} alignItems="flex-start">
                             <Checkbox
                               size="small"
-                              checked={isChecked(def.code)}
+                              checked={checked}
                               onChange={(e) => handleToggleAttr(def, e.target.checked)}
                             />
                             <Stack spacing={0.25} flex={1}>
-                              <Typography variant="body2" sx={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{def.code}</Typography>
+                              <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap">
+                                <Typography variant="body2" sx={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{def.code}</Typography>
+                                {assigned?.is_variant_axis ? (
+                                  <Chip size="small" label="Picker" color="primary" variant="outlined" />
+                                ) : null}
+                              </Stack>
                               <Typography variant="body2">{def.name}</Typography>
                             </Stack>
                           </Stack>
@@ -277,13 +333,69 @@ export function CategoryDetail() {
 
                 <TablePagination
                   component="div"
-                  count={defs?.count || defs?.total || 0}
+                  count={defs?.count || 0}
                   page={Math.max(0, (attrPage - 1))}
                   onPageChange={(_, next) => setAttrPage(next + 1)}
                   rowsPerPage={attrPageSize}
                   onRowsPerPageChange={(e) => { setAttrPageSize(parseInt(e.target.value, 10) || 20); setAttrPage(1); }}
                   rowsPerPageOptions={[10, 20, 50, 100]}
                 />
+
+                {assignedRows.length > 0 ? (
+                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                      Assigned attributes ({assignedRows.length})
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                      Variant picker axes: {axisCount}/{MAX_VARIANT_AXES} — shown as size/weight/RAM chips in the customer app.
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      {assignedRows.map((row) => (
+                        <Stack
+                          key={row.id || row.attribute_code}
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={1}
+                          alignItems={{ sm: 'center' }}
+                          sx={{ py: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}
+                        >
+                          <Stack flex={1} spacing={0.25}>
+                            <Typography variant="body2" sx={{ fontFamily: 'ui-monospace, monospace' }}>
+                              {row.attribute_code}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {row.def?.name || row.attributeDef?.name || '—'}
+                            </Typography>
+                          </Stack>
+                          <FormControlLabel
+                            control={(
+                              <Switch
+                                size="small"
+                                checked={!!row.is_variant_axis}
+                                disabled={!row.is_variant_axis && axisCount >= MAX_VARIANT_AXES}
+                                onChange={(e) => handleToggleCategoryAttrFlag(row, 'is_variant_axis', e.target.checked)}
+                              />
+                            )}
+                            label="Variant picker"
+                          />
+                          <FormControlLabel
+                            control={(
+                              <Switch
+                                size="small"
+                                checked={!!row.is_required}
+                                onChange={(e) => handleToggleCategoryAttrFlag(row, 'is_required', e.target.checked)}
+                              />
+                            )}
+                            label="Required"
+                          />
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No attributes assigned yet. Use the checkboxes above to assign attributes to this category.
+                  </Typography>
+                )}
               </Stack>
             </Stack>
 

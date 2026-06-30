@@ -184,7 +184,12 @@ const slice = createSlice({
     },
     categoryAttrsCreateSuccess(state, action) {
       state.categoryAttrsDetail.loading = false;
-      state.categoryAttrsDetail.data = action.payload?.data || action.payload;
+      const row = action.payload?.data || action.payload;
+      state.categoryAttrsDetail.data = row;
+      if (row?.attribute_code && !state.categoryAttrs.rows.some((r) => r.attribute_code === row.attribute_code)) {
+        state.categoryAttrs.rows = [row, ...state.categoryAttrs.rows];
+        state.categoryAttrs.count += 1;
+      }
     },
     categoryAttrsCreateFailure(state, action) {
       state.categoryAttrsDetail.loading = false;
@@ -206,8 +211,13 @@ const slice = createSlice({
       state.categoryAttrsDetail.loading = true;
       state.categoryAttrsDetail.error = null;
     },
-    categoryAttrsRemoveSuccess(state) {
+    categoryAttrsRemoveSuccess(state, action) {
       state.categoryAttrsDetail.loading = false;
+      const code = action.payload?.attribute_code;
+      if (code) {
+        state.categoryAttrs.rows = state.categoryAttrs.rows.filter((r) => r.attribute_code !== code);
+        state.categoryAttrs.count = Math.max(0, state.categoryAttrs.count - 1);
+      }
     },
     categoryAttrsRemoveFailure(state, action) {
       state.categoryAttrsDetail.loading = false;

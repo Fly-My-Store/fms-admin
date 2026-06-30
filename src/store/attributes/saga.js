@@ -122,8 +122,14 @@ function* categoryAttrsGetWorker(action) {
 }
 function* categoryAttrsCreateWorker(action) {
   try {
-    const resp = yield call(api.createCategoryAttr, action.payload?.params);
+    const params = action.payload?.params || {};
+    const resp = yield call(api.createCategoryAttr, params);
     yield put(actions.categoryAttrsCreateSuccess(resp));
+    if (params.category_id) {
+      yield put(actions.categoryAttrsListRequest({
+        params: { category_id: params.category_id, page: 1, limit: 100 },
+      }));
+    }
   } catch (err) {
     const msg = getErrorMessage(err, 'Create failed');
     yield put(actions.categoryAttrsCreateFailure(msg));
@@ -142,8 +148,13 @@ function* categoryAttrsUpdateWorker(action) {
 function* categoryAttrsRemoveWorker(action) {
   try {
     const { category_id, attribute_code } = action.payload?.params || {};
-    const resp = yield call(api.removeCategoryAttr, category_id, attribute_code);
-    yield put(actions.categoryAttrsRemoveSuccess(resp));
+    yield call(api.removeCategoryAttr, category_id, attribute_code);
+    yield put(actions.categoryAttrsRemoveSuccess({ attribute_code }));
+    if (category_id) {
+      yield put(actions.categoryAttrsListRequest({
+        params: { category_id, page: 1, limit: 100 },
+      }));
+    }
   } catch (err) {
     const msg = getErrorMessage(err, 'Delete failed');
     yield put(actions.categoryAttrsRemoveFailure(msg));
