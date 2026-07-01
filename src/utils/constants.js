@@ -1,3 +1,7 @@
+/** Razorpay India standard platform fee — https://razorpay.com/pricing/ */
+export const RAZORPAY_PLATFORM_FEE_PERCENT = 2;
+export const RAZORPAY_PLATFORM_FEE_GST_PERCENT = 18;
+
 export const STORAGE_KEYS = {
   TOKEN: 'auth_token',
   USER: 'auth_user',

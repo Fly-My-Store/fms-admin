@@ -5,7 +5,9 @@ const initialEntity = () => ({ data: null, loading: false, error: null });
 
 const initialState = {
   webhookEvents: initialList(),
-  webhookEventsDetail: initialEntity()
+  webhookEventsDetail: initialEntity(),
+  webhookReplay: { loading: false, error: null, data: null },
+  paymentOps: { loading: false, error: null, data: null, action: null },
 };
 
 const slice = createSlice({
@@ -71,6 +73,33 @@ const slice = createSlice({
     webhookEventsRemoveFailure(state, action) {
       state.webhookEventsDetail.loading = false;
       state.webhookEventsDetail.error = action.payload;
+    },
+    webhookEventsReplayRequest(state) {
+      state.webhookReplay.loading = true;
+      state.webhookReplay.error = null;
+      state.webhookReplay.data = null;
+    },
+    webhookEventsReplaySuccess(state, action) {
+      state.webhookReplay.loading = false;
+      state.webhookReplay.data = action.payload?.data || action.payload;
+    },
+    webhookEventsReplayFailure(state, action) {
+      state.webhookReplay.loading = false;
+      state.webhookReplay.error = action.payload;
+    },
+    paymentOpsRequest(state, action) {
+      state.paymentOps.loading = true;
+      state.paymentOps.error = null;
+      state.paymentOps.data = null;
+      state.paymentOps.action = action.payload?.action || null;
+    },
+    paymentOpsSuccess(state, action) {
+      state.paymentOps.loading = false;
+      state.paymentOps.data = action.payload?.data || action.payload;
+    },
+    paymentOpsFailure(state, action) {
+      state.paymentOps.loading = false;
+      state.paymentOps.error = action.payload;
     }
   }
 });

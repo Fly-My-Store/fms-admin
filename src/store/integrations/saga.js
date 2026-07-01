@@ -12,6 +12,7 @@ function* webhookEventsListWorker(action) {
     yield put(actions.webhookEventsListFailure(msg));
   }
 }
+
 function* webhookEventsGetWorker(action) {
   try {
     const { id } = action.payload?.params || {};
@@ -23,9 +24,39 @@ function* webhookEventsGetWorker(action) {
   }
 }
 
+function* webhookEventsReplayWorker(action) {
+  try {
+    const { id, listParams } = action.payload || {};
+    const resp = yield call(api.replayWebhookEvent, id);
+    yield put(actions.webhookEventsReplaySuccess(resp));
+    if (listParams) {
+      yield put(actions.webhookEventsListRequest({ params: listParams }));
+    }
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Replay failed');
+    yield put(actions.webhookEventsReplayFailure(msg));
+  }
+}
+
+function* paymentOpsWorker(action) {
+  const { action: op } = action.payload || {};
+  try {
+    const resp =
+      op === 'checkout-expiry'
+        ? yield call(api.runCheckoutExpiry)
+        : yield call(api.runPaymentReconcile);
+    yield put(actions.paymentOpsSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Operation failed');
+    yield put(actions.paymentOpsFailure(msg));
+  }
+}
+
 export default function* integrationsSaga() {
   yield all([
     takeLatest(actions.webhookEventsListRequest.type, webhookEventsListWorker),
-    takeLatest(actions.webhookEventsGetRequest.type, webhookEventsGetWorker)
+    takeLatest(actions.webhookEventsGetRequest.type, webhookEventsGetWorker),
+    takeLatest(actions.webhookEventsReplayRequest.type, webhookEventsReplayWorker),
+    takeLatest(actions.paymentOpsRequest.type, paymentOpsWorker)
   ]);
 }

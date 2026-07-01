@@ -22,6 +22,7 @@ import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 import { actions as ordersPayments } from 'store/ordersPayments/slice';
 import OrderCancelCard from 'sections/orders/OrderCancelCard';
+import OrderRefundCard from 'sections/orders/OrderRefundCard';
 import OrderRiderCard from 'sections/orders/OrderRiderCard';
 import OrderTrackingPanel from 'sections/orders/OrderTrackingPanel';
 
@@ -218,6 +219,9 @@ export default function OrderDetailView() {
                 <Divider />
                 <KV label="Total" value={formatINR(order.total_cents)} />
                 <KV label="Placed" value={formatDate(order.placed_at || order.created_at)} />
+                {order.cancelled_at ? (
+                  <KV label="Cancelled" value={formatDate(order.cancelled_at)} />
+                ) : null}
               </Stack>
             </MainCard>
           </Grid>
@@ -257,34 +261,11 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
-          {allRefunds.length > 0 && (
+          {allRefunds.length > 0 || String(order?.status || '').toUpperCase() === 'CANCELLED' ? (
             <Grid size={12}>
-              <MainCard title="Refunds">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Amount</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Reason</TableCell>
-                      <TableCell>Reference</TableCell>
-                      <TableCell>Date</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {allRefunds.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell>{formatINR(r.amount_cents)}</TableCell>
-                        <TableCell>{r.status}</TableCell>
-                        <TableCell>{safe(r.reason)}</TableCell>
-                        <TableCell>{safe(r.gateway_refund_id)}</TableCell>
-                        <TableCell>{formatDate(r.created_at)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </MainCard>
+              <OrderRefundCard order={order} refunds={allRefunds} />
             </Grid>
-          )}
+          ) : null}
 
           <Grid size={12}>
             <MainCard title="Timeline">

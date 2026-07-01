@@ -27,8 +27,16 @@ import {
   IconButton,
   Divider,
   InputLabel,
+  Alert,
+  Link,
 } from '@mui/material';
 import { PlusOutlined, StopOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { RAZORPAY_PLATFORM_FEE_GST_PERCENT, RAZORPAY_PLATFORM_FEE_PERCENT } from 'utils/constants';
+
+const GATEWAY_HELPER =
+  `Razorpay charges ${RAZORPAY_PLATFORM_FEE_PERCENT}% on captured payments (+ ${RAZORPAY_PLATFORM_FEE_GST_PERCENT}% GST on their fee). ` +
+  'Normal refunds have Rs 0 processing fee; capture fee is not reversed. ' +
+  'Set seller gateway % to match your Razorpay rate. Customer gateway % is optional if you itemize it at checkout.';
 
 const formatCents = (v) => (v === '' || v == null ? '' : Number(v) / 100);
 const toCents = (v) => {
@@ -55,13 +63,13 @@ const defaultForm = {
   customer_delivery_cents: '',
   customer_delivery_gst_percent: '18',
   customer_gateway_percent: '0',
-  customer_gateway_gst_percent: '18',
+  customer_gateway_gst_percent: String(RAZORPAY_PLATFORM_FEE_GST_PERCENT),
   seller_platform_percent: '',
   seller_platform_gst_percent: '18',
   seller_delivery_cents: '',
   seller_delivery_gst_percent: '18',
-  seller_gateway_percent: '',
-  seller_gateway_gst_percent: '18',
+  seller_gateway_percent: String(RAZORPAY_PLATFORM_FEE_PERCENT),
+  seller_gateway_gst_percent: String(RAZORPAY_PLATFORM_FEE_GST_PERCENT),
   km_surcharge: defaultKmSlabs,
 };
 
@@ -98,7 +106,7 @@ function ViewFareDialog({ open, rule, onClose }) {
             <ReadField label="Platform GST %" value={fmtPct(rule.customer_platform_gst_percent)} />
             <ReadField label="Delivery fee" value={fmtRupee(rule.customer_delivery_cents)} />
             <ReadField label="Delivery GST %" value={fmtPct(rule.customer_delivery_gst_percent)} />
-            <ReadField label="Gateway %" value={fmtPct(rule.customer_gateway_percent)} />
+            <ReadField label="Payment gateway %" value={fmtPct(rule.customer_gateway_percent)} />
             <ReadField label="Gateway GST %" value={fmtPct(rule.customer_gateway_gst_percent)} />
           </Stack>
 
@@ -109,7 +117,7 @@ function ViewFareDialog({ open, rule, onClose }) {
             <ReadField label="Platform GST %" value={fmtPct(rule.seller_platform_gst_percent)} />
             <ReadField label="Delivery" value={fmtRupee(rule.seller_delivery_cents)} />
             <ReadField label="Delivery GST %" value={fmtPct(rule.seller_delivery_gst_percent)} />
-            <ReadField label="Gateway %" value={fmtPct(rule.seller_gateway_percent)} />
+            <ReadField label="Payment gateway %" value={fmtPct(rule.seller_gateway_percent)} />
             <ReadField label="Gateway GST %" value={fmtPct(rule.seller_gateway_gst_percent)} />
           </Stack>
 
@@ -296,6 +304,13 @@ export function FareRulesView() {
         </Button>
       }
     >
+      <Alert severity="info" sx={{ mb: 2 }}>
+        {GATEWAY_HELPER}{' '}
+        <Link href="https://razorpay.com/pricing/" target="_blank" rel="noopener noreferrer">
+          Razorpay pricing
+        </Link>
+      </Alert>
+
       {loading ? (
         <Box display="flex" justifyContent="center" py={4}><CircularProgress /></Box>
       ) : (
@@ -395,8 +410,22 @@ export function FareRulesView() {
               <TextField label="Delivery GST %" type="number" value={form.customer_delivery_gst_percent} onChange={handleChange('customer_delivery_gst_percent')} fullWidth />
             </Stack>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField label="Gateway %" type="number" value={form.customer_gateway_percent} onChange={handleChange('customer_gateway_percent')} fullWidth />
-              <TextField label="Gateway GST %" type="number" value={form.customer_gateway_gst_percent} onChange={handleChange('customer_gateway_gst_percent')} fullWidth />
+              <TextField
+                label="Payment gateway % (customer)"
+                type="number"
+                value={form.customer_gateway_percent}
+                onChange={handleChange('customer_gateway_percent')}
+                helperText="Optional line item at checkout; 0 if absorbed elsewhere"
+                fullWidth
+              />
+              <TextField
+                label="Gateway GST %"
+                type="number"
+                value={form.customer_gateway_gst_percent}
+                onChange={handleChange('customer_gateway_gst_percent')}
+                helperText={`GST on gateway fee (Razorpay fee GST is ${RAZORPAY_PLATFORM_FEE_GST_PERCENT}%)`}
+                fullWidth
+              />
             </Stack>
 
             <Divider />
@@ -410,8 +439,21 @@ export function FareRulesView() {
               <TextField label="Delivery GST %" type="number" value={form.seller_delivery_gst_percent} onChange={handleChange('seller_delivery_gst_percent')} fullWidth />
             </Stack>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField label="Gateway %" type="number" value={form.seller_gateway_percent} onChange={handleChange('seller_gateway_percent')} fullWidth />
-              <TextField label="Gateway GST %" type="number" value={form.seller_gateway_gst_percent} onChange={handleChange('seller_gateway_gst_percent')} fullWidth />
+              <TextField
+                label="Payment gateway % (seller)"
+                type="number"
+                value={form.seller_gateway_percent}
+                onChange={handleChange('seller_gateway_percent')}
+                helperText={`Standard Razorpay rate is ${RAZORPAY_PLATFORM_FEE_PERCENT}% of item total`}
+                fullWidth
+              />
+              <TextField
+                label="Gateway GST %"
+                type="number"
+                value={form.seller_gateway_gst_percent}
+                onChange={handleChange('seller_gateway_gst_percent')}
+                fullWidth
+              />
             </Stack>
 
             <Divider />

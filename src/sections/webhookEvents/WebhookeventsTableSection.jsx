@@ -2,8 +2,11 @@
 
 import { useMemo } from 'react';
 import Chip from '@mui/material/Chip';
-import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+import Button from '@mui/material/Button';
 import BasicReactTable from 'components/tables/basicTable';
+import { EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 
 const formatDate = (iso) => {
   if (!iso) return '—';
@@ -17,7 +20,16 @@ const statusColor = (value) => {
   return 'default';
 };
 
-export default function WebhookeventsTableSection({ rows, pageIndex, pageSize, totalPageCount, onPaginationChange }) {
+export default function WebhookeventsTableSection({
+  rows,
+  pageIndex,
+  pageSize,
+  totalPageCount,
+  onPaginationChange,
+  onView,
+  onReplay,
+  replayingId
+}) {
   const columns = useMemo(
     () => [
       { header: 'Provider', accessorKey: 'provider' },
@@ -43,12 +55,34 @@ export default function WebhookeventsTableSection({ rows, pageIndex, pageSize, t
       columns={columns}
       data={rows}
       title="Webhook Events"
-      showActions={false}
+      showActions
       pageIndex={pageIndex}
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName="webhookEvent"
+      tableActions={(row) => (
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <Tooltip title="View payload">
+            <Button size="small" variant="outlined" startIcon={<EyeOutlined />} onClick={() => onView?.(row)}>
+              View
+            </Button>
+          </Tooltip>
+          <Tooltip title={row.provider !== 'razorpay' ? 'Replay only for Razorpay' : 'Replay webhook'}>
+            <span>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<ReloadOutlined />}
+                disabled={row.provider !== 'razorpay' || replayingId === row.id}
+                onClick={() => onReplay?.(row)}
+              >
+                Replay
+              </Button>
+            </span>
+          </Tooltip>
+        </Stack>
+      )}
     />
   );
 }

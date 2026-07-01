@@ -19,7 +19,7 @@ import { cancelOrder } from 'api/ordersPayments';
 
 const NON_CANCELLABLE = ['DELIVERED', 'CANCELLED', 'REFUNDED', 'RETURNED'];
 const CHARGE_BEARERS = [
-  { value: 'SELLER', label: 'Seller', help: 'Seller fault — reverses seller wallet credit and applies gateway fee penalty' },
+  { value: 'SELLER', label: 'Seller', help: 'Seller fault — for audit only; Razorpay normal refunds have no processing fee' },
   { value: 'PLATFORM', label: 'Platform', help: 'Platform / ops absorbs cost (e.g. dispatch issues, customer-care goodwill)' }
 ];
 
