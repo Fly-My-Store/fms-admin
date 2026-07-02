@@ -14,7 +14,7 @@ export default function Footer() {
       </Typography>
       <Stack direction="row" sx={{ gap: 1.5, alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="https://codedthemes.com/about-us/" target="_blank" variant="caption" color="text.primary">
-          About us
+          About Us
         </Link>
         <Link href="https://mui.com/legal/privacy/" target="_blank" variant="caption" color="text.primary">
           Privacy
