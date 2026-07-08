@@ -4,55 +4,28 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { enqueueSnackbar } from 'notistack';
 import MainCard from 'components/MainCard';
-import { listPayouts, createPayout, getPayoutSummary } from 'api/adminFarePayouts';
+import RecordPayoutDialog from 'sections/payouts/RecordPayoutDialog';
+import { listPayouts, getPayoutSummary } from 'api/adminFarePayouts';
 import {
   Box,
   Button,
   Card,
   CardContent,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
+  CircularProgress,
   Stack,
   Tab,
   Tabs,
-  TextField,
-  Typography,
-  CircularProgress
+  Typography
 } from '@mui/material';
-
-const PAYEE_TYPES = [
-  { value: 'RIDER', label: 'Rider' },
-  { value: 'SELLER', label: 'Seller' }
-];
-
-const formatINR = (cents) => {
-  const n = Number(cents);
-  if (!Number.isFinite(n)) return '₹0.00';
-  return `₹${(n / 100).toFixed(2)}`;
-};
+import { formatINR } from 'utils/currency';
 
 const formatDate = (iso) => {
   if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
 };
 
-const emptyDialogForm = {
-  payee_type: 'RIDER',
-  payee_id: '',
-  payee_name: '',
-  amount_cents: '',
-  reference: '',
-  notes: ''
-};
-
-function PayeeTable({ rows, onPayFull, onRecordCustom, emptyLabel, payingKey }) {
+function PayeeTable({ rows, onPayFull, onRecordCustom, emptyLabel }) {
   if (!rows.length) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
@@ -79,7 +52,6 @@ function PayeeTable({ rows, onPayFull, onRecordCustom, emptyLabel, payingKey }) 
             const pending = Number(row.balance_pending_cents || 0);
             const canPay = pending > 0;
             const rowKey = `${row.payee_type}-${row.payee_id}`;
-            const isPaying = payingKey === rowKey;
             return (
               <tr key={rowKey}>
                 <td style={{ padding: 8, verticalAlign: 'top' }}>
@@ -107,10 +79,11 @@ function PayeeTable({ rows, onPayFull, onRecordCustom, emptyLabel, payingKey }) 
                     <Button
                       size="small"
                       variant="contained"
-                      disabled={!canPay || isPaying}
+                      color="warning"
+                      disabled={!canPay}
                       onClick={() => onPayFull(row)}
                     >
-                      {isPaying ? 'Paying…' : 'Pay full'}
+                      Pay full
                     </Button>
                     <Button size="small" variant="outlined" onClick={() => onRecordCustom(row)}>
                       Custom
@@ -136,19 +109,25 @@ export function PayoutsView() {
   const [listLoading, setListLoading] = useState(true);
   const [listParams, setListParams] = useState({ limit: 50, offset: 0 });
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogSaving, setDialogSaving] = useState(false);
-  const [payingKey, setPayingKey] = useState('');
-  const [dialogForm, setDialogForm] = useState(emptyDialogForm);
+  const [dialogPayee, setDialogPayee] = useState(null);
+  const [dialogAmount, setDialogAmount] = useState('');
+  const [dialogIsFull, setDialogIsFull] = useState(false);
+  const [dialogLockAmount, setDialogLockAmount] = useState(false);
 
-  const openDialogForPayee = useCallback((row, amountCents = '') => {
-    setDialogForm({
-      payee_type: row.payee_type,
-      payee_id: row.payee_id,
-      payee_name: row.payee_name || '',
-      amount_cents: amountCents === '' ? '' : String(amountCents),
-      reference: '',
-      notes: ''
-    });
+  const openPayoutDialog = useCallback((row, { amountCents = '', isFull = false, lockAmount = false } = {}) => {
+    setDialogPayee(
+      row
+        ? {
+            payee_type: row.payee_type,
+            payee_id: row.payee_id,
+            payee_name: row.payee_name || '',
+            payout_hint: row.payout_hint || ''
+          }
+        : null
+    );
+    setDialogAmount(amountCents === '' || amountCents == null ? '' : String(amountCents));
+    setDialogIsFull(isFull);
+    setDialogLockAmount(lockAmount);
     setDialogOpen(true);
   }, []);
 
@@ -197,74 +176,31 @@ export function PayoutsView() {
     const amountCents = searchParams.get('amount_cents');
     if (!payeeType || !payeeId) return;
 
-    openDialogForPayee(
+    openPayoutDialog(
       {
         payee_type: payeeType,
         payee_id: payeeId,
         payee_name: decodeURIComponent(searchParams.get('payee_name') || '')
       },
-      amountCents || ''
+      { amountCents: amountCents || '' }
     );
-  }, [searchParams, openDialogForPayee]);
+  }, [searchParams, openPayoutDialog]);
 
   const handleCreatePayout = () => {
-    setDialogForm(emptyDialogForm);
-    setDialogOpen(true);
+    openPayoutDialog(null);
   };
 
   const handleDialogClose = () => setDialogOpen(false);
 
-  const submitPayout = async (form, { closeDialog = true } = {}) => {
-    const amount = form.amount_cents === '' ? 0 : Number(form.amount_cents);
-    if (!form.payee_id?.trim()) {
-      enqueueSnackbar('Payee ID is required', { variant: 'error' });
-      return;
-    }
-    if (!Number.isFinite(amount) || amount <= 0) {
-      enqueueSnackbar('Amount must be a positive number (in paisa)', { variant: 'error' });
-      return;
-    }
-
-    const rowKey = `${form.payee_type}-${form.payee_id}`;
-    if (closeDialog) setDialogSaving(true);
-    else setPayingKey(rowKey);
-
-    try {
-      await createPayout({
-        payee_type: form.payee_type,
-        payee_id: form.payee_id.trim(),
-        amount_cents: Math.round(amount),
-        reference: form.reference?.trim() || undefined,
-        notes: form.notes?.trim() || undefined
-      });
-      enqueueSnackbar('Payout recorded', { variant: 'success' });
-      if (closeDialog) handleDialogClose();
-      loadSummary();
-      loadList();
-    } catch (e) {
-      enqueueSnackbar(e?.message || e?.response?.data?.message || 'Failed to create payout', { variant: 'error' });
-    } finally {
-      if (closeDialog) setDialogSaving(false);
-      else setPayingKey('');
-    }
+  const handlePayoutSuccess = () => {
+    loadSummary();
+    loadList();
   };
 
-  const handleDialogSubmit = () => submitPayout(dialogForm);
-
-  const handlePayFull = async (row) => {
+  const handlePayFull = (row) => {
     const pending = Number(row.balance_pending_cents || 0);
     if (pending <= 0) return;
-    await submitPayout(
-      {
-        payee_type: row.payee_type,
-        payee_id: row.payee_id,
-        payee_name: row.payee_name || '',
-        amount_cents: String(pending),
-        reference: '',
-        notes: 'Full pending balance'
-      },
-      { closeDialog: false }
-    );
+    openPayoutDialog(row, { amountCents: pending, isFull: true, lockAmount: true });
   };
 
   const totalRiderPending = useMemo(
@@ -275,12 +211,6 @@ export function PayoutsView() {
     () => summary.sellers.reduce((s, w) => s + Number(w.balance_pending_cents || 0), 0),
     [summary.sellers]
   );
-
-  const amountInrPreview = useMemo(() => {
-    const amount = Number(dialogForm.amount_cents);
-    if (!Number.isFinite(amount) || amount <= 0) return null;
-    return formatINR(amount);
-  }, [dialogForm.amount_cents]);
 
   return (
     <>
@@ -318,17 +248,15 @@ export function PayoutsView() {
                   <PayeeTable
                     rows={summary.riders}
                     onPayFull={handlePayFull}
-                    onRecordCustom={(row) => openDialogForPayee(row)}
+                    onRecordCustom={(row) => openPayoutDialog(row)}
                     emptyLabel="No riders with pending balance."
-                    payingKey={payingKey}
                   />
                 ) : (
                   <PayeeTable
                     rows={summary.sellers}
                     onPayFull={handlePayFull}
-                    onRecordCustom={(row) => openDialogForPayee(row)}
+                    onRecordCustom={(row) => openPayoutDialog(row)}
                     emptyLabel="No sellers with pending balance."
-                    payingKey={payingKey}
                   />
                 )}
               </Box>
@@ -388,73 +316,17 @@ export function PayoutsView() {
         </MainCard>
       </Stack>
 
-      <Dialog open={dialogOpen} onClose={handleDialogClose} maxWidth="sm" fullWidth>
-        <DialogTitle>Record payout</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ pt: 1 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Payee type</InputLabel>
-              <Select
-                value={dialogForm.payee_type}
-                label="Payee type"
-                onChange={(e) => setDialogForm((p) => ({ ...p, payee_type: e.target.value }))}
-              >
-                {PAYEE_TYPES.map((o) => (
-                  <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            {dialogForm.payee_name ? (
-              <Typography variant="body2" color="text.secondary">
-                Payee: <strong>{dialogForm.payee_name}</strong>
-              </Typography>
-            ) : null}
-            <TextField
-              label="Payee ID"
-              value={dialogForm.payee_id}
-              onChange={(e) => setDialogForm((p) => ({ ...p, payee_id: e.target.value }))}
-              fullWidth
-              size="small"
-              placeholder="Seller or rider UUID"
-              required
-            />
-            <TextField
-              label="Amount (paisa)"
-              type="number"
-              inputProps={{ min: 1 }}
-              value={dialogForm.amount_cents}
-              onChange={(e) => setDialogForm((p) => ({ ...p, amount_cents: e.target.value }))}
-              fullWidth
-              size="small"
-              helperText={amountInrPreview ? `${amountInrPreview} · 10000 paisa = ₹100.00` : 'Enter amount in paisa (e.g. 10000 = ₹100.00)'}
-              required
-            />
-            <TextField
-              label="Reference"
-              value={dialogForm.reference}
-              onChange={(e) => setDialogForm((p) => ({ ...p, reference: e.target.value }))}
-              fullWidth
-              size="small"
-              placeholder="UTR / bank reference"
-            />
-            <TextField
-              label="Notes"
-              value={dialogForm.notes}
-              onChange={(e) => setDialogForm((p) => ({ ...p, notes: e.target.value }))}
-              fullWidth
-              size="small"
-              multiline
-              rows={2}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose}>Cancel</Button>
-          <Button variant="contained" onClick={handleDialogSubmit} disabled={dialogSaving}>
-            {dialogSaving ? 'Saving…' : 'Record'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <RecordPayoutDialog
+        open={dialogOpen}
+        onClose={handleDialogClose}
+        payee={dialogPayee}
+        amountCents={dialogAmount}
+        lockPayee={Boolean(dialogPayee?.payee_id)}
+        lockAmount={dialogLockAmount}
+        isFullPayout={dialogIsFull}
+        payoutHint={dialogPayee?.payout_hint}
+        onSuccess={handlePayoutSuccess}
+      />
     </>
   );
 }

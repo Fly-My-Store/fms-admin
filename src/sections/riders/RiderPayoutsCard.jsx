@@ -193,6 +193,9 @@ export default function RiderPayoutsCard({ riderId, riderName, onPayoutRecorded 
         payee={payee}
         amountCents={dialogAmount}
         lockPayee
+        lockAmount={dialogAmount !== ''}
+        isFullPayout={dialogAmount !== ''}
+        payoutHint={wallet?.payout_hint}
         onSuccess={handlePayoutSuccess}
       />
     </>

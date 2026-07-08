@@ -91,6 +91,7 @@ const slice = createSlice({
     storesGetRequest(state) {
       state.storeDetail.loading = true;
       state.storeDetail.error = null;
+      state.storeDetail.data = null;
     },
     storesGetSuccess(state, action) {
       state.storeDetail.loading = false;

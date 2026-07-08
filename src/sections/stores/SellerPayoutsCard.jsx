@@ -195,6 +195,9 @@ export default function SellerPayoutsCard({ sellerId, sellerName, onPayoutRecord
         payee={payee}
         amountCents={dialogAmount}
         lockPayee
+        lockAmount={dialogAmount !== ''}
+        isFullPayout={dialogAmount !== ''}
+        payoutHint={wallet?.payout_hint}
         onSuccess={handlePayoutSuccess}
       />
     </>

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Alert,
   Avatar,
+  Button,
   Chip,
   Stack,
   Typography
@@ -18,8 +18,8 @@ import StoreOrdersCard from 'sections/stores/StoreOrdersCard';
 import StoreVariantsGrid from 'sections/stores/StoreVariantsGrid';
 import SellerPayoutsCard from 'sections/stores/SellerPayoutsCard';
 import StoreSupportTicketsCard from 'sections/stores/StoreSupportTicketsCard';
-import { actions as sellersStores } from 'store/sellersStores/slice';
-import { RECORD_STATUS } from 'utils/constants';
+import { getStore } from 'api/sellersStores';
+import { RECORD_STATUS, TABLE_STATUS } from 'utils/constants';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
@@ -57,6 +57,21 @@ function KybChip({ value }) {
   return <Chip size="small" color={color} label={value ? `KYB: ${value}` : 'KYB: —'} variant="outlined" />;
 }
 
+function AccountStatusChip({ value }) {
+  switch (Number(value)) {
+    case TABLE_STATUS.ACTIVE:
+      return <Chip size="small" color="success" label="Active" variant="light" />;
+    case TABLE_STATUS.INACTIVE:
+      return <Chip size="small" color="warning" label="Inactive" variant="light" />;
+    case TABLE_STATUS.SUSPENDED:
+      return <Chip size="small" color="error" label="Suspended" variant="light" />;
+    case TABLE_STATUS.DELETED:
+      return <Chip size="small" color="default" label="Deleted" variant="light" />;
+    default:
+      return <Chip size="small" color="default" label={safe(value)} variant="light" />;
+  }
+}
+
 const KV = ({ label, value }) => (
   <Stack direction="row" spacing={1.5} alignItems="baseline">
     <Typography variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
@@ -68,12 +83,36 @@ const KV = ({ label, value }) => (
 
 export default function StoreDetailView() {
   const params = useParams();
-  const dispatch = useDispatch();
+  const router = useRouter();
   const id = params?.id;
 
-  const { storeDetail } = useSelector((s) => s.sellersStores || {});
-  const detail = storeDetail || { data: null, loading: false, error: null };
-  const data = detail.data;
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      setData(null);
+      try {
+        const resp = await getStore(id);
+        if (!cancelled) setData(resp?.data || resp);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e?.message || e?.response?.data?.message || 'Failed to load store');
+          setData(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   const breadcrumb = useMemo(() => {
     const name = data?.name || id || 'store';
@@ -87,22 +126,23 @@ export default function StoreDetailView() {
     };
   }, [data?.name, id]);
 
-  useEffect(() => {
-    if (!id) return;
-    dispatch(sellersStores.storesGetRequest({ params: { id } }));
-  }, [dispatch, id]);
-
-  const sellerId = data?.seller?.id;
-  const sellerUserId = data?.seller?.user_id || data?.seller?.user?.id;
-  const sellerName = data?.seller?.display_name || data?.seller?.legal_name;
+  const seller = data?.seller || null;
+  const sellerUser = seller?.user || null;
+  const sellerId = seller?.id;
+  const sellerUserId = seller?.user_id || sellerUser?.id;
+  const sellerName = seller?.display_name || seller?.legal_name;
+  const ownerPhone = sellerUser?.phone
+    ? `${sellerUser.country_code ? `${sellerUser.country_code} ` : ''}${sellerUser.phone}`
+    : null;
 
   return (
     <>
       <Breadcrumbs custom heading={breadcrumb.heading} links={breadcrumb.links} />
 
-      {detail.loading && <Alert severity="info">Loading store…</Alert>}
+      {loading && <Alert severity="info">Loading store…</Alert>}
+      {error && <Alert severity="error">{error}</Alert>}
 
-      {!detail.loading && data && (
+      {!loading && data && (
         <Grid container spacing={2}>
           <Grid size={12}>
             <MainCard border={false} boxShadow>
@@ -128,6 +168,9 @@ export default function StoreDetailView() {
                   />
                   <KybChip value={data?.kyb_status} />
                   <RecordStatusChip value={data?.record_status} />
+                  <Button size="small" variant="outlined" onClick={() => router.push(`/stores/edit/${id}`)}>
+                    Edit store
+                  </Button>
                 </Stack>
               </Stack>
             </MainCard>
@@ -146,28 +189,51 @@ export default function StoreDetailView() {
                   value={data?.rating != null ? `${data.rating} (${data.rating_count ?? 0})` : '—'}
                 />
                 <KV label="Delivery radius" value={data?.delivery_radius_m != null ? `${data.delivery_radius_m} m` : '—'} />
-                <KV label="Updated" value={formatDate(data?.updated_at)} />
+                <KV label="Updated" value={formatDate(data?.updated_at || data?.updatedAt)} />
               </Stack>
             </MainCard>
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
             <MainCard title="Seller">
-              {data?.seller ? (
+              {seller ? (
                 <Stack spacing={1}>
-                  <KV label="Display name" value={data.seller.display_name} />
-                  <KV label="Legal name" value={data.seller.legal_name} />
-                  <KV label="GSTIN" value={data.seller.gstin} />
-                  <KV label="PAN" value={data.seller.pan} />
-                  <KV label="KYC status" value={data.seller.kyc_status} />
-                  <KV label="KYB status" value={data.seller.kyb_status} />
-                  <KV label="Owner" value={data.seller.user?.name} />
-                  <KV label="Owner phone" value={data.seller.user?.phone} />
-                  <KV label="Owner email" value={data.seller.user?.email} />
+                  <KV label="Display name" value={seller.display_name} />
+                  <KV label="Legal name" value={seller.legal_name} />
+                  <KV label="GSTIN" value={seller.gstin} />
+                  <KV label="PAN" value={seller.pan} />
+                  <KV label="CIN" value={seller.cin} />
+                  <KV label="KYC status" value={seller.kyc_status} />
+                  <KV label="KYB status" value={seller.kyb_status} />
+                  <KV label="Support email" value={seller.support_email} />
+                  <KV label="Support phone" value={seller.support_phone} />
                 </Stack>
               ) : (
                 <Alert severity="info" variant="outlined">
                   No seller attached to this store.
+                </Alert>
+              )}
+            </MainCard>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <MainCard title="Account owner">
+              {sellerUser ? (
+                <Stack spacing={1}>
+                  <KV label="Name" value={sellerUser.name} />
+                  <KV label="Email" value={sellerUser.email} />
+                  <KV label="Phone" value={ownerPhone} />
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
+                      Status
+                    </Typography>
+                    <AccountStatusChip value={sellerUser.status} />
+                  </Stack>
+                  <KV label="User ID" value={sellerUser.id} />
+                </Stack>
+              ) : (
+                <Alert severity="info" variant="outlined">
+                  No user account linked to this seller.
                 </Alert>
               )}
             </MainCard>
@@ -184,12 +250,12 @@ export default function StoreDetailView() {
                 <KV label="Store KYB" value={data?.kyb_status} />
                 <KV label="KYB reason" value={data?.kyb_reason} />
                 <KV label="Record status" value={recordStatusLabel(data?.record_status)} />
-                {data?.seller && (
+                {seller && (
                   <>
-                    <KV label="Seller KYC" value={data.seller.kyc_status} />
-                    <KV label="KYC reason" value={data.seller.kyc_reason} />
-                    <KV label="Seller KYB" value={data.seller.kyb_status} />
-                    <KV label="KYB reason" value={data.seller.kyb_reason} />
+                    <KV label="Seller KYC" value={seller.kyc_status} />
+                    <KV label="KYC reason" value={seller.kyc_reason} />
+                    <KV label="Seller KYB" value={seller.kyb_status} />
+                    <KV label="KYB reason" value={seller.kyb_reason} />
                   </>
                 )}
               </Stack>
@@ -216,7 +282,7 @@ export default function StoreDetailView() {
         </Grid>
       )}
 
-      {!detail.loading && !data && !detail.error && (
+      {!loading && !data && !error && (
         <Alert severity="warning">Store not found.</Alert>
       )}
     </>
