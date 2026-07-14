@@ -15,9 +15,11 @@ import {
   Alert,
   Button,
   Divider,
+  FormControlLabel,
   InputLabel,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography,
   LinearProgress
@@ -135,7 +137,9 @@ const EMPTY = {
     kyc_status: 'PENDING',
     kyc_reason: '',
     support_email: '',
-    support_phone: ''
+    support_phone: '',
+    cod_enabled: false,
+    can_sell_screen_guard: false
   },
 
   // Seller owner user nested
@@ -225,7 +229,9 @@ export default function StoreUpsert() {
         kyc_status: seller.kyc_status || 'PENDING',
         kyc_reason: seller.kyc_reason || '',
         support_email: seller.support_email || '',
-        support_phone: seller.support_phone || ''
+        support_phone: seller.support_phone || '',
+        cod_enabled: Boolean(seller.cod_enabled),
+        can_sell_screen_guard: Boolean(seller.can_sell_screen_guard)
       },
       user: {
         id: user.id || '',
@@ -499,8 +505,12 @@ export default function StoreUpsert() {
         'kyc_status',
         'kyc_reason',
         'support_email',
-        'support_phone'
+        'support_phone',
+        'cod_enabled',
+        'can_sell_screen_guard'
       ]);
+      sellerPayload.cod_enabled = Boolean(form.seller?.cod_enabled);
+      sellerPayload.can_sell_screen_guard = Boolean(form.seller?.can_sell_screen_guard);
 
       // Seller owner user payload
       const userPayload = pick(form.user || {}, ['id', 'name', 'email', 'phone']);
@@ -627,6 +637,27 @@ export default function StoreUpsert() {
               <InputLabel>Seller Support Phone</InputLabel>
               <TextField size="small" value={form.seller?.support_phone || ''} onChange={(e) => handleSellerField('support_phone', e.target.value)} error={!!errors['seller.support_phone']} helperText={errors['seller.support_phone'] || ''} />
             </Stack>
+          </Stack>
+
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(form.seller?.cod_enabled)}
+                  onChange={(e) => handleSellerField('cod_enabled', e.target.checked)}
+                />
+              }
+              label="Accept Pay on Delivery"
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(form.seller?.can_sell_screen_guard)}
+                  onChange={(e) => handleSellerField('can_sell_screen_guard', e.target.checked)}
+                />
+              }
+              label="Can sell screen guards"
+            />
           </Stack>
 
           <Divider />

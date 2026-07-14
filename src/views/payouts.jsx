@@ -13,9 +13,11 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  MenuItem,
   Stack,
   Tab,
   Tabs,
+  TextField,
   Typography
 } from '@mui/material';
 import { formatINR } from 'utils/currency';
@@ -107,7 +109,7 @@ export function PayoutsView() {
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [listLoading, setListLoading] = useState(true);
-  const [listParams, setListParams] = useState({ limit: 50, offset: 0 });
+  const [listParams, setListParams] = useState({ limit: 50, offset: 0, payee_type: '', status: '' });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogPayee, setDialogPayee] = useState(null);
   const [dialogAmount, setDialogAmount] = useState('');
@@ -150,7 +152,13 @@ export function PayoutsView() {
   const loadList = useCallback(async () => {
     setListLoading(true);
     try {
-      const res = await listPayouts(listParams);
+      const params = {
+        limit: listParams.limit,
+        offset: listParams.offset,
+        ...(listParams.payee_type ? { payee_type: listParams.payee_type } : {}),
+        ...(listParams.status ? { status: listParams.status } : {})
+      };
+      const res = await listPayouts(params);
       const list = res?.data ?? res;
       setRows(Array.isArray(list) ? list : []);
       setTotal(res?.total ?? (Array.isArray(list) ? list.length : 0));
@@ -265,6 +273,33 @@ export function PayoutsView() {
         </MainCard>
 
         <MainCard title="Payout history">
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+            <TextField
+              select
+              size="small"
+              label="Payee type"
+              value={listParams.payee_type || ''}
+              onChange={(e) => setListParams((p) => ({ ...p, payee_type: e.target.value, offset: 0 }))}
+              sx={{ minWidth: 160 }}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="RIDER">Rider</MenuItem>
+              <MenuItem value="SELLER">Seller</MenuItem>
+            </TextField>
+            <TextField
+              select
+              size="small"
+              label="Status"
+              value={listParams.status || ''}
+              onChange={(e) => setListParams((p) => ({ ...p, status: e.target.value, offset: 0 }))}
+              sx={{ minWidth: 160 }}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="PENDING">Pending</MenuItem>
+              <MenuItem value="COMPLETED">Completed</MenuItem>
+              <MenuItem value="FAILED">Failed</MenuItem>
+            </TextField>
+          </Stack>
           {listLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
               <CircularProgress size={24} />

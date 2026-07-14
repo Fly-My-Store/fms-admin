@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react';
 import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import BasicReactTable from 'components/tables/basicTable';
 import { TABLE_STATUS } from 'utils/constants';
 
@@ -18,25 +20,46 @@ export default function RidersTableSection({
   const columns = useMemo(
     () => [
       {
-        header: 'Name',
-        accessorFn: (row) => row.user?.name || row.User?.name || '—'
-      },
-      {
-        header: 'Email',
-        accessorFn: (row) => row.user?.email || row.User?.email || '—'
-      },
-      {
-        header: 'Phone',
-        accessorFn: (row) => {
-          const user = row.user || row.User || {};
-          const cc = user.country_code ? `${user.country_code} ` : '';
-          return user.phone ? `${cc}${user.phone}` : '—';
+        header: 'Rider',
+        id: 'rider',
+        cell: ({ row }) => {
+          const user = row.original.user || row.original.User || {};
+          const name = user.name || '—';
+          const email = user.email;
+          const phone = user.phone
+            ? `${user.country_code ? `${user.country_code} ` : ''}${user.phone}`
+            : null;
+
+          return (
+            <Stack spacing={0.25}>
+              <Typography variant="subtitle2">{name}</Typography>
+              {email ? (
+                <Typography variant="caption" color="text.secondary">
+                  {email}
+                </Typography>
+              ) : null}
+              {phone ? (
+                <Typography variant="caption" color="text.secondary">
+                  {phone}
+                </Typography>
+              ) : null}
+            </Stack>
+          );
         }
       },
-      { header: 'Vehicle Type', accessorKey: 'vehicle_type' },
-      { header: 'Vehicle Number', accessorKey: 'vehicle_number' },
       {
-        header: 'KYC Status',
+        header: 'Vehicle',
+        accessorFn: (row) => {
+          const type = row.vehicle_type || '';
+          const number = row.vehicle_number || '';
+          if (!type && !number) return '—';
+          if (!type) return number;
+          if (!number) return type;
+          return `${type} · ${number}`;
+        }
+      },
+      {
+        header: 'KYC',
         accessorKey: 'kyc_status',
         cell: (cell) => {
           const value = cell.getValue();
@@ -71,8 +94,8 @@ export default function RidersTableSection({
         }
       },
       {
-        header: 'Account Status',
-        accessorKey: 'status',
+        header: 'Status',
+        accessorKey: 'record_status',
         cell: (cell) => {
           const value = cell.getValue();
           switch (value) {
@@ -88,10 +111,6 @@ export default function RidersTableSection({
               return <Chip color="default" label="Unknown" size="small" variant="light" />;
           }
         }
-      },
-      {
-        header: 'Service Radius (km)',
-        accessorKey: 'service_radius_km'
       }
     ],
     []

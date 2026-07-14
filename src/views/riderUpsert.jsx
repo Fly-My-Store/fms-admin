@@ -9,9 +9,11 @@ import {
   Alert,
   Button,
   Divider,
+  FormControlLabel,
   InputLabel,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography,
   LinearProgress
@@ -42,6 +44,7 @@ const EMPTY = {
   working_hours: '',
   payout_account: '',
   documents: '',
+  screen_guard_eligible: false,
   status: 1
 };
 
@@ -101,6 +104,7 @@ export default function RiderUpsertView() {
       working_hours: rider.working_hours ? JSON.stringify(rider.working_hours, null, 2) : '',
       payout_account: rider.payout_account ? JSON.stringify(rider.payout_account, null, 2) : '',
       documents: rider.documents ? JSON.stringify(rider.documents, null, 2) : '',
+      screen_guard_eligible: Boolean(rider.screen_guard_eligible),
       status: rider.status ?? 1
     });
   }, [data, isEdit]);
@@ -167,6 +171,7 @@ export default function RiderUpsertView() {
         availability_status: form.availability_status,
         service_radius_km: toNumberOrNull(form.service_radius_km),
         capacity_kg: toNumberOrNull(form.capacity_kg),
+        screen_guard_eligible: Boolean(form.screen_guard_eligible),
         status: form.status
       };
 
@@ -354,6 +359,16 @@ export default function RiderUpsertView() {
               />
             </Stack>
           </Stack>
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={Boolean(form.screen_guard_eligible)}
+                onChange={(e) => handleField('screen_guard_eligible', e.target.checked)}
+              />
+            }
+            label="Screen guard delivery eligible"
+          />
           <Divider />
 
           <Stack direction="row" justifyContent="flex-end" spacing={2}>

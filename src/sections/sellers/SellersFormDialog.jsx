@@ -15,15 +15,24 @@ import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
 import { actions as sellersStores } from 'store/sellersStores/slice';
 
+const EMPTY = {
+  display_name: '',
+  email: '',
+  phone: ''
+};
+
 export default function SellersFormDialog({ open, onClose, initialData = null }) {
   const dispatch = useDispatch();
-  const [form, setForm] = useState({ display_name: '', email: '', phone: '' });
+  const [form, setForm] = useState({ ...EMPTY });
 
   useEffect(() => {
     if (initialData) {
-      setForm({ ...{ display_name: '', email: '', phone: '' }, ...initialData });
+      setForm({
+        ...EMPTY,
+        ...initialData
+      });
     } else {
-      setForm({ display_name: '', email: '', phone: '' });
+      setForm({ ...EMPTY });
     }
   }, [initialData, open]);
 
@@ -33,10 +42,15 @@ export default function SellersFormDialog({ open, onClose, initialData = null })
   };
 
   const handleSubmit = () => {
+    const payload = {
+      display_name: form.display_name,
+      email: form.email,
+      phone: form.phone
+    };
     if (initialData?.id) {
-      dispatch(sellersStores.sellersUpdateRequest({ params: { id: initialData.id, data: form } }));
+      dispatch(sellersStores.sellersUpdateRequest({ params: { id: initialData.id, data: payload } }));
     } else {
-      dispatch(sellersStores.sellersCreateRequest({ params: form }));
+      dispatch(sellersStores.sellersCreateRequest({ params: payload }));
     }
     onClose();
   };
@@ -50,25 +64,45 @@ export default function SellersFormDialog({ open, onClose, initialData = null })
         </IconButton>
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={2} mt={1} minWidth='400px'>
-
-          <Stack sx={{gap: 1}}>
+        <Stack spacing={2} mt={1} minWidth="400px">
+          <Stack sx={{ gap: 1 }}>
             <InputLabel>Display Name</InputLabel>
-            <TextField id="display_name" name="display_name" type="text" value={form.display_name || ''} onChange={handleChange} placeholder="Display Name" fullWidth />
+            <TextField
+              id="display_name"
+              name="display_name"
+              type="text"
+              value={form.display_name || ''}
+              onChange={handleChange}
+              placeholder="Display Name"
+              fullWidth
+            />
           </Stack>
 
-
-          <Stack sx={{gap: 1}}>
+          <Stack sx={{ gap: 1 }}>
             <InputLabel>Email</InputLabel>
-            <TextField id="email" name="email" type="text" value={form.email || ''} onChange={handleChange} placeholder="Email" fullWidth />
+            <TextField
+              id="email"
+              name="email"
+              type="text"
+              value={form.email || ''}
+              onChange={handleChange}
+              placeholder="Email"
+              fullWidth
+            />
           </Stack>
 
-
-          <Stack sx={{gap: 1}}>
+          <Stack sx={{ gap: 1 }}>
             <InputLabel>Phone</InputLabel>
-            <TextField id="phone" name="phone" type="text" value={form.phone || ''} onChange={handleChange} placeholder="Phone" fullWidth />
+            <TextField
+              id="phone"
+              name="phone"
+              type="text"
+              value={form.phone || ''}
+              onChange={handleChange}
+              placeholder="Phone"
+              fullWidth
+            />
           </Stack>
-
         </Stack>
       </DialogContent>
       <DialogActions>

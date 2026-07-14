@@ -10,11 +10,10 @@ import {
   Stack,
   TextField
 } from '@mui/material';
-import axiosServices from 'utils/axios';
 import { listCategories } from 'api/catalog';
 
 const RECORD_STATUS_LIST = [
-  { value: '', label: '' },
+  { value: '', label: 'All' },
   { value: 1, label: 'ACTIVE' },
   { value: 2, label: 'INACTIVE' },
   { value: 3, label: 'ARCHIVED' }
@@ -31,12 +30,13 @@ export default function CategoriesFilters({ value, onChange }) {
 
   const parent = value?.parent || null;
   const record_status = value?.record_status ?? '';
+  const q = value?.q ?? '';
 
   const load = useCallback(
-    async (p = 1, q = query, append = false) => {
+    async (p = 1, search = query, append = false) => {
       try {
         setLoading(true);
-        const res = await listCategories({ page: p, limit: 20, q });
+        const res = await listCategories({ page: p, limit: 20, q: search || undefined });
         const rows = res?.data || [];
         const meta = res?.meta || { page: p, totalPages: 1 };
         setOptions((prev) => (append ? [...prev, ...rows] : rows));
@@ -73,11 +73,22 @@ export default function CategoriesFilters({ value, onChange }) {
 
   const setParent = (val) => onChange({ ...value, parent: val });
   const setRecordStatus = (val) => onChange({ ...value, record_status: val });
+  const setQ = (val) => onChange({ ...value, q: val });
 
   return (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ p: 1 }}>
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ p: 1 }} alignItems={{ md: 'center' }}>
+      <TextField
+        size="small"
+        variant="outlined"
+        label="Search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Name or slug…"
+        sx={{ minWidth: 200 }}
+      />
+
       {/* Parent category (server-paginated autocomplete) */}
-      <Stack minWidth={{ xs: '100%', md: 360 }} flex={1} sx={{ gap: 1 }}>
+      <Stack minWidth={{ xs: '100%', md: 280 }} flex={1} sx={{ gap: 1 }}>
         <Autocomplete
           options={options}
           value={parent}
@@ -114,7 +125,7 @@ export default function CategoriesFilters({ value, onChange }) {
       </Stack>
 
       {/* Record status select */}
-      <Stack sx={{ gap: 1, minWidth: 200 }}>
+      <Stack sx={{ gap: 1, minWidth: 160 }}>
         <TextField
           select
           size="small"
@@ -137,7 +148,8 @@ export default function CategoriesFilters({ value, onChange }) {
 CategoriesFilters.propTypes = {
   value: PropTypes.shape({
     parent: PropTypes.object,
-    record_status: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+    record_status: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    q: PropTypes.string
   }),
   onChange: PropTypes.func.isRequired
 };

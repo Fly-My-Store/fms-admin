@@ -29,6 +29,7 @@ import {
   InputLabel,
   Alert,
   Link,
+  MenuItem,
 } from '@mui/material';
 import { PlusOutlined, StopOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { RAZORPAY_PLATFORM_FEE_GST_PERCENT, RAZORPAY_PLATFORM_FEE_PERCENT } from 'utils/constants';
@@ -173,10 +174,19 @@ export function FareRulesView() {
   const [catPage, setCatPage] = useState(1);
   const [catTotalPages, setCatTotalPages] = useState(1);
 
+  const [filterCategory, setFilterCategory] = useState(null);
+  const [filterActive, setFilterActive] = useState('');
+  const [filterCatQuery, setFilterCatQuery] = useState('');
+  const [filterCatOptions, setFilterCatOptions] = useState([]);
+  const [filterCatLoading, setFilterCatLoading] = useState(false);
+
   const load = async () => {
     setLoading(true);
     try {
-      const res = await listFareRules();
+      const res = await listFareRules({
+        ...(filterCategory?.id ? { category_id: filterCategory.id } : {}),
+        ...(filterActive !== '' ? { is_active: filterActive } : {})
+      });
       setRules(res?.data ?? []);
     } catch (e) {
       enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to load fare rules', { variant: 'error' });
@@ -201,12 +211,28 @@ export function FareRulesView() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadFilterCategories = async (q = filterCatQuery) => {
+    try {
+      setFilterCatLoading(true);
+      const res = await listCategories({ page: 1, limit: 20, q });
+      setFilterCatOptions(res?.data || res?.rows || []);
+    } catch {
+      // ignore
+    } finally {
+      setFilterCatLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [filterCategory?.id, filterActive]);
   useEffect(() => { loadCategories(1, catQuery, false); }, []);
   useEffect(() => {
     const t = setTimeout(() => loadCategories(1, catQuery, false), 300);
     return () => clearTimeout(t);
   }, [catQuery]);
+  useEffect(() => {
+    const t = setTimeout(() => loadFilterCategories(filterCatQuery), 300);
+    return () => clearTimeout(t);
+  }, [filterCatQuery]);
 
   const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -310,6 +336,40 @@ export function FareRulesView() {
           Razorpay pricing
         </Link>
       </Alert>
+
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+        <Autocomplete
+          sx={{ minWidth: 240 }}
+          options={filterCatOptions}
+          value={filterCategory}
+          loading={filterCatLoading}
+          onChange={(_, v) => setFilterCategory(v)}
+          onOpen={() => loadFilterCategories(filterCatQuery)}
+          getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
+          isOptionEqualToValue={(a, b) => a?.id === b?.id}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              size="small"
+              label="Category"
+              placeholder="Filter by category…"
+              onChange={(e) => setFilterCatQuery(e.target.value)}
+            />
+          )}
+        />
+        <TextField
+          select
+          size="small"
+          label="Status"
+          value={filterActive}
+          onChange={(e) => setFilterActive(e.target.value)}
+          sx={{ minWidth: 140 }}
+        >
+          <MenuItem value="">All</MenuItem>
+          <MenuItem value="true">Active</MenuItem>
+          <MenuItem value="false">Inactive</MenuItem>
+        </TextField>
+      </Stack>
 
       {loading ? (
         <Box display="flex" justifyContent="center" py={4}><CircularProgress /></Box>

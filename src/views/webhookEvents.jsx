@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import { actions as integrations } from 'store/integrations/slice';
 import WebhookeventsTableSection from 'sections/webhookEvents/WebhookeventsTableSection';
 import WebhookEventDetailDialog from 'sections/webhookEvents/WebhookEventDetailDialog';
@@ -22,16 +25,34 @@ export default function WebhookeventsView() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [replayingId, setReplayingId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [eventQuery, setEventQuery] = useState('');
+  const [filters, setFilters] = useState({ q: '', provider: '', status: '', event: '' });
 
-  const listParams = { page, limit: pageSize };
+  const listParams = {
+    page,
+    limit: pageSize,
+    ...(filters.q ? { q: filters.q } : {}),
+    ...(filters.provider ? { provider: filters.provider } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.event ? { event: filters.event } : {})
+  };
 
   const refreshList = useCallback(() => {
     dispatch(integrations.webhookEventsListRequest({ params: listParams }));
-  }, [dispatch, page, pageSize]);
+  }, [dispatch, page, pageSize, filters.q, filters.provider, filters.status, filters.event]);
 
   useEffect(() => {
     refreshList();
   }, [refreshList]);
+
+  const handleSearch = () => {
+    setFilters((p) => ({
+      ...p,
+      q: searchQuery.trim(),
+      event: eventQuery.trim()
+    }));
+  };
 
   useEffect(() => {
     if (error) enqueueSnackbar(error, { variant: 'error' });
@@ -71,7 +92,16 @@ export default function WebhookeventsView() {
   const handlePaginationChange = (updater) => {
     const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
     dispatch(
-      integrations.webhookEventsListRequest({ params: { page: next.pageIndex + 1, limit: next.pageSize } })
+      integrations.webhookEventsListRequest({
+        params: {
+          page: next.pageIndex + 1,
+          limit: next.pageSize,
+          ...(filters.q ? { q: filters.q } : {}),
+          ...(filters.provider ? { provider: filters.provider } : {}),
+          ...(filters.status ? { status: filters.status } : {}),
+          ...(filters.event ? { event: filters.event } : {})
+        }
+      })
     );
   };
 
@@ -109,6 +139,52 @@ export default function WebhookeventsView() {
         onReconcile={() => dispatch(integrations.paymentOpsRequest({ action: 'payment-reconcile' }))}
         onCheckoutExpiry={() => dispatch(integrations.paymentOpsRequest({ action: 'checkout-expiry' }))}
       />
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap">
+        <TextField
+          size="small"
+          label="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Event or provider…"
+          sx={{ minWidth: 200 }}
+        />
+        <TextField
+          select
+          size="small"
+          label="Provider"
+          value={filters.provider}
+          onChange={(e) => setFilters((p) => ({ ...p, provider: e.target.value }))}
+          sx={{ minWidth: 140 }}
+        >
+          <MenuItem value="">All</MenuItem>
+          <MenuItem value="razorpay">Razorpay</MenuItem>
+        </TextField>
+        <TextField
+          select
+          size="small"
+          label="Status"
+          value={filters.status}
+          onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))}
+          sx={{ minWidth: 140 }}
+        >
+          <MenuItem value="">All</MenuItem>
+          <MenuItem value="PENDING">Pending</MenuItem>
+          <MenuItem value="PROCESSED">Processed</MenuItem>
+          <MenuItem value="FAILED">Failed</MenuItem>
+        </TextField>
+        <TextField
+          size="small"
+          label="Event"
+          value={eventQuery}
+          onChange={(e) => setEventQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          sx={{ minWidth: 180 }}
+        />
+        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
+          Search
+        </Button>
+      </Stack>
       <WebhookeventsTableSection
         rows={data}
         pageIndex={page - 1}

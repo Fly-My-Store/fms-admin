@@ -19,6 +19,11 @@ export default function useAxiosPaginatedList(url, { params: extraParams = {}, e
 
   const paramsKey = JSON.stringify(extraParams);
 
+  // Reset to first page when filter params change
+  useEffect(() => {
+    setPageIndex(0);
+  }, [paramsKey]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -44,6 +49,7 @@ export default function useAxiosPaginatedList(url, { params: extraParams = {}, e
     totalPages,
     loading,
     load,
-    handlePaginationChange
+    handlePaginationChange,
+    setPageIndex
   };
 }

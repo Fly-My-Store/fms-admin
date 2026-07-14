@@ -3,9 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
+import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import { actions as iam } from 'store/iam/slice';
 import RolesTableSection from 'sections/roles/RolesTableSection';
 import RolesFormDialog from 'sections/roles/RolesFormDialog';
+
+const DOMAIN_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'ADMIN', label: 'Admin' },
+  { value: 'SELLER', label: 'Seller' }
+];
 
 export function RolesView() {
   const dispatch = useDispatch();
@@ -15,10 +22,26 @@ export function RolesView() {
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({ q: '', domain: 'ADMIN' });
+
+  const buildParams = (pageNum = page, limit = pageSize, f = filters) => ({
+    page: pageNum,
+    limit,
+    ...(f.q ? { q: f.q } : {}),
+    ...(f.domain ? { domain: f.domain } : {})
+  });
 
   useEffect(() => {
-    dispatch(iam.rolesListRequest({ params: { page, limit: pageSize, domain: 'ADMIN' } }));
-  }, [dispatch]);
+    dispatch(iam.rolesListRequest({ params: buildParams(1, pageSize) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, filters.domain]);
+
+  const handleSearch = () => {
+    const next = { ...filters, q: searchQuery.trim() };
+    setFilters(next);
+    dispatch(iam.rolesListRequest({ params: buildParams(1, pageSize, next) }));
+  };
 
   const handleDialogToggle = () => {
     setOpen((prev) => !prev);
@@ -37,7 +60,7 @@ export function RolesView() {
 
   const handlePaginationChange = (updater) => {
     const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(iam.rolesListRequest({ params: { page: next.pageIndex + 1, limit: next.pageSize, domain: 'ADMIN' } }));
+    dispatch(iam.rolesListRequest({ params: buildParams(next.pageIndex + 1, next.pageSize) }));
   };
 
   useEffect(() => {
@@ -48,6 +71,35 @@ export function RolesView() {
 
   return (
     <>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+        <TextField
+          size="small"
+          label="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Name or code…"
+          sx={{ minWidth: 220 }}
+        />
+        <TextField
+          select
+          size="small"
+          label="Domain"
+          value={filters.domain}
+          onChange={(e) => setFilters((p) => ({ ...p, domain: e.target.value }))}
+          sx={{ minWidth: 140 }}
+        >
+          {DOMAIN_OPTIONS.map((o) => (
+            <MenuItem key={o.value || 'all'} value={o.value}>
+              {o.label}
+            </MenuItem>
+          ))}
+        </TextField>
+        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
+          Search
+        </Button>
+      </Stack>
+
       <RolesTableSection
         rows={data}
         handleAddButton={handleAddButton}

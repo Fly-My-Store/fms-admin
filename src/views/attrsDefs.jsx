@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
+import { Button, Stack, TextField } from '@mui/material';
 import { actions as attributes } from 'store/attributes/slice';
 import DefsTableSection from 'sections/defs/DefsTableSection';
 import DefsFormDialog from 'sections/defs/DefsFormDialog';
@@ -15,14 +16,29 @@ export function DefsView() {
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({ q: '' });
 
-  const reload = () => {
-    dispatch(attributes.defsListRequest({ params: { page, limit: pageSize } }));
+  const buildParams = (pageNum = page, limit = pageSize, f = filters) => ({
+    page: pageNum,
+    limit,
+    ...(f.q ? { q: f.q } : {})
+  });
+
+  const reload = (pageNum = page, limit = pageSize, f = filters) => {
+    dispatch(attributes.defsListRequest({ params: buildParams(pageNum, limit, f) }));
   };
 
   useEffect(() => {
-    reload();
+    reload(1, pageSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleSearch = () => {
+    const next = { q: searchQuery.trim() };
+    setFilters(next);
+    reload(1, pageSize, next);
+  };
 
   const handleDialogToggle = () => {
     setOpen((prev) => !prev);
@@ -41,7 +57,7 @@ export function DefsView() {
 
   const handlePaginationChange = (updater) => {
     const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(attributes.defsListRequest({ params: { page: next.pageIndex + 1, limit: next.pageSize } }));
+    reload(next.pageIndex + 1, next.pageSize);
   };
 
   useEffect(() => {
@@ -52,6 +68,21 @@ export function DefsView() {
 
   return (
     <>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+        <TextField
+          size="small"
+          label="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Code or name…"
+          sx={{ minWidth: 220 }}
+        />
+        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
+          Search
+        </Button>
+      </Stack>
+
       <DefsTableSection
         rows={data}
         handleAddButton={handleAddButton}
@@ -62,7 +93,7 @@ export function DefsView() {
         onPaginationChange={handlePaginationChange}
         totalCount={count}
       />
-      <DefsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={reload} />
+      <DefsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={() => reload()} />
     </>
   );
 }

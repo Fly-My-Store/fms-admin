@@ -21,6 +21,19 @@ import { listRiders } from 'api/logistics';
 
 const TERMINAL_ORDER = ['DELIVERED', 'CANCELLED', 'REFUNDED'];
 
+function isScreenGuardSlug(slug) {
+  return slug === 'screen-guard' || (slug && String(slug).startsWith('screen-guard-'));
+}
+
+function orderRequiresScreenGuard(order) {
+  if (order?.requires_screen_guard_rider) return true;
+  const items = order?.order_items || [];
+  return items.some((item) => {
+    const slug = item?.store_variant?.product_variant?.product?.category?.slug;
+    return isScreenGuardSlug(slug);
+  });
+}
+
 export default function OrderRiderCard({ order, onSuccess }) {
   const [riders, setRiders] = useState([]);
   const [riderId, setRiderId] = useState('');
@@ -30,6 +43,7 @@ export default function OrderRiderCard({ order, onSuccess }) {
   const delivery = order?.delivery;
   const currentRider = delivery?.rider;
   const disabled = !order || TERMINAL_ORDER.includes(order.status);
+  const requiresScreenGuard = orderRequiresScreenGuard(order);
 
   useEffect(() => {
     listRiders({ limit: 200, kyc_status: 'APPROVED' })
@@ -41,9 +55,12 @@ export default function OrderRiderCard({ order, onSuccess }) {
     () =>
       riders.filter((r) => {
         const avail = r.availability_status;
-        return avail === 'IDLE' || avail === 'ASSIGNED' || r.user_id === delivery?.rider_id;
+        const availOk = avail === 'IDLE' || avail === 'ASSIGNED' || r.user_id === delivery?.rider_id;
+        if (!availOk) return false;
+        if (requiresScreenGuard && !r.screen_guard_eligible) return false;
+        return true;
       }),
-    [riders, delivery?.rider_id]
+    [riders, delivery?.rider_id, requiresScreenGuard]
   );
 
   if (disabled) return null;
@@ -67,6 +84,12 @@ export default function OrderRiderCard({ order, onSuccess }) {
   return (
     <MainCard title="Rider assignment">
       <Stack spacing={2}>
+        {requiresScreenGuard ? (
+          <Alert severity="info">
+            Screen-guard order — only screen-guard eligible riders are listed.
+          </Alert>
+        ) : null}
+
         {currentRider ? (
           <Stack spacing={0.5}>
             <Typography variant="body2" fontWeight={600}>
@@ -90,6 +113,11 @@ export default function OrderRiderCard({ order, onSuccess }) {
           onChange={(e) => setRiderId(e.target.value)}
           fullWidth
           size="small"
+          helperText={
+            requiresScreenGuard && !eligibleRiders.length
+              ? 'No screen-guard eligible riders available'
+              : undefined
+          }
         >
           <MenuItem value="">Auto-assign next available</MenuItem>
           {eligibleRiders.map((r) => (
