@@ -1,12 +1,15 @@
 import { get, post, patch } from '../utils/api';
 
-// Unified fare rules (immutable: create + deactivate only)
-export const listFareRules = (params) => get('admin/fare', params);
-export const getFareRule = (id) => get(`admin/fare/${id}`);
-export const createFareRule = (data) => post('admin/fare', data);
-export const deactivateFareRule = (id) => patch(`admin/fare/${id}/deactivate`);
+// Category fees (platform + delivery + km)
+export const listFareCategoryRules = (params) => get('admin/fare-category', params);
+export const getFareCategoryRule = (id) => get(`admin/fare-category/${id}`);
+export const createFareCategoryRule = (data) => post('admin/fare-category', data);
+export const cloneFareCategoryRule = (id, data) => post(`admin/fare-category/${id}/clone`, data);
+export const deactivateFareCategoryRule = (id) => patch(`admin/fare-category/${id}/deactivate`);
 
-// Payouts
-export const listPayouts = (params) => get('admin/payouts', params);
-export const createPayout = (data) => post('admin/payouts', data);
-export const getPayoutSummary = (params) => get('admin/payouts/summary', params);
+// Gateway fees (order-scoped %)
+export const listFareGatewayRules = (params) => get('admin/fare-gateway', params);
+export const getFareGatewayRule = (id) => get(`admin/fare-gateway/${id}`);
+export const createFareGatewayRule = (data) => post('admin/fare-gateway', data);
+export const cloneFareGatewayRule = (id, data) => post(`admin/fare-gateway/${id}/clone`, data);
+export const deactivateFareGatewayRule = (id) => patch(`admin/fare-gateway/${id}/deactivate`);

@@ -3,7 +3,16 @@
 import { useEffect, useState } from 'react';
 import { enqueueSnackbar } from 'notistack';
 import MainCard from 'components/MainCard';
-import { listFareRules, createFareRule, deactivateFareRule } from 'api/adminFarePayouts';
+import {
+  listFareCategoryRules,
+  createFareCategoryRule,
+  cloneFareCategoryRule,
+  deactivateFareCategoryRule,
+  listFareGatewayRules,
+  createFareGatewayRule,
+  cloneFareGatewayRule,
+  deactivateFareGatewayRule,
+} from 'api/adminFarePayouts';
 import { listCategories } from 'api/catalog';
 import {
   Autocomplete,
@@ -30,31 +39,52 @@ import {
   Alert,
   Link,
   MenuItem,
+  Tabs,
+  Tab,
+  Tooltip,
 } from '@mui/material';
-import { PlusOutlined, StopOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, StopOutlined, EyeOutlined, DeleteOutlined, CopyOutlined } from '@ant-design/icons';
 import { RAZORPAY_PLATFORM_FEE_GST_PERCENT, RAZORPAY_PLATFORM_FEE_PERCENT } from 'utils/constants';
 
 const GATEWAY_HELPER =
-  `Razorpay charges ${RAZORPAY_PLATFORM_FEE_PERCENT}% on captured payments (+ ${RAZORPAY_PLATFORM_FEE_GST_PERCENT}% GST on their fee). ` +
-  'Normal refunds have Rs 0 processing fee; capture fee is not reversed. ' +
-  'Set seller gateway % to match your Razorpay rate. Customer gateway % is optional if you itemize it at checkout.';
+  `Razorpay bills ~${RAZORPAY_PLATFORM_FEE_PERCENT}% + ${RAZORPAY_PLATFORM_FEE_GST_PERCENT}% GST on their fee (exclusive, ≈ ${(
+    RAZORPAY_PLATFORM_FEE_PERCENT *
+    (1 + RAZORPAY_PLATFORM_FEE_GST_PERCENT / 100)
+  ).toFixed(2)}% total). ` +
+  'In this form, gateway % is GST-inclusive: enter the full burden you want to recover ' +
+  `(e.g. ${(RAZORPAY_PLATFORM_FEE_PERCENT * (1 + RAZORPAY_PLATFORM_FEE_GST_PERCENT / 100)).toFixed(2)} to match Razorpay, or ${RAZORPAY_PLATFORM_FEE_PERCENT} if you ignore GST). ` +
+  'GST % on the rule only splits tax inside that amount — it is not added on top. ' +
+  'Keep it simple: usually one active rule covering all orders (₹0 – max) is enough. ' +
+  'Gateway % applies once to the full cart total.';
 
-const formatCents = (v) => (v === '' || v == null ? '' : Number(v) / 100);
+const CATEGORY_HELPER =
+  "Category fees (platform + delivery + km) use each product group's subtotal band. Mixed carts take MAX delivery / SUM seller platform %. " +
+  'Rupee amounts and seller platform % are GST-inclusive; GST % only splits tax inside the fee.';
+
+const formatCents = (v) => {
+  if (v === '' || v == null) return '';
+  const n = Number(v) / 100;
+  return Number.isFinite(n) ? n.toFixed(2) : '';
+};
 const toCents = (v) => {
   if (v === '' || v == null) return 0;
   const n = Number(v);
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 };
-const fmt = (v) => (v == null || v === '' ? '—' : String(v));
 const fmtPct = (v) => (v == null || v === '' ? '—' : `${v}%`);
-const fmtRupee = (cents) => (cents == null ? '—' : `₹${formatCents(cents)}`);
+const fmtRupee = (cents) => {
+  if (cents == null) return '—';
+  const n = Number(cents) / 100;
+  if (!Number.isFinite(n)) return '—';
+  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 const defaultKmSlabs = [
   { min_km: '5', max_km: '7', surcharge_rupees: '14', gst_percent: '18' },
   { min_km: '7', max_km: '10', surcharge_rupees: '35', gst_percent: '18' },
 ];
 
-const defaultForm = {
+const defaultCategoryForm = {
   category_id: '',
   min_order_cents: '',
   max_order_cents: '9999999',
@@ -63,15 +93,21 @@ const defaultForm = {
   customer_platform_gst_percent: '18',
   customer_delivery_cents: '',
   customer_delivery_gst_percent: '18',
-  customer_gateway_percent: '0',
-  customer_gateway_gst_percent: String(RAZORPAY_PLATFORM_FEE_GST_PERCENT),
   seller_platform_percent: '',
   seller_platform_gst_percent: '18',
   seller_delivery_cents: '',
   seller_delivery_gst_percent: '18',
+  km_surcharge: defaultKmSlabs,
+};
+
+const defaultGatewayForm = {
+  min_order_cents: '0',
+  max_order_cents: '9999999',
+  sort_order: '0',
+  customer_gateway_percent: '0',
+  customer_gateway_gst_percent: String(RAZORPAY_PLATFORM_FEE_GST_PERCENT),
   seller_gateway_percent: String(RAZORPAY_PLATFORM_FEE_PERCENT),
   seller_gateway_gst_percent: String(RAZORPAY_PLATFORM_FEE_GST_PERCENT),
-  km_surcharge: defaultKmSlabs,
 };
 
 function ReadField({ label, value }) {
@@ -83,242 +119,239 @@ function ReadField({ label, value }) {
   );
 }
 
-function ViewFareDialog({ open, rule, onClose }) {
-  if (!rule) return null;
-  const slabs = Array.isArray(rule.km_surcharge) ? rule.km_surcharge : [];
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Fare rule details</DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={2}>
-          <Typography variant="subtitle2">Band</Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <ReadField label="Category" value={rule.category?.name || 'Default (all categories)'} />
-            <ReadField label="Order band" value={`${fmtRupee(rule.min_order_cents)} – ${fmtRupee(rule.max_order_cents)}`} />
-            <ReadField label="Sort order" value={fmt(rule.sort_order)} />
-            <ReadField label="Status" value={rule.is_active ? 'Active' : 'Inactive'} />
-          </Stack>
-
-          <Divider />
-          <Typography variant="subtitle2">Customer fees</Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
-            <ReadField label="Platform fee" value={fmtRupee(rule.customer_platform_fee_cents)} />
-            <ReadField label="Platform GST %" value={fmtPct(rule.customer_platform_gst_percent)} />
-            <ReadField label="Delivery fee" value={fmtRupee(rule.customer_delivery_cents)} />
-            <ReadField label="Delivery GST %" value={fmtPct(rule.customer_delivery_gst_percent)} />
-            <ReadField label="Payment gateway %" value={fmtPct(rule.customer_gateway_percent)} />
-            <ReadField label="Gateway GST %" value={fmtPct(rule.customer_gateway_gst_percent)} />
-          </Stack>
-
-          <Divider />
-          <Typography variant="subtitle2">Seller deductions</Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
-            <ReadField label="Platform %" value={fmtPct(rule.seller_platform_percent)} />
-            <ReadField label="Platform GST %" value={fmtPct(rule.seller_platform_gst_percent)} />
-            <ReadField label="Delivery" value={fmtRupee(rule.seller_delivery_cents)} />
-            <ReadField label="Delivery GST %" value={fmtPct(rule.seller_delivery_gst_percent)} />
-            <ReadField label="Payment gateway %" value={fmtPct(rule.seller_gateway_percent)} />
-            <ReadField label="Gateway GST %" value={fmtPct(rule.seller_gateway_gst_percent)} />
-          </Stack>
-
-          <Divider />
-          <Typography variant="subtitle2">Km surcharge slabs</Typography>
-          {slabs.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">No km slabs configured.</Typography>
-          ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Min km</TableCell>
-                    <TableCell>Max km</TableCell>
-                    <TableCell>Surcharge</TableCell>
-                    <TableCell>GST %</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {slabs.map((s, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{s.min_km}</TableCell>
-                      <TableCell>{s.max_km}</TableCell>
-                      <TableCell>{fmtRupee(s.surcharge_cents)}</TableCell>
-                      <TableCell>{fmtPct(s.gst_percent)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
 export function FareRulesView() {
+  const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [rules, setRules] = useState([]);
+  const [categoryRules, setCategoryRules] = useState([]);
+  const [gatewayRules, setGatewayRules] = useState([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [replaceSourceId, setReplaceSourceId] = useState(null);
   const [viewRule, setViewRule] = useState(null);
-  const [form, setForm] = useState(defaultForm);
+  const [categoryForm, setCategoryForm] = useState(defaultCategoryForm);
+  const [gatewayForm, setGatewayForm] = useState(defaultGatewayForm);
   const [saving, setSaving] = useState(false);
 
   const [catOptions, setCatOptions] = useState([]);
   const [catSel, setCatSel] = useState(null);
   const [catQuery, setCatQuery] = useState('');
   const [catLoading, setCatLoading] = useState(false);
-  const [catPage, setCatPage] = useState(1);
-  const [catTotalPages, setCatTotalPages] = useState(1);
-
   const [filterCategory, setFilterCategory] = useState(null);
   const [filterActive, setFilterActive] = useState('');
   const [filterCatQuery, setFilterCatQuery] = useState('');
   const [filterCatOptions, setFilterCatOptions] = useState([]);
   const [filterCatLoading, setFilterCatLoading] = useState(false);
 
-  const load = async () => {
+  const loadCategory = async () => {
     setLoading(true);
     try {
-      const res = await listFareRules({
+      const res = await listFareCategoryRules({
         ...(filterCategory?.id ? { category_id: filterCategory.id } : {}),
-        ...(filterActive !== '' ? { is_active: filterActive } : {})
+        ...(filterActive !== '' ? { is_active: filterActive } : {}),
       });
-      setRules(res?.data ?? []);
+      setCategoryRules(res?.data ?? []);
     } catch (e) {
-      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to load fare rules', { variant: 'error' });
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to load category fares', { variant: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  const loadCategories = async (p = 1, q = catQuery, append = false) => {
+  const loadGateway = async () => {
+    setLoading(true);
     try {
-      setCatLoading(true);
-      const res = await listCategories({ page: p, limit: 20, q });
-      const rows = res?.data || res?.rows || [];
-      const meta = res?.meta || { page: p, totalPages: 1 };
-      setCatOptions((prev) => (append ? [...prev, ...rows] : rows));
-      setCatPage(meta.page || p);
-      setCatTotalPages(meta.totalPages || 1);
-    } catch {
-      // ignore
+      const res = await listFareGatewayRules({
+        ...(filterActive !== '' ? { is_active: filterActive } : {}),
+      });
+      setGatewayRules(res?.data ?? []);
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to load gateway fares', { variant: 'error' });
     } finally {
-      setCatLoading(false);
+      setLoading(false);
     }
   };
 
-  const loadFilterCategories = async (q = filterCatQuery) => {
-    try {
-      setFilterCatLoading(true);
-      const res = await listCategories({ page: 1, limit: 20, q });
-      setFilterCatOptions(res?.data || res?.rows || []);
-    } catch {
-      // ignore
-    } finally {
-      setFilterCatLoading(false);
-    }
-  };
+  const load = () => (tab === 0 ? loadCategory() : loadGateway());
 
-  useEffect(() => { load(); }, [filterCategory?.id, filterActive]);
-  useEffect(() => { loadCategories(1, catQuery, false); }, []);
+  useEffect(() => { load(); }, [tab, filterCategory?.id, filterActive]);
+
   useEffect(() => {
-    const t = setTimeout(() => loadCategories(1, catQuery, false), 300);
+    const t = setTimeout(async () => {
+      try {
+        setCatLoading(true);
+        const res = await listCategories({ page: 1, limit: 20, q: catQuery });
+        setCatOptions(res?.data || res?.rows || []);
+      } finally {
+        setCatLoading(false);
+      }
+    }, 300);
     return () => clearTimeout(t);
   }, [catQuery]);
+
   useEffect(() => {
-    const t = setTimeout(() => loadFilterCategories(filterCatQuery), 300);
+    const t = setTimeout(async () => {
+      try {
+        setFilterCatLoading(true);
+        const res = await listCategories({ page: 1, limit: 20, q: filterCatQuery });
+        setFilterCatOptions(res?.data || res?.rows || []);
+      } finally {
+        setFilterCatLoading(false);
+      }
+    }, 300);
     return () => clearTimeout(t);
   }, [filterCatQuery]);
 
-  const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
-
-  const updateKmSlab = (index, field, value) => {
-    setForm((prev) => {
-      const next = [...prev.km_surcharge];
-      next[index] = { ...next[index], [field]: value };
-      return { ...prev, km_surcharge: next };
-    });
-  };
-
-  const addKmSlab = () => {
-    setForm((prev) => ({
-      ...prev,
-      km_surcharge: [...prev.km_surcharge, { min_km: '', max_km: '', surcharge_rupees: '', gst_percent: '18' }],
-    }));
-  };
-
-  const removeKmSlab = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      km_surcharge: prev.km_surcharge.filter((_, i) => i !== index),
-    }));
-  };
-
   const openAdd = () => {
-    setForm({ ...defaultForm, km_surcharge: defaultKmSlabs.map((s) => ({ ...s })) });
-    setCatSel(null);
+    setReplaceSourceId(null);
+    if (tab === 0) {
+      setCategoryForm({ ...defaultCategoryForm, km_surcharge: defaultKmSlabs.map((s) => ({ ...s })) });
+      setCatSel(null);
+    } else {
+      setGatewayForm({ ...defaultGatewayForm });
+    }
     setCreateOpen(true);
   };
 
-  const handleSubmit = async () => {
+  const openCopyCategory = (row) => {
+    if (!row?.is_active) return;
+    const km_surcharge = (Array.isArray(row.km_surcharge) ? row.km_surcharge : []).map((s) => ({
+      min_km: String(s.min_km ?? ''),
+      max_km: String(s.max_km ?? ''),
+      surcharge_rupees: String(formatCents(s.surcharge_cents) ?? ''),
+      gst_percent: String(s.gst_percent ?? 18),
+    }));
+    setCategoryForm({
+      category_id: row.category_id || '',
+      min_order_cents: String(formatCents(row.min_order_cents) ?? ''),
+      max_order_cents: String(formatCents(row.max_order_cents) ?? ''),
+      sort_order: String(row.sort_order ?? 0),
+      customer_platform_fee_cents: String(formatCents(row.customer_platform_fee_cents) ?? ''),
+      customer_platform_gst_percent: String(row.customer_platform_gst_percent ?? 18),
+      customer_delivery_cents: String(formatCents(row.customer_delivery_cents) ?? ''),
+      customer_delivery_gst_percent: String(row.customer_delivery_gst_percent ?? 18),
+      seller_platform_percent: String(row.seller_platform_percent ?? ''),
+      seller_platform_gst_percent: String(row.seller_platform_gst_percent ?? 18),
+      seller_delivery_cents: String(formatCents(row.seller_delivery_cents) ?? ''),
+      seller_delivery_gst_percent: String(row.seller_delivery_gst_percent ?? 18),
+      km_surcharge: km_surcharge.length ? km_surcharge : defaultKmSlabs.map((s) => ({ ...s })),
+    });
+    setCatSel(row.category || null);
+    setReplaceSourceId(row.id);
+    setCreateOpen(true);
+  };
+
+  const openCopyGateway = (row) => {
+    if (!row?.is_active) return;
+    setGatewayForm({
+      min_order_cents: String(formatCents(row.min_order_cents) ?? ''),
+      max_order_cents: String(formatCents(row.max_order_cents) ?? ''),
+      sort_order: String(row.sort_order ?? 0),
+      customer_gateway_percent: String(row.customer_gateway_percent ?? 0),
+      customer_gateway_gst_percent: String(row.customer_gateway_gst_percent ?? RAZORPAY_PLATFORM_FEE_GST_PERCENT),
+      seller_gateway_percent: String(row.seller_gateway_percent ?? RAZORPAY_PLATFORM_FEE_PERCENT),
+      seller_gateway_gst_percent: String(row.seller_gateway_gst_percent ?? RAZORPAY_PLATFORM_FEE_GST_PERCENT),
+    });
+    setReplaceSourceId(row.id);
+    setCreateOpen(true);
+  };
+
+  const handleSubmitCategory = async () => {
     setSaving(true);
     try {
-      const km_surcharge = (form.km_surcharge || []).map((s) => ({
+      const km_surcharge = (categoryForm.km_surcharge || []).map((s) => ({
         min_km: Number(s.min_km) || 0,
         max_km: Number(s.max_km) || 0,
         surcharge_cents: toCents(s.surcharge_rupees),
         gst_percent: Number(s.gst_percent) || 18,
       }));
-
       const payload = {
-        category_id: form.category_id || null,
-        min_order_cents: toCents(form.min_order_cents),
-        max_order_cents: toCents(form.max_order_cents),
-        sort_order: Number(form.sort_order) || 0,
-        customer_platform_fee_cents: toCents(form.customer_platform_fee_cents),
-        customer_platform_gst_percent: Number(form.customer_platform_gst_percent) ?? 18,
-        customer_delivery_cents: toCents(form.customer_delivery_cents),
-        customer_delivery_gst_percent: Number(form.customer_delivery_gst_percent) ?? 18,
-        customer_gateway_percent: Number(form.customer_gateway_percent) || 0,
-        customer_gateway_gst_percent: Number(form.customer_gateway_gst_percent) ?? 18,
-        seller_platform_percent: Number(form.seller_platform_percent) || 0,
-        seller_platform_gst_percent: Number(form.seller_platform_gst_percent) ?? 18,
-        seller_delivery_cents: toCents(form.seller_delivery_cents),
-        seller_delivery_gst_percent: Number(form.seller_delivery_gst_percent) ?? 18,
-        seller_gateway_percent: Number(form.seller_gateway_percent) || 0,
-        seller_gateway_gst_percent: Number(form.seller_gateway_gst_percent) ?? 18,
+        category_id: categoryForm.category_id || null,
+        min_order_cents: toCents(categoryForm.min_order_cents),
+        max_order_cents: toCents(categoryForm.max_order_cents),
+        sort_order: Number(categoryForm.sort_order) || 0,
+        customer_platform_fee_cents: toCents(categoryForm.customer_platform_fee_cents),
+        customer_platform_gst_percent: Number(categoryForm.customer_platform_gst_percent) ?? 18,
+        customer_delivery_cents: toCents(categoryForm.customer_delivery_cents),
+        customer_delivery_gst_percent: Number(categoryForm.customer_delivery_gst_percent) ?? 18,
+        seller_platform_percent: Number(categoryForm.seller_platform_percent) || 0,
+        seller_platform_gst_percent: Number(categoryForm.seller_platform_gst_percent) ?? 18,
+        seller_delivery_cents: toCents(categoryForm.seller_delivery_cents),
+        seller_delivery_gst_percent: Number(categoryForm.seller_delivery_gst_percent) ?? 18,
         km_surcharge,
       };
-      await createFareRule(payload);
-      enqueueSnackbar('Fare rule created', { variant: 'success' });
+      if (replaceSourceId) {
+        await cloneFareCategoryRule(replaceSourceId, payload);
+        enqueueSnackbar('Copied to new rule and disabled the old one', { variant: 'success' });
+      } else {
+        await createFareCategoryRule(payload);
+        enqueueSnackbar('Category fare created', { variant: 'success' });
+      }
       setCreateOpen(false);
-      await load();
+      setReplaceSourceId(null);
+      await loadCategory();
     } catch (e) {
-      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to create fare rule', { variant: 'error' });
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to create', { variant: 'error' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeactivate = async (id) => {
-    if (!window.confirm('Deactivate this fare rule? Existing orders keep their fare_id.')) return;
+  const handleSubmitGateway = async () => {
+    setSaving(true);
     try {
-      await deactivateFareRule(id);
-      enqueueSnackbar('Fare rule deactivated', { variant: 'success' });
-      await load();
+      const payload = {
+        min_order_cents: toCents(gatewayForm.min_order_cents),
+        max_order_cents: toCents(gatewayForm.max_order_cents),
+        sort_order: Number(gatewayForm.sort_order) || 0,
+        customer_gateway_percent: Number(gatewayForm.customer_gateway_percent) || 0,
+        customer_gateway_gst_percent: Number(gatewayForm.customer_gateway_gst_percent) ?? 18,
+        seller_gateway_percent: Number(gatewayForm.seller_gateway_percent) || 0,
+        seller_gateway_gst_percent: Number(gatewayForm.seller_gateway_gst_percent) ?? 18,
+      };
+      if (replaceSourceId) {
+        await cloneFareGatewayRule(replaceSourceId, payload);
+        enqueueSnackbar('Copied to new rule and disabled the old one', { variant: 'success' });
+      } else {
+        await createFareGatewayRule(payload);
+        enqueueSnackbar('Gateway fare created', { variant: 'success' });
+      }
+      setCreateOpen(false);
+      setReplaceSourceId(null);
+      await loadGateway();
     } catch (e) {
-      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to deactivate', { variant: 'error' });
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to create', { variant: 'error' });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const onCatListScroll = (e) => {
-    const node = e.currentTarget;
-    const nearBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 32;
-    if (nearBottom && !catLoading && catPage < catTotalPages) loadCategories(catPage + 1, catQuery, true);
+  const handleDeactivateCategory = async (id) => {
+    if (!window.confirm('Deactivate this category fare?')) return;
+    try {
+      await deactivateFareCategoryRule(id);
+      enqueueSnackbar('Deactivated', { variant: 'success' });
+      await loadCategory();
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed', { variant: 'error' });
+    }
+  };
+
+  const handleDeactivateGateway = async (id) => {
+    if (!window.confirm('Deactivate this gateway fare?')) return;
+    try {
+      await deactivateFareGatewayRule(id);
+      enqueueSnackbar('Deactivated', { variant: 'success' });
+      await loadGateway();
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed', { variant: 'error' });
+    }
+  };
+
+  const updateKmSlab = (index, field, value) => {
+    setCategoryForm((prev) => {
+      const next = [...prev.km_surcharge];
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, km_surcharge: next };
+    });
   };
 
   return (
@@ -326,37 +359,48 @@ export function FareRulesView() {
       title="Fare rules"
       secondary={
         <Button startIcon={<PlusOutlined />} onClick={openAdd} variant="contained">
-          Add rule
+          Add {tab === 0 ? 'category' : 'gateway'} rule
         </Button>
       }
     >
-      <Alert severity="info" sx={{ mb: 2 }}>
-        {GATEWAY_HELPER}{' '}
-        <Link href="https://razorpay.com/pricing/" target="_blank" rel="noopener noreferrer">
-          Razorpay pricing
-        </Link>
-      </Alert>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+        <Tab label="Category fees" />
+        <Tab label="Gateway fees" />
+      </Tabs>
+
+      {tab === 1 ? (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {GATEWAY_HELPER}{' '}
+          <Link href="https://razorpay.com/pricing/" target="_blank" rel="noopener noreferrer">
+            Razorpay pricing
+          </Link>
+        </Alert>
+      ) : (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {CATEGORY_HELPER}
+        </Alert>
+      )}
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
-        <Autocomplete
-          sx={{ minWidth: 240 }}
-          options={filterCatOptions}
-          value={filterCategory}
-          loading={filterCatLoading}
-          onChange={(_, v) => setFilterCategory(v)}
-          onOpen={() => loadFilterCategories(filterCatQuery)}
-          getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
-          isOptionEqualToValue={(a, b) => a?.id === b?.id}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              size="small"
-              label="Category"
-              placeholder="Filter by category…"
-              onChange={(e) => setFilterCatQuery(e.target.value)}
-            />
-          )}
-        />
+        {tab === 0 ? (
+          <Autocomplete
+            sx={{ minWidth: 240 }}
+            options={filterCatOptions}
+            value={filterCategory}
+            loading={filterCatLoading}
+            onChange={(_, v) => setFilterCategory(v)}
+            getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
+            isOptionEqualToValue={(a, b) => a?.id === b?.id}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                size="small"
+                label="Category"
+                onChange={(e) => setFilterCatQuery(e.target.value)}
+              />
+            )}
+          />
+        ) : null}
         <TextField
           select
           size="small"
@@ -373,7 +417,7 @@ export function FareRulesView() {
 
       {loading ? (
         <Box display="flex" justifyContent="center" py={4}><CircularProgress /></Box>
-      ) : (
+      ) : tab === 0 ? (
         <TableContainer>
           <Table size="small">
             <TableHead>
@@ -381,37 +425,83 @@ export function FareRulesView() {
                 <TableCell>Category</TableCell>
                 <TableCell>Order band (₹)</TableCell>
                 <TableCell>Customer plat/del</TableCell>
-                <TableCell>Seller %/del/gw</TableCell>
+                <TableCell>Seller %/del</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {rules.length === 0 ? (
-                <TableRow><TableCell colSpan={6} align="center">No fare rules. Add one to get started.</TableCell></TableRow>
-              ) : rules.map((row) => (
+              {categoryRules.length === 0 ? (
+                <TableRow><TableCell colSpan={6} align="center">No category fare rules.</TableCell></TableRow>
+              ) : categoryRules.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>{row.category?.name || 'Default'}</TableCell>
+                  <TableCell>{fmtRupee(row.min_order_cents)} – {fmtRupee(row.max_order_cents)}</TableCell>
                   <TableCell>
-                    ₹{formatCents(row.min_order_cents)} – ₹{formatCents(row.max_order_cents)}
+                    {fmtRupee(row.customer_platform_fee_cents)} / {fmtRupee(row.customer_delivery_cents)}
                   </TableCell>
                   <TableCell>
-                    ₹{formatCents(row.customer_platform_fee_cents)} / ₹{formatCents(row.customer_delivery_cents)}
-                  </TableCell>
-                  <TableCell>
-                    {row.seller_platform_percent}% / ₹{formatCents(row.seller_delivery_cents)} / {row.seller_gateway_percent}%
+                    {row.seller_platform_percent}% / {fmtRupee(row.seller_delivery_cents)}
                   </TableCell>
                   <TableCell>
                     <Chip size="small" label={row.is_active ? 'Active' : 'Inactive'} color={row.is_active ? 'success' : 'default'} />
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton size="small" onClick={() => setViewRule(row)} title="View details">
-                      <EyeOutlined />
-                    </IconButton>
+                    <Tooltip title="View">
+                      <IconButton size="small" onClick={() => setViewRule({ ...row, _kind: 'category' })}><EyeOutlined /></IconButton>
+                    </Tooltip>
                     {row.is_active ? (
-                      <IconButton size="small" onClick={() => handleDeactivate(row.id)} title="Deactivate">
-                        <StopOutlined />
-                      </IconButton>
+                      <>
+                        <Tooltip title="Copy & disable old">
+                          <IconButton size="small" onClick={() => openCopyCategory(row)}><CopyOutlined /></IconButton>
+                        </Tooltip>
+                        <Tooltip title="Disable">
+                          <IconButton size="small" onClick={() => handleDeactivateCategory(row.id)}><StopOutlined /></IconButton>
+                        </Tooltip>
+                      </>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      ) : (
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Order band (₹)</TableCell>
+                <TableCell>Customer gw %</TableCell>
+                <TableCell>Seller gw %</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {gatewayRules.length === 0 ? (
+                <TableRow><TableCell colSpan={5} align="center">No gateway fare rules.</TableCell></TableRow>
+              ) : gatewayRules.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{fmtRupee(row.min_order_cents)} – {fmtRupee(row.max_order_cents)}</TableCell>
+                  <TableCell>{row.customer_gateway_percent}%</TableCell>
+                  <TableCell>{row.seller_gateway_percent}%</TableCell>
+                  <TableCell>
+                    <Chip size="small" label={row.is_active ? 'Active' : 'Inactive'} color={row.is_active ? 'success' : 'default'} />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="View">
+                      <IconButton size="small" onClick={() => setViewRule({ ...row, _kind: 'gateway' })}><EyeOutlined /></IconButton>
+                    </Tooltip>
+                    {row.is_active ? (
+                      <>
+                        <Tooltip title="Copy & disable old">
+                          <IconButton size="small" onClick={() => openCopyGateway(row)}><CopyOutlined /></IconButton>
+                        </Tooltip>
+                        <Tooltip title="Disable">
+                          <IconButton size="small" onClick={() => handleDeactivateGateway(row.id)}><StopOutlined /></IconButton>
+                        </Tooltip>
+                      </>
                     ) : null}
                   </TableCell>
                 </TableRow>
@@ -421,122 +511,173 @@ export function FareRulesView() {
         </TableContainer>
       )}
 
-      <ViewFareDialog open={!!viewRule} rule={viewRule} onClose={() => setViewRule(null)} />
-
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Create fare rule</DialogTitle>
+      <Dialog open={!!viewRule} onClose={() => setViewRule(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Fare details</DialogTitle>
         <DialogContent dividers>
-          <Stack spacing={2}>
-            <Typography variant="caption" color="text.secondary">
-              Fare rules are immutable after creation. Leave category blank for the default catalog band.
-            </Typography>
+          {viewRule?._kind === 'gateway' ? (
+            <Stack spacing={1}>
+              <ReadField label="Band" value={`${fmtRupee(viewRule.min_order_cents)} – ${fmtRupee(viewRule.max_order_cents)}`} />
+              <ReadField label="Customer gateway %" value={fmtPct(viewRule.customer_gateway_percent)} />
+              <ReadField label="Seller gateway %" value={fmtPct(viewRule.seller_gateway_percent)} />
+            </Stack>
+          ) : viewRule ? (
+            <Stack spacing={1}>
+              <ReadField label="Category" value={viewRule.category?.name || 'Default'} />
+              <ReadField label="Band" value={`${fmtRupee(viewRule.min_order_cents)} – ${fmtRupee(viewRule.max_order_cents)}`} />
+              <ReadField label="Customer platform" value={fmtRupee(viewRule.customer_platform_fee_cents)} />
+              <ReadField label="Customer delivery" value={fmtRupee(viewRule.customer_delivery_cents)} />
+              <ReadField label="Seller platform %" value={fmtPct(viewRule.seller_platform_percent)} />
+              <ReadField label="Seller delivery" value={fmtRupee(viewRule.seller_delivery_cents)} />
+            </Stack>
+          ) : null}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setViewRule(null)}>Close</Button></DialogActions>
+      </Dialog>
 
-            <Typography variant="subtitle2">Band</Typography>
-            <Stack sx={{ gap: 1 }}>
-              <InputLabel>Category (optional)</InputLabel>
-              <Autocomplete
-                options={catOptions}
-                value={catSel}
-                loading={catLoading}
-                size="small"
-                onChange={(_, v) => {
-                  setCatSel(v);
-                  setForm((prev) => ({ ...prev, category_id: v?.id || '' }));
-                }}
-                onOpen={() => loadCategories(1, catQuery, false)}
-                onInputChange={(_, v) => setCatQuery(v)}
-                getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
-                isOptionEqualToValue={(a, b) => a?.id === b?.id}
-                ListboxProps={{ onScroll: onCatListScroll }}
-                renderInput={(params) => (
-                  <TextField {...params} size="small" placeholder="Search category…" />
-                )}
-              />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField label="Min order (₹)" type="number" value={form.min_order_cents} onChange={handleChange('min_order_cents')} fullWidth />
-              <TextField label="Max order (₹)" type="number" value={form.max_order_cents} onChange={handleChange('max_order_cents')} fullWidth />
-              <TextField label="Sort order" type="number" value={form.sort_order} onChange={handleChange('sort_order')} fullWidth />
-            </Stack>
-
-            <Divider />
-            <Typography variant="subtitle2">Customer fees</Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField label="Platform fee (₹)" type="number" value={form.customer_platform_fee_cents} onChange={handleChange('customer_platform_fee_cents')} fullWidth />
-              <TextField label="Platform GST %" type="number" value={form.customer_platform_gst_percent} onChange={handleChange('customer_platform_gst_percent')} fullWidth />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField label="Delivery fee (₹)" type="number" value={form.customer_delivery_cents} onChange={handleChange('customer_delivery_cents')} fullWidth />
-              <TextField label="Delivery GST %" type="number" value={form.customer_delivery_gst_percent} onChange={handleChange('customer_delivery_gst_percent')} fullWidth />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                label="Payment gateway % (customer)"
-                type="number"
-                value={form.customer_gateway_percent}
-                onChange={handleChange('customer_gateway_percent')}
-                helperText="Optional line item at checkout; 0 if absorbed elsewhere"
-                fullWidth
-              />
-              <TextField
-                label="Gateway GST %"
-                type="number"
-                value={form.customer_gateway_gst_percent}
-                onChange={handleChange('customer_gateway_gst_percent')}
-                helperText={`GST on gateway fee (Razorpay fee GST is ${RAZORPAY_PLATFORM_FEE_GST_PERCENT}%)`}
-                fullWidth
-              />
-            </Stack>
-
-            <Divider />
-            <Typography variant="subtitle2">Seller deductions</Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField label="Platform %" type="number" value={form.seller_platform_percent} onChange={handleChange('seller_platform_percent')} fullWidth />
-              <TextField label="Platform GST %" type="number" value={form.seller_platform_gst_percent} onChange={handleChange('seller_platform_gst_percent')} fullWidth />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField label="Delivery (₹)" type="number" value={form.seller_delivery_cents} onChange={handleChange('seller_delivery_cents')} fullWidth />
-              <TextField label="Delivery GST %" type="number" value={form.seller_delivery_gst_percent} onChange={handleChange('seller_delivery_gst_percent')} fullWidth />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                label="Payment gateway % (seller)"
-                type="number"
-                value={form.seller_gateway_percent}
-                onChange={handleChange('seller_gateway_percent')}
-                helperText={`Standard Razorpay rate is ${RAZORPAY_PLATFORM_FEE_PERCENT}% of item total`}
-                fullWidth
-              />
-              <TextField
-                label="Gateway GST %"
-                type="number"
-                value={form.seller_gateway_gst_percent}
-                onChange={handleChange('seller_gateway_gst_percent')}
-                fullWidth
-              />
-            </Stack>
-
-            <Divider />
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Typography variant="subtitle2">Km surcharge slabs</Typography>
-              <Button size="small" onClick={addKmSlab}>Add slab</Button>
-            </Stack>
-            {(form.km_surcharge || []).map((slab, i) => (
-              <Stack key={i} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="flex-start">
-                <TextField label="Min km" type="number" size="small" value={slab.min_km} onChange={(e) => updateKmSlab(i, 'min_km', e.target.value)} sx={{ minWidth: 90 }} />
-                <TextField label="Max km" type="number" size="small" value={slab.max_km} onChange={(e) => updateKmSlab(i, 'max_km', e.target.value)} sx={{ minWidth: 90 }} />
-                <TextField label="Surcharge (₹)" type="number" size="small" value={slab.surcharge_rupees} onChange={(e) => updateKmSlab(i, 'surcharge_rupees', e.target.value)} sx={{ minWidth: 120 }} />
-                <TextField label="GST %" type="number" size="small" value={slab.gst_percent} onChange={(e) => updateKmSlab(i, 'gst_percent', e.target.value)} sx={{ minWidth: 90 }} />
-                <IconButton size="small" onClick={() => removeKmSlab(i)} disabled={(form.km_surcharge || []).length <= 1} title="Remove slab">
-                  <DeleteOutlined />
-                </IconButton>
+      <Dialog
+        open={createOpen}
+        onClose={() => {
+          setCreateOpen(false);
+          setReplaceSourceId(null);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {replaceSourceId
+            ? tab === 0
+              ? 'Copy category fare (old will be disabled)'
+              : 'Copy gateway fare (old will be disabled)'
+            : tab === 0
+              ? 'Create category fare'
+              : 'Create gateway fare'}
+        </DialogTitle>
+        <DialogContent dividers>
+          {replaceSourceId ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Saving creates a new active rule and disables the original. Edit values below before saving.
+            </Alert>
+          ) : null}
+          {tab === 0 ? (
+            <Stack spacing={2}>
+              <Stack sx={{ gap: 1 }}>
+                <InputLabel>Category (optional = default)</InputLabel>
+                <Autocomplete
+                  options={catOptions}
+                  value={catSel}
+                  loading={catLoading}
+                  size="small"
+                  onChange={(_, v) => {
+                    setCatSel(v);
+                    setCategoryForm((prev) => ({ ...prev, category_id: v?.id || '' }));
+                  }}
+                  onInputChange={(_, v) => setCatQuery(v)}
+                  getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
+                  isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                  renderInput={(params) => <TextField {...params} size="small" placeholder="Search category…" />}
+                />
               </Stack>
-            ))}
-          </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField label="Min order (₹)" type="number" value={categoryForm.min_order_cents} onChange={(e) => setCategoryForm((p) => ({ ...p, min_order_cents: e.target.value }))} fullWidth />
+                <TextField label="Max order (₹)" type="number" value={categoryForm.max_order_cents} onChange={(e) => setCategoryForm((p) => ({ ...p, max_order_cents: e.target.value }))} fullWidth />
+                <TextField label="Sort" type="number" value={categoryForm.sort_order} onChange={(e) => setCategoryForm((p) => ({ ...p, sort_order: e.target.value }))} fullWidth />
+              </Stack>
+              <Divider />
+              <Typography variant="subtitle2">Customer</Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="Platform fee (₹)"
+                  type="number"
+                  value={categoryForm.customer_platform_fee_cents}
+                  onChange={(e) => setCategoryForm((p) => ({ ...p, customer_platform_fee_cents: e.target.value }))}
+                  helperText="GST-inclusive"
+                  fullWidth
+                />
+                <TextField
+                  label="Delivery fee (₹)"
+                  type="number"
+                  value={categoryForm.customer_delivery_cents}
+                  onChange={(e) => setCategoryForm((p) => ({ ...p, customer_delivery_cents: e.target.value }))}
+                  helperText="GST-inclusive"
+                  fullWidth
+                />
+              </Stack>
+              <Typography variant="subtitle2">Seller</Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="Platform %"
+                  type="number"
+                  value={categoryForm.seller_platform_percent}
+                  onChange={(e) => setCategoryForm((p) => ({ ...p, seller_platform_percent: e.target.value }))}
+                  helperText="GST-inclusive % of group subtotal"
+                  fullWidth
+                />
+                <TextField
+                  label="Delivery (₹)"
+                  type="number"
+                  value={categoryForm.seller_delivery_cents}
+                  onChange={(e) => setCategoryForm((p) => ({ ...p, seller_delivery_cents: e.target.value }))}
+                  helperText="GST-inclusive"
+                  fullWidth
+                />
+              </Stack>
+              <Divider />
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="subtitle2">Km slabs</Typography>
+                <Button size="small" onClick={() => setCategoryForm((p) => ({ ...p, km_surcharge: [...p.km_surcharge, { min_km: '', max_km: '', surcharge_rupees: '', gst_percent: '18' }] }))}>Add slab</Button>
+              </Stack>
+              {(categoryForm.km_surcharge || []).map((slab, i) => (
+                <Stack key={i} direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <TextField label="Min km" size="small" type="number" value={slab.min_km} onChange={(e) => updateKmSlab(i, 'min_km', e.target.value)} />
+                  <TextField label="Max km" size="small" type="number" value={slab.max_km} onChange={(e) => updateKmSlab(i, 'max_km', e.target.value)} />
+                  <TextField label="₹" size="small" type="number" value={slab.surcharge_rupees} onChange={(e) => updateKmSlab(i, 'surcharge_rupees', e.target.value)} />
+                  <IconButton size="small" onClick={() => setCategoryForm((p) => ({ ...p, km_surcharge: p.km_surcharge.filter((_, idx) => idx !== i) }))}><DeleteOutlined /></IconButton>
+                </Stack>
+              ))}
+            </Stack>
+          ) : (
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField label="Min order (₹)" type="number" value={gatewayForm.min_order_cents} onChange={(e) => setGatewayForm((p) => ({ ...p, min_order_cents: e.target.value }))} fullWidth />
+                <TextField label="Max order (₹)" type="number" value={gatewayForm.max_order_cents} onChange={(e) => setGatewayForm((p) => ({ ...p, max_order_cents: e.target.value }))} fullWidth />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="Customer gateway %"
+                  type="number"
+                  value={gatewayForm.customer_gateway_percent}
+                  onChange={(e) => setGatewayForm((p) => ({ ...p, customer_gateway_percent: e.target.value }))}
+                  helperText="GST-inclusive % of cart (usually 0)"
+                  fullWidth
+                />
+                <TextField
+                  label="Seller gateway %"
+                  type="number"
+                  value={gatewayForm.seller_gateway_percent}
+                  onChange={(e) => setGatewayForm((p) => ({ ...p, seller_gateway_percent: e.target.value }))}
+                  helperText={`GST-inclusive % of cart deducted from seller (Razorpay ≈ ${(RAZORPAY_PLATFORM_FEE_PERCENT * (1 + RAZORPAY_PLATFORM_FEE_GST_PERCENT / 100)).toFixed(2)})`}
+                  fullWidth
+                />
+              </Stack>
+            </Stack>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmit} disabled={saving}>{saving ? 'Creating…' : 'Create'}</Button>
+          <Button
+            onClick={() => {
+              setCreateOpen(false);
+              setReplaceSourceId(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={saving}
+            onClick={tab === 0 ? handleSubmitCategory : handleSubmitGateway}
+          >
+            {saving ? 'Saving…' : replaceSourceId ? 'Save copy & disable old' : 'Create'}
+          </Button>
         </DialogActions>
       </Dialog>
     </MainCard>
