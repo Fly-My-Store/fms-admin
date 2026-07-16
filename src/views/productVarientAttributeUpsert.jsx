@@ -138,7 +138,7 @@ export default function ProductVariantAttributeUpsert() {
       }
     }
     loadDefs();
-  }, [isEdit, defQuery, variantId]);
+  }, [isEdit, defQuery, variantId, category_id]);
 
   const onDefChange = (_, v) => {
     setDefSel(v);
