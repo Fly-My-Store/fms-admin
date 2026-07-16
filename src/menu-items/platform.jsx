@@ -212,6 +212,15 @@ const platformMenuGroups = [
     title: 'platform-config',
     children: [
       { id: 'fare', title: 'fare-pricing', type: 'item', url: '/fare', icon: icons.SettingOutlined, perm: 'payment', action: 'modify' },
+      {
+        id: 'invoice-settings',
+        title: 'invoice-settings',
+        type: 'item',
+        url: '/invoice-settings',
+        icon: icons.ProfileOutlined,
+        perm: 'payment',
+        action: 'modify'
+      },
       { id: 'webhook-events', title: 'webhook-events', type: 'item', url: '/webhook-events', icon: icons.BellOutlined, perm: 'webhookEvent', action: 'read' }
     ]
   },

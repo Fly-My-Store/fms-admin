@@ -58,7 +58,9 @@ const GATEWAY_HELPER =
   'Gateway % applies once to the full cart total.';
 
 const CATEGORY_HELPER =
-  "Category fees (platform + delivery + km) use each product group's subtotal band. Mixed carts take MAX delivery / SUM seller platform %. " +
+  "Category fees (platform + delivery + km) use each product group's subtotal band. Mixed carts take MAX delivery / platform and SUM seller platform %. " +
+  'Service/install fee is charged per unit (fee × qty), summed across all lines, and paid 100% to the rider. ' +
+  'Missing category fare falls back to parent then default; an explicit ₹0 service fee stays 0. ' +
   'Rupee amounts and seller platform % are GST-inclusive; GST % only splits tax inside the fee.';
 
 const formatCents = (v) => {
@@ -93,6 +95,8 @@ const defaultCategoryForm = {
   customer_platform_gst_percent: '18',
   customer_delivery_cents: '',
   customer_delivery_gst_percent: '18',
+  customer_service_fee_cents: '',
+  customer_service_gst_percent: '18',
   seller_platform_percent: '',
   seller_platform_gst_percent: '18',
   seller_delivery_cents: '',
@@ -228,6 +232,8 @@ export function FareRulesView() {
       customer_platform_gst_percent: String(row.customer_platform_gst_percent ?? 18),
       customer_delivery_cents: String(formatCents(row.customer_delivery_cents) ?? ''),
       customer_delivery_gst_percent: String(row.customer_delivery_gst_percent ?? 18),
+      customer_service_fee_cents: String(formatCents(row.customer_service_fee_cents) ?? ''),
+      customer_service_gst_percent: String(row.customer_service_gst_percent ?? 18),
       seller_platform_percent: String(row.seller_platform_percent ?? ''),
       seller_platform_gst_percent: String(row.seller_platform_gst_percent ?? 18),
       seller_delivery_cents: String(formatCents(row.seller_delivery_cents) ?? ''),
@@ -272,6 +278,8 @@ export function FareRulesView() {
         customer_platform_gst_percent: Number(categoryForm.customer_platform_gst_percent) ?? 18,
         customer_delivery_cents: toCents(categoryForm.customer_delivery_cents),
         customer_delivery_gst_percent: Number(categoryForm.customer_delivery_gst_percent) ?? 18,
+        customer_service_fee_cents: toCents(categoryForm.customer_service_fee_cents),
+        customer_service_gst_percent: Number(categoryForm.customer_service_gst_percent) ?? 18,
         seller_platform_percent: Number(categoryForm.seller_platform_percent) || 0,
         seller_platform_gst_percent: Number(categoryForm.seller_platform_gst_percent) ?? 18,
         seller_delivery_cents: toCents(categoryForm.seller_delivery_cents),
@@ -424,7 +432,7 @@ export function FareRulesView() {
               <TableRow>
                 <TableCell>Category</TableCell>
                 <TableCell>Order band (₹)</TableCell>
-                <TableCell>Customer plat/del</TableCell>
+                <TableCell>Customer plat/del/svc</TableCell>
                 <TableCell>Seller %/del</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
@@ -438,7 +446,8 @@ export function FareRulesView() {
                   <TableCell>{row.category?.name || 'Default'}</TableCell>
                   <TableCell>{fmtRupee(row.min_order_cents)} – {fmtRupee(row.max_order_cents)}</TableCell>
                   <TableCell>
-                    {fmtRupee(row.customer_platform_fee_cents)} / {fmtRupee(row.customer_delivery_cents)}
+                    {fmtRupee(row.customer_platform_fee_cents)} / {fmtRupee(row.customer_delivery_cents)} /{' '}
+                    {fmtRupee(row.customer_service_fee_cents)}
                   </TableCell>
                   <TableCell>
                     {row.seller_platform_percent}% / {fmtRupee(row.seller_delivery_cents)}
@@ -526,6 +535,7 @@ export function FareRulesView() {
               <ReadField label="Band" value={`${fmtRupee(viewRule.min_order_cents)} – ${fmtRupee(viewRule.max_order_cents)}`} />
               <ReadField label="Customer platform" value={fmtRupee(viewRule.customer_platform_fee_cents)} />
               <ReadField label="Customer delivery" value={fmtRupee(viewRule.customer_delivery_cents)} />
+              <ReadField label="Customer service (per unit)" value={fmtRupee(viewRule.customer_service_fee_cents)} />
               <ReadField label="Seller platform %" value={fmtPct(viewRule.seller_platform_percent)} />
               <ReadField label="Seller delivery" value={fmtRupee(viewRule.seller_delivery_cents)} />
             </Stack>
@@ -598,7 +608,15 @@ export function FareRulesView() {
                   type="number"
                   value={categoryForm.customer_delivery_cents}
                   onChange={(e) => setCategoryForm((p) => ({ ...p, customer_delivery_cents: e.target.value }))}
-                  helperText="GST-inclusive"
+                  helperText="GST-inclusive · MAX across groups"
+                  fullWidth
+                />
+                <TextField
+                  label="Service fee (₹)"
+                  type="number"
+                  value={categoryForm.customer_service_fee_cents}
+                  onChange={(e) => setCategoryForm((p) => ({ ...p, customer_service_fee_cents: e.target.value }))}
+                  helperText="GST-inclusive · per unit → rider"
                   fullWidth
                 />
               </Stack>

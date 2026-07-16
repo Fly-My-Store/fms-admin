@@ -9,6 +9,8 @@ export const assignRiderToOrder = (id, data) => post(`admin/orders-payments/orde
 export const listOrderItems = (id) => get(`admin/orders-payments/orders/${id}/items`);
 export const initiateRefundForOrder = (id, data) => post(`admin/orders-payments/orders/${id}/refund`, data);
 export const retryPaymentForOrder = (id) => post(`admin/orders-payments/orders/${id}/retry-payment`);
+export const rejectStoreInvoice = (id, data) => post(`admin/orders-payments/orders/${id}/invoice/reject`, data);
+export const getPlatformInvoice = (id) => get(`admin/orders-payments/orders/${id}/invoices/platform`);
 
 export const listPayments = (params) => get('admin/orders-payments/payments', params);
 export const getPayment = (id) => get(`admin/orders-payments/payments/${id}`);

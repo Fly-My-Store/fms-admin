@@ -24,6 +24,7 @@ import { actions as ordersPayments } from 'store/ordersPayments/slice';
 import OrderCancelCard from 'sections/orders/OrderCancelCard';
 import OrderRefundCard from 'sections/orders/OrderRefundCard';
 import OrderRiderCard from 'sections/orders/OrderRiderCard';
+import OrderInvoiceCard from 'sections/orders/OrderInvoiceCard';
 import OrderTrackingPanel from 'sections/orders/OrderTrackingPanel';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
@@ -297,6 +298,9 @@ export default function OrderDetailView() {
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <OrderRiderCard order={order} onSuccess={handleActionDone} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <OrderInvoiceCard order={order} onSuccess={handleActionDone} />
           </Grid>
           <Grid size={12}>
             <OrderTrackingPanel orderId={order.id} deliveryStatus={order.delivery?.status} />
