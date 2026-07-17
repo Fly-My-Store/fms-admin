@@ -6,8 +6,10 @@ const initialEntity = () => ({ data: null, loading: false, error: null });
 const initialState = {
   reviews: initialList(),
   banners: initialList(),
+  faqs: initialList(),
   reviewsDetail: initialEntity(),
-  bannersDetail: initialEntity()
+  bannersDetail: initialEntity(),
+  faqsDetail: initialEntity()
 };
 
 const slice = createSlice({
@@ -134,6 +136,20 @@ const slice = createSlice({
     bannersRemoveFailure(state, action) {
       state.bannersDetail.loading = false;
       state.bannersDetail.error = action.payload;
+    },
+
+    faqsListRequest(state) {
+      state.faqs.loading = true;
+      state.faqs.error = null;
+    },
+    faqsListSuccess(state, action) {
+      state.faqs.loading = false;
+      state.faqs.rows = action.payload?.data || [];
+      state.faqs.meta = action.payload?.meta || state.faqs.meta;
+    },
+    faqsListFailure(state, action) {
+      state.faqs.loading = false;
+      state.faqs.error = action.payload;
     }
   }
 });

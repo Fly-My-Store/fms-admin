@@ -72,6 +72,16 @@ function* bannersUpdateWorker(action) {
   }
 }
 
+function* faqsListWorker(action) {
+  try {
+    const resp = yield call(api.listFaqs, action.payload?.params || {});
+    yield put(actions.faqsListSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Failed to load');
+    yield put(actions.faqsListFailure(msg));
+  }
+}
+
 export default function* contentSaga() {
   yield all([
     takeLatest(actions.reviewsListRequest.type, reviewsListWorker),
@@ -80,6 +90,7 @@ export default function* contentSaga() {
     takeLatest(actions.bannersListRequest.type, bannersListWorker),
     takeLatest(actions.bannersGetRequest.type, bannersGetWorker),
     takeLatest(actions.bannersCreateRequest.type, bannersCreateWorker),
-    takeLatest(actions.bannersUpdateRequest.type, bannersUpdateWorker)
+    takeLatest(actions.bannersUpdateRequest.type, bannersUpdateWorker),
+    takeLatest(actions.faqsListRequest.type, faqsListWorker)
   ]);
 }

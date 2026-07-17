@@ -11,3 +11,9 @@ export const getBanner = (id) => get(`admin/content/banners/${id}`);
 export const createBanner = (data) => post('admin/content/banners', data);
 export const updateBanner = (id, data) => patch(`admin/content/banners/${id}`, data);
 export const deleteBanner = (id) => del(`admin/content/banners/${id}`);
+
+export const listFaqs = (params) => get('admin/content/faqs', params);
+export const getFaq = (id) => get(`admin/content/faqs/${id}`);
+export const createFaq = (data) => post('admin/content/faqs', data);
+export const updateFaq = (id, data) => patch(`admin/content/faqs/${id}`, data);
+export const deleteFaq = (id) => del(`admin/content/faqs/${id}`);
