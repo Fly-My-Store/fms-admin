@@ -105,8 +105,6 @@ function Section({ title, defaultExpanded, children }) {
 export default function AdminDataGuideView() {
   return (
     <>
-      <Breadcrumbs />
-
       <MainCard border={false} boxShadow>
         <Stack spacing={2.5}>
           <Box>
