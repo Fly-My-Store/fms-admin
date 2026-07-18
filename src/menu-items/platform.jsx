@@ -26,7 +26,8 @@ import {
   LayoutOutlined,
   ControlOutlined,
   DeploymentUnitOutlined,
-  MobileOutlined
+  MobileOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 
 // ==============================|| ICON MAPPING ||============================== //
@@ -57,7 +58,8 @@ const icons = {
   ReloadOutlined,
   BellOutlined,
   DeploymentUnitOutlined,
-  MobileOutlined
+  MobileOutlined,
+  FileTextOutlined
 };
 
 // ==============================|| MENU ITEMS - FLY MY STORE (PLATFORM) ||============================== //
@@ -128,6 +130,13 @@ const platformMenuGroups = [
     type: 'group',
     title: 'catalog-setup',
     children: [
+      {
+        id: 'admin-data-guide',
+        title: 'admin-data-guide',
+        type: 'item',
+        url: '/admin-data-guide',
+        icon: icons.FileTextOutlined
+      },
       {
         id: 'attribute-defs',
         title: 'attribute-defs',
