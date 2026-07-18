@@ -33,7 +33,7 @@ const emptyForm = {
   logo_url: '',
   pan: '',
   gstin: '',
-  email: 'invoicing@flymystore.com',
+  email: 'contact@flymystore.com',
   address: '',
   pincode: '',
   state: '',
