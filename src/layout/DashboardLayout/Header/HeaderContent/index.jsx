@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
+import { useSelector } from 'react-redux';
 
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 
 // project imports
 import Search from './Search';
@@ -20,6 +22,7 @@ import DrawerHeader from 'layout/DashboardLayout/Drawer/DrawerHeader';
 
 export default function HeaderContent() {
   const { menuOrientation } = useConfig();
+  const isDemoAdmin = useSelector((s) => Boolean(s.auth?.user?.is_tester));
 
   const downLG = useMediaQuery((theme) => theme.breakpoints.down('lg'));
 
@@ -34,6 +37,19 @@ export default function HeaderContent() {
 
       {/* <Notification /> */}
       {/* <Message /> */}
+      {isDemoAdmin && (
+        <Chip
+          label="Demo admin"
+          size="small"
+          sx={{
+            mr: 1.5,
+            bgcolor: 'warning.light',
+            color: 'warning.dark',
+            fontWeight: 600,
+            pointerEvents: 'none'
+          }}
+        />
+      )}
       {!downLG && <FullScreen />}
       {!downLG && <Profile />}
       {downLG && <MobileSection />}

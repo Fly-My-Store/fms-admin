@@ -11,12 +11,24 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 import { CloseOutlined } from '@ant-design/icons';
 import { enqueueSnackbar } from 'notistack';
+import { useSelector } from 'react-redux';
 import { createUser, updateUser } from 'api/iam';
 
 export default function UserFormDialog({ open, onClose, initialData = null, onSaved }) {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', status: 1 });
+  const actorIsTester = useSelector((s) => Boolean(s.auth?.user?.is_tester));
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    status: 1,
+    is_tester: false,
+    tester_otp: ''
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -26,12 +38,22 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         email: initialData.email || '',
         phone: initialData.phone || '',
         password: '',
-        status: initialData.status ?? 1
+        status: initialData.status ?? 1,
+        is_tester: Boolean(initialData.is_tester),
+        tester_otp: ''
       });
     } else {
-      setForm({ name: '', email: '', phone: '', password: '', status: 1 });
+      setForm({
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        status: 1,
+        is_tester: actorIsTester,
+        tester_otp: ''
+      });
     }
-  }, [initialData, open]);
+  }, [initialData, open, actorIsTester]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,9 +68,11 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         email: form.email.trim().toLowerCase(),
         phone: form.phone.trim() || undefined,
         status: Number(form.status),
-        type: 'ADMIN'
+        type: 'ADMIN',
+        is_tester: Boolean(form.is_tester)
       };
       if (form.password) payload.password = form.password;
+      if (form.tester_otp.trim()) payload.tester_otp = form.tester_otp.trim();
 
       if (initialData?.id) {
         await updateUser(initialData.id, payload);
@@ -104,6 +128,30 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
               fullWidth
             />
           </Stack>
+          {!actorIsTester && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(form.is_tester)}
+                  onChange={(e) => setForm((prev) => ({ ...prev, is_tester: e.target.checked }))}
+                />
+              }
+              label="Demo admin (is_tester)"
+            />
+          )}
+          {form.is_tester && (
+            <Stack sx={{ gap: 1 }}>
+              <InputLabel>Tester OTP (optional; blank keeps default 000000)</InputLabel>
+              <TextField
+                id="tester_otp"
+                name="tester_otp"
+                value={form.tester_otp}
+                onChange={handleChange}
+                placeholder="000000"
+                fullWidth
+              />
+            </Stack>
+          )}
         </Stack>
       </DialogContent>
       <DialogActions>
