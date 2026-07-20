@@ -1,11 +1,7 @@
-// project import
-import GuestGuard from 'utils/route-guard/GuestGuard';
-import Login from 'views/auth/login';
+import { redirect } from 'next/navigation';
+import { ROUTES } from 'utils/constants';
 
+/** Home → login. Avoids duplicate GuestGuard+Login on `/` (also helps after stale CDN/nginx HTML cache). */
 export default function HomePage() {
-  return (
-    <GuestGuard>
-      <Login />
-    </GuestGuard>
-  );
+  redirect(ROUTES.LOGIN);
 }
