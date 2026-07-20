@@ -2,6 +2,10 @@ const nextConfig = {
   // todo: this need to set to true or remove it as default is true. set false as chart was giving error when first render
   // https://github.com/apexcharts/apexcharts.js/issues/3652
   reactStrictMode: false,
+  // Server deploys use `npm install --omit=dev` (no eslint). Lint locally / in CI instead.
+  eslint: {
+    ignoreDuringBuilds: true
+  },
   modularizeImports: {
     '@mui/material': {
       transform: '@mui/material/{{member}}'

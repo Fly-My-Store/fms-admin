@@ -13,3 +13,8 @@ export const getFareGatewayRule = (id) => get(`admin/fare-gateway/${id}`);
 export const createFareGatewayRule = (data) => post('admin/fare-gateway', data);
 export const cloneFareGatewayRule = (id, data) => post(`admin/fare-gateway/${id}/clone`, data);
 export const deactivateFareGatewayRule = (id) => patch(`admin/fare-gateway/${id}/deactivate`);
+
+// Manual payouts (admin/payouts)
+export const listPayouts = (params) => get('admin/payouts', params);
+export const getPayoutSummary = (params) => get('admin/payouts/summary', params);
+export const createPayout = (data) => post('admin/payouts', data);
