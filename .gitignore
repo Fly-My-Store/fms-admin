@@ -10,7 +10,9 @@
 !.yarn/sdks
 !.yarn/versions
 .env
-.env*
+.env.*
+!.env.example
+envs/*.env
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 build

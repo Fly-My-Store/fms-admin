@@ -72,6 +72,8 @@ fi
 if [ "$SKIP_BUILD" = "1" ]; then
   log "skip next build"
 else
+  log "clean .next (avoid stale chunk hashes after deploy)"
+  rm -rf .next
   log "npm run build"
   npm run build
 fi

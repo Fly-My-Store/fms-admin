@@ -24,8 +24,8 @@ export default function AuthGuard({ children }) {
   // Show loader until we know auth state
   if (!isLoaded) return <Loader />;
 
-  // If logged out, render nothing (router will redirect)
-  if (!isLoggedIn || !token) return null;
+  // If logged out, keep loader visible until redirect completes (null = black screen)
+  if (!isLoggedIn || !token) return <Loader />;
 
   return children;
 }

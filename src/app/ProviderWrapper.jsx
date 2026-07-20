@@ -14,6 +14,7 @@ import Notistack from 'components/third-party/Notistack';
 
 import { ConfigProvider } from 'contexts/ConfigContext';
 import HydrateAuth from './HydrateAuth';
+import ChunkLoadRecovery from 'components/ChunkLoadRecovery';
 
 // ==============================|| APP - THEME, ROUTER, LOCAL ||============================== //
 
@@ -28,6 +29,7 @@ export default function ProviderWrapper({ children }) {
             <ScrollTop>
               <Provider store={store}>
                 <HydrateAuth />
+                <ChunkLoadRecovery />
                 <Notistack>
                   <Snackbar />
                   {children}

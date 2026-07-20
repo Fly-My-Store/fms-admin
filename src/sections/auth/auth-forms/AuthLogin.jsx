@@ -1,5 +1,5 @@
 'use client';
-import PropTypes from 'prop-types';
+
 import React, { useState } from 'react';
 
 // next
@@ -31,7 +31,6 @@ import { Formik } from 'formik';
 
 // custom components
 import IconButton from 'components/@extended/IconButton';
-import AnimateButton from 'components/@extended/AnimateButton';
 
 // config
 import { APP_DEFAULT_PATH } from 'config';
@@ -188,11 +187,9 @@ export default function AuthLogin({ }) {
                 </Grid>
               )}
               <Grid size={12}>
-                <AnimateButton>
-                  <Button disableElevation disabled={isSubmitting} fullWidth size="large" type="submit" variant="contained" color="primary">
-                    Login
-                  </Button>
-                </AnimateButton>
+                <Button disableElevation disabled={isSubmitting} fullWidth size="large" type="submit" variant="contained" color="primary">
+                  Login
+                </Button>
               </Grid>
             </Grid>
           </form>
@@ -201,5 +198,3 @@ export default function AuthLogin({ }) {
     </>
   );
 }
-
-AuthLogin.propTypes = { providers: PropTypes.any, csrfToken: PropTypes.any };

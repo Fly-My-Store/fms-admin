@@ -22,8 +22,8 @@ export default function GuestGuard({ children }) {
   // Show loader until auth state is known to avoid flicker
   if (!isLoaded) return <Loader />;
 
-  // If logged in, we're navigating away; render nothing
-  if (isLoggedIn && token) return null;
+  // If logged in, keep a visible loader until redirect completes (null = black screen)
+  if (isLoggedIn && token) return <Loader />;
 
   // Otherwise, allow access to guest page
   return children;
