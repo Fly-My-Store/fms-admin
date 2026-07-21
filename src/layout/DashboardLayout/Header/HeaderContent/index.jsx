@@ -17,6 +17,7 @@ import MobileSection from './MobileSection';
 import useConfig from 'hooks/useConfig';
 import { MenuOrientation } from 'config';
 import DrawerHeader from 'layout/DashboardLayout/Drawer/DrawerHeader';
+import { Typography } from '@mui/material';
 
 // ==============================|| HEADER - CONTENT ||============================== //
 
@@ -31,25 +32,17 @@ export default function HeaderContent() {
   return (
     <>
       {menuOrientation === MenuOrientation.HORIZONTAL && !downLG && <DrawerHeader open={true} />}
-      {!downLG && <Search />}
-      {/* {!downLG && localization} */}
+      {false && <Search />}
+      {false && !downLG && localization}
       {downLG && <Box sx={{ width: '100%', ml: 1 }} />}
 
-      {/* <Notification /> */}
-      {/* <Message /> */}
-      {isDemoAdmin && (
-        <Chip
-          label="Demo admin"
-          size="small"
-          sx={{
-            mr: 1.5,
-            bgcolor: 'warning.light',
-            color: 'warning.dark',
-            fontWeight: 600,
-            pointerEvents: 'none'
-          }}
-        />
-      )}
+      {false && <Notification />}
+      {false && <Message />} 
+      {isDemoAdmin ? (
+        <Typography variant="body" color="white" sx={{ width: '100%', textAlign: 'center' }}>
+          Demo admin mode — changes apply to demo data only.
+        </Typography>
+      ):<Box sx={{ width: '100%'}} />}
       {!downLG && <FullScreen />}
       {!downLG && <Profile />}
       {downLG && <MobileSection />}

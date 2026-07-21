@@ -17,10 +17,13 @@ import { MenuOrientation, DRAWER_WIDTH, MINI_DRAWER_WIDTH } from 'config';
 // assets
 import MenuFoldOutlined from '@ant-design/icons/MenuFoldOutlined';
 import MenuUnfoldOutlined from '@ant-design/icons/MenuUnfoldOutlined';
+import { useSelector } from 'react-redux';
 
 // ==============================|| MAIN LAYOUT - HEADER ||============================== //
 
 export default function Header() {
+  const isDemoAdmin = useSelector((s) => Boolean(s.auth?.user?.is_tester));
+
   const downLG = useMediaQuery((theme) => theme.breakpoints.down('lg'));
   const { menuOrientation } = useConfig();
 
@@ -34,7 +37,11 @@ export default function Header() {
 
   // common header
   const mainHeader = (
-    <Toolbar>
+    <Toolbar
+      sx={{
+        backgroundColor: isDemoAdmin ? 'success.light' : 'transparent',
+      }}
+    >
       {!isHorizontal ? (
         <IconButton
           aria-label="open drawer"

@@ -43,7 +43,7 @@ export default function CustomerEditView() {
   });
 
   const breadcrumb = {
-    heading: 'Manage customer account',
+    heading: 'manage-customer-account',
     links: [
       { title: 'home', to: '/dashboard' },
       { title: 'customers', to: '/customers' },
