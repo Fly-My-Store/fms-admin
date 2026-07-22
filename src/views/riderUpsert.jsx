@@ -24,14 +24,25 @@ import Breadcrumbs from 'components/@extended/Breadcrumbs';
 
 import { actions as logistics } from 'store/logistics/slice';
 import { createRider, updateRider } from 'api/logistics';
+import { ACCOUNT_STATUS } from 'utils/constants';
 
 const KYC_STATUSES = ['PENDING', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'RESUBMIT'];
 const AVAILABILITY_STATUSES = ['OFFLINE', 'IDLE', 'ASSIGNED', 'ON_TRIP'];
 const VEHICLE_TYPES = ['BIKE', 'SCOOTER', 'CAR', 'CYCLE'];
+const USER_STATUS_OPTIONS = [
+  { value: ACCOUNT_STATUS.ACTIVE, label: 'Active' },
+  { value: ACCOUNT_STATUS.INACTIVE, label: 'Inactive' },
+  { value: ACCOUNT_STATUS.SUSPENDED, label: 'Suspended' },
+  { value: ACCOUNT_STATUS.DELETED, label: 'Deleted' }
+];
 
 const EMPTY = {
   id: '',
   user_id: '',
+  name: '',
+  email: '',
+  phone: '',
+  country_code: '+91',
   vehicle_type: '',
   vehicle_number: '',
   dl_number: '',
@@ -45,7 +56,7 @@ const EMPTY = {
   payout_account: '',
   documents: '',
   screen_guard_eligible: false,
-  status: 1,
+  status: ACCOUNT_STATUS.INACTIVE,
   is_tester: false,
   tester_otp: ''
 };
@@ -95,7 +106,11 @@ export default function RiderUpsertView() {
     const user = rider.user || rider.User || {};
     setForm({
       id: rider.id || '',
-      user_id: rider.user_id || '',
+      user_id: rider.user_id || user.id || '',
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      country_code: user.country_code || '+91',
       vehicle_type: rider.vehicle_type || '',
       vehicle_number: rider.vehicle_number || '',
       dl_number: rider.dl_number || '',
@@ -109,7 +124,7 @@ export default function RiderUpsertView() {
       payout_account: rider.payout_account ? JSON.stringify(rider.payout_account, null, 2) : '',
       documents: rider.documents ? JSON.stringify(rider.documents, null, 2) : '',
       screen_guard_eligible: Boolean(rider.screen_guard_eligible),
-      status: rider.status ?? 1,
+      status: user.status ?? ACCOUNT_STATUS.INACTIVE,
       is_tester: Boolean(user.is_tester),
       tester_otp: ''
     });
@@ -132,7 +147,8 @@ export default function RiderUpsertView() {
 
   const validateForm = () => {
     const e = {};
-    if (!form.user_id) e.user_id = 'User ID is required';
+    if (!String(form.name || '').trim()) e.name = 'Name is required';
+    if (!String(form.phone || '').trim()) e.phone = 'Phone is required';
     if (!form.vehicle_type) e.vehicle_type = 'Vehicle type is required';
     if (!form.availability_status) e.availability_status = 'Availability status is required';
     const radius = toNumberOrNull(form.service_radius_km);
@@ -143,7 +159,6 @@ export default function RiderUpsertView() {
       e.kyc_reason = 'Reason is required for this KYC status';
     }
 
-    // JSON fields validation
     ['working_hours', 'payout_account', 'documents'].forEach((field) => {
       const raw = form[field];
       if (!raw) return;
@@ -166,8 +181,15 @@ export default function RiderUpsertView() {
         return;
       }
 
+      const userPayload = {
+        name: String(form.name).trim(),
+        email: form.email ? String(form.email).trim() : null,
+        phone: String(form.phone).trim(),
+        country_code: form.country_code || '+91',
+        status: Number(form.status)
+      };
+
       const payload = {
-        user_id: form.user_id,
         vehicle_type: form.vehicle_type,
         vehicle_number: form.vehicle_number || null,
         dl_number: form.dl_number || null,
@@ -177,14 +199,8 @@ export default function RiderUpsertView() {
         availability_status: form.availability_status,
         service_radius_km: toNumberOrNull(form.service_radius_km),
         capacity_kg: toNumberOrNull(form.capacity_kg),
-        screen_guard_eligible: Boolean(form.screen_guard_eligible),
-        status: form.status
+        screen_guard_eligible: Boolean(form.screen_guard_eligible)
       };
-
-      if (!actorIsTester) {
-        payload.is_tester = Boolean(form.is_tester);
-        if (form.tester_otp.trim()) payload.tester_otp = form.tester_otp.trim();
-      }
 
       ['working_hours', 'payout_account', 'documents'].forEach((field) => {
         const raw = form[field];
@@ -197,9 +213,15 @@ export default function RiderUpsertView() {
       });
 
       if (isEdit) {
+        payload.user = userPayload;
+        if (!actorIsTester) {
+          payload.is_tester = Boolean(form.is_tester);
+          if (form.tester_otp.trim()) payload.tester_otp = form.tester_otp.trim();
+        }
         await updateRider(id, payload);
         enqueueSnackbar('Rider updated', { variant: 'success' });
       } else {
+        payload.user = userPayload;
         await createRider(payload);
         enqueueSnackbar('Rider created', { variant: 'success' });
       }
@@ -219,22 +241,73 @@ export default function RiderUpsertView() {
           {detail.error && <Alert severity="error">{detail.error}</Alert>}
 
           <Typography variant="h6">User</Typography>
-          {isEdit && <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>User ID *</InputLabel>
+              <InputLabel required>Name *</InputLabel>
               <TextField
                 size="small"
-                value={form.user_id}
-                onChange={(e) => handleField('user_id', e.target.value)}
-                error={!!errors.user_id}
-                helperText={errors.user_id || ''}
-                placeholder="User UUID"
-                disabled={isEdit}
+                value={form.name}
+                onChange={(e) => handleField('name', e.target.value)}
+                error={!!errors.name}
+                helperText={errors.name || ''}
               />
             </Stack>
-          </Stack>}
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel>Email</InputLabel>
+              <TextField
+                size="small"
+                type="email"
+                value={form.email}
+                onChange={(e) => handleField('email', e.target.value)}
+                error={!!errors.email}
+                helperText={errors.email || ''}
+              />
+            </Stack>
+          </Stack>
 
-          {isEdit && <Divider />}
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel>Country Code</InputLabel>
+              <TextField
+                size="small"
+                value={form.country_code}
+                onChange={(e) => handleField('country_code', e.target.value)}
+              />
+            </Stack>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel required>Phone *</InputLabel>
+              <TextField
+                size="small"
+                value={form.phone}
+                onChange={(e) => handleField('phone', e.target.value)}
+                error={!!errors.phone}
+                helperText={errors.phone || ''}
+              />
+            </Stack>
+            <Stack sx={{ gap: 1, flex: 1 }}>
+              <InputLabel>Account Status</InputLabel>
+              <TextField
+                select
+                size="small"
+                value={form.status}
+                onChange={(e) => handleField('status', Number(e.target.value))}
+              >
+                {USER_STATUS_OPTIONS.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+          </Stack>
+
+          {isEdit && form.user_id ? (
+            <Typography variant="caption" color="text.secondary">
+              User ID: {form.user_id}
+            </Typography>
+          ) : null}
+
+          <Divider />
 
           <Typography variant="h6">Vehicle</Typography>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -392,7 +465,7 @@ export default function RiderUpsertView() {
                     onChange={(e) => handleField('is_tester', e.target.checked)}
                   />
                 }
-                label="Tester / demo rider (is_tester)"
+                label="Mark as tester rider"
               />
               {form.is_tester && (
                 <Stack sx={{ gap: 1, maxWidth: 360 }}>
@@ -420,4 +493,3 @@ export default function RiderUpsertView() {
     </>
   );
 }
-

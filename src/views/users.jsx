@@ -9,7 +9,7 @@ import UserFormDialog from 'sections/users/UserFormDialog';
 import { ACCOUNT_STATUS } from 'utils/constants';
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'All' },
+  { value: 'all', label: 'All' },
   { value: String(ACCOUNT_STATUS.ACTIVE), label: 'Active' },
   { value: String(ACCOUNT_STATUS.INACTIVE), label: 'Inactive' },
   { value: String(ACCOUNT_STATUS.SUSPENDED), label: 'Suspended' },
@@ -17,7 +17,7 @@ const STATUS_OPTIONS = [
 ];
 
 const TESTER_FILTER_OPTIONS = [
-  { value: '', label: 'Live' },
+  { value: 'false', label: 'Live' },
   { value: 'true', label: 'Testers' },
   { value: 'all', label: 'All' }
 ];
@@ -27,13 +27,13 @@ export default function UsersView() {
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ q: '', status: '', is_tester: '' });
+  const [filters, setFilters] = useState({ q: '', status: 'all', is_tester: 'false' });
 
   const listParams = {
     type: 'ADMIN',
     ...(filters.q ? { q: filters.q } : {}),
-    ...(filters.status ? { status: filters.status } : {}),
-    ...(!actorIsTester && filters.is_tester ? { is_tester: filters.is_tester } : {})
+    ...(filters.status && filters.status !== 'all' ? { status: filters.status } : {}),
+    ...(!actorIsTester ? { is_tester: filters.is_tester || 'false' } : {})
   };
 
   const { rows, pageIndex, pageSize, totalPages, load, handlePaginationChange } = useAxiosPaginatedList(
@@ -79,7 +79,7 @@ export default function UsersView() {
           sx={{ minWidth: 140 }}
         >
           {STATUS_OPTIONS.map((o) => (
-            <MenuItem key={o.value || 'all'} value={o.value}>
+            <MenuItem key={o.value} value={o.value}>
               {o.label}
             </MenuItem>
           ))}
@@ -94,7 +94,7 @@ export default function UsersView() {
             sx={{ minWidth: 120 }}
           >
             {TESTER_FILTER_OPTIONS.map((o) => (
-              <MenuItem key={o.value || 'live'} value={o.value}>
+              <MenuItem key={o.value} value={o.value}>
                 {o.label}
               </MenuItem>
             ))}

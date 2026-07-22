@@ -10,22 +10,25 @@ import SellersTableSection from 'sections/sellers/SellersTableSection';
 import SellersFormDialog from 'sections/sellers/SellersFormDialog';
 import { KYC_STATUS, RECORD_STATUS } from 'utils/constants';
 
-const KYC_OPTIONS = ['', ...Object.values(KYC_STATUS)];
+const KYC_OPTIONS = [
+  { value: 'all', label: 'All' },
+  ...Object.values(KYC_STATUS).map((s) => ({ value: s, label: s }))
+];
 const KYB_OPTIONS = [
-  { value: '', label: 'All' },
+  { value: 'all', label: 'All' },
   { value: 'NONE', label: 'None' },
   { value: 'PENDING', label: 'Pending' },
   { value: 'APPROVED', label: 'Approved' },
   { value: 'REJECTED', label: 'Rejected' }
 ];
 const RECORD_STATUS_OPTIONS = [
-  { value: '', label: 'All' },
+  { value: 'all', label: 'All' },
   { value: String(RECORD_STATUS.ACTIVE), label: 'Active' },
   { value: String(RECORD_STATUS.INACTIVE), label: 'Inactive' },
   { value: String(RECORD_STATUS.ARCHIVED), label: 'Archived' }
 ];
 const TESTER_FILTER_OPTIONS = [
-  { value: '', label: 'Live' },
+  { value: 'false', label: 'Live' },
   { value: 'true', label: 'Testers' },
   { value: 'all', label: 'All' }
 ];
@@ -51,21 +54,26 @@ export function SellersView() {
   const [selected, setSelected] = useState(null);
   const [filters, setFilters] = useState({
     q: '',
-    kyc_status: '',
-    kyb_status: '',
-    record_status: '',
-    is_tester: ''
+    kyc_status: 'all',
+    kyb_status: 'all',
+    record_status: 'all',
+    is_tester: 'false'
   });
 
-  const buildParams = (pageNum = page, limit = pageSize, f = filters) => ({
-    page: pageNum,
-    limit,
-    ...(f.q ? { q: f.q } : {}),
-    ...(f.kyc_status ? { kyc_status: f.kyc_status } : {}),
-    ...(f.kyb_status ? { kyb_status: f.kyb_status } : {}),
-    ...(f.record_status ? { record_status: f.record_status } : {}),
-    ...(!actorIsTester && f.is_tester ? { is_tester: f.is_tester } : {})
-  });
+  const buildParams = (pageNum = page, limit = pageSize, f = filters) => {
+    const params = {
+      page: pageNum,
+      limit,
+      ...(f.q ? { q: f.q } : {}),
+      ...(f.kyc_status && f.kyc_status !== 'all' ? { kyc_status: f.kyc_status } : {}),
+      ...(f.kyb_status && f.kyb_status !== 'all' ? { kyb_status: f.kyb_status } : {}),
+      ...(f.record_status && f.record_status !== 'all' ? { record_status: f.record_status } : {})
+    };
+    if (!actorIsTester) {
+      params.is_tester = f.is_tester || 'false';
+    }
+    return params;
+  };
 
   useEffect(() => {
     dispatch(sellersStores.sellersListRequest({ params: buildParams(1, pageSize) }));
@@ -132,9 +140,9 @@ export function SellersView() {
           onChange={(e) => setFilters((p) => ({ ...p, kyc_status: e.target.value }))}
           sx={{ minWidth: 140 }}
         >
-          {KYC_OPTIONS.map((s) => (
-            <MenuItem key={s || 'all'} value={s}>
-              {s ? KYC_LABELS[s] || s : 'All'}
+          {KYC_OPTIONS.map((o) => (
+            <MenuItem key={o.value} value={o.value}>
+              {o.value === 'all' ? 'All' : KYC_LABELS[o.value] || o.label}
             </MenuItem>
           ))}
         </TextField>
@@ -147,7 +155,7 @@ export function SellersView() {
           sx={{ minWidth: 140 }}
         >
           {KYB_OPTIONS.map((o) => (
-            <MenuItem key={o.value || 'all'} value={o.value}>
+            <MenuItem key={o.value} value={o.value}>
               {o.label}
             </MenuItem>
           ))}
@@ -161,7 +169,7 @@ export function SellersView() {
           sx={{ minWidth: 140 }}
         >
           {RECORD_STATUS_OPTIONS.map((o) => (
-            <MenuItem key={o.value || 'all'} value={o.value}>
+            <MenuItem key={o.value} value={o.value}>
               {o.label}
             </MenuItem>
           ))}
@@ -176,7 +184,7 @@ export function SellersView() {
             sx={{ minWidth: 120 }}
           >
             {TESTER_FILTER_OPTIONS.map((o) => (
-              <MenuItem key={o.value || 'live'} value={o.value}>
+              <MenuItem key={o.value} value={o.value}>
                 {o.label}
               </MenuItem>
             ))}
