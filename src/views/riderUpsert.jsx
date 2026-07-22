@@ -45,7 +45,9 @@ const EMPTY = {
   payout_account: '',
   documents: '',
   screen_guard_eligible: false,
-  status: 1
+  status: 1,
+  is_tester: false,
+  tester_otp: ''
 };
 
 function toNumberOrNull(v) {
@@ -60,6 +62,7 @@ export default function RiderUpsertView() {
   const dispatch = useDispatch();
 
   const { ridersDetail } = useSelector((s) => s.logistics || {});
+  const actorIsTester = useSelector((s) => Boolean(s.auth?.user?.is_tester));
   const detail = ridersDetail || { data: null, loading: false, error: null };
   const data = detail.data;
 
@@ -89,6 +92,7 @@ export default function RiderUpsertView() {
   useEffect(() => {
     if (!isEdit || !data) return;
     const rider = data;
+    const user = rider.user || rider.User || {};
     setForm({
       id: rider.id || '',
       user_id: rider.user_id || '',
@@ -105,7 +109,9 @@ export default function RiderUpsertView() {
       payout_account: rider.payout_account ? JSON.stringify(rider.payout_account, null, 2) : '',
       documents: rider.documents ? JSON.stringify(rider.documents, null, 2) : '',
       screen_guard_eligible: Boolean(rider.screen_guard_eligible),
-      status: rider.status ?? 1
+      status: rider.status ?? 1,
+      is_tester: Boolean(user.is_tester),
+      tester_otp: ''
     });
   }, [data, isEdit]);
 
@@ -174,6 +180,11 @@ export default function RiderUpsertView() {
         screen_guard_eligible: Boolean(form.screen_guard_eligible),
         status: form.status
       };
+
+      if (!actorIsTester) {
+        payload.is_tester = Boolean(form.is_tester);
+        if (form.tester_otp.trim()) payload.tester_otp = form.tester_otp.trim();
+      }
 
       ['working_hours', 'payout_account', 'documents'].forEach((field) => {
         const raw = form[field];
@@ -369,6 +380,33 @@ export default function RiderUpsertView() {
             }
             label="Screen guard delivery eligible"
           />
+
+          {isEdit && !actorIsTester && (
+            <>
+              <Divider />
+              <Typography variant="h6">Tester</Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(form.is_tester)}
+                    onChange={(e) => handleField('is_tester', e.target.checked)}
+                  />
+                }
+                label="Tester / demo rider (is_tester)"
+              />
+              {form.is_tester && (
+                <Stack sx={{ gap: 1, maxWidth: 360 }}>
+                  <InputLabel>Tester OTP (optional)</InputLabel>
+                  <TextField
+                    size="small"
+                    value={form.tester_otp}
+                    onChange={(e) => handleField('tester_otp', e.target.value)}
+                    placeholder="Leave blank to keep current / default"
+                  />
+                </Stack>
+              )}
+            </>
+          )}
           <Divider />
 
           <Stack direction="row" justifyContent="flex-end" spacing={2}>

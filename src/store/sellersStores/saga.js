@@ -26,6 +26,7 @@ function* sellersCreateWorker(action) {
   try {
     const resp = yield call(api.createSeller, action.payload?.params);
     yield put(actions.sellersCreateSuccess(resp));
+    yield put(actions.sellersListRequest({ params: { page: 1, limit: 20 } }));
   } catch (err) {
     const msg = getErrorMessage(err, 'Create failed');
     yield put(actions.sellersCreateFailure(msg));
@@ -36,6 +37,7 @@ function* sellersUpdateWorker(action) {
     const { id, data } = action.payload?.params || {};
     const resp = yield call(api.updateSeller, id, data);
     yield put(actions.sellersUpdateSuccess(resp));
+    yield put(actions.sellersListRequest({ params: { page: 1, limit: 20 } }));
   } catch (err) {
     const msg = getErrorMessage(err, 'Update failed');
     yield put(actions.sellersUpdateFailure(msg));

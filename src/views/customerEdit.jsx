@@ -3,13 +3,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { enqueueSnackbar } from 'notistack';
+import { useSelector } from 'react-redux';
 import {
   Alert,
   Button,
+  FormControlLabel,
   InputLabel,
   LinearProgress,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography
 } from '@mui/material';
@@ -30,6 +33,7 @@ const needsReason = (status) =>
 export default function CustomerEditView() {
   const { id } = useParams();
   const router = useRouter();
+  const actorIsTester = useSelector((s) => Boolean(s.auth?.user?.is_tester));
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,7 +43,9 @@ export default function CustomerEditView() {
     phone: '',
     email: '',
     status: TABLE_STATUS.ACTIVE,
-    status_reason: ''
+    status_reason: '',
+    is_tester: false,
+    tester_otp: ''
   });
 
   const breadcrumb = {
@@ -68,7 +74,9 @@ export default function CustomerEditView() {
             phone: user?.phone || '',
             email: user?.email || '',
             status: user?.status ?? TABLE_STATUS.ACTIVE,
-            status_reason: user?.status_reason || ''
+            status_reason: user?.status_reason || '',
+            is_tester: Boolean(user?.is_tester),
+            tester_otp: ''
           });
         }
       } catch (e) {
@@ -101,8 +109,12 @@ export default function CustomerEditView() {
       if (needsReason(status)) {
         payload.status_reason = form.status_reason.trim();
       }
+      if (!actorIsTester) {
+        payload.is_tester = Boolean(form.is_tester);
+        if (form.tester_otp.trim()) payload.tester_otp = form.tester_otp.trim();
+      }
       await updateUser(id, payload);
-      enqueueSnackbar('Account status updated', { variant: 'success' });
+      enqueueSnackbar('Account updated', { variant: 'success' });
       router.push(`/customers/${id}`);
     } catch (e) {
       const msg =
@@ -129,7 +141,8 @@ export default function CustomerEditView() {
         <Stack spacing={2.5} sx={{ maxWidth: 560 }}>
           <Typography variant="h5">Manage customer account</Typography>
           <Typography variant="body2" color="text.secondary">
-            Customer identity (name, email, phone) cannot be changed here. Update account status to restrict or block access.
+            Customer identity (name, email, phone) cannot be changed here. Update account status to restrict or block
+            access.
           </Typography>
 
           <Stack sx={{ gap: 1 }}>
@@ -165,9 +178,7 @@ export default function CustomerEditView() {
           </Stack>
 
           <Stack sx={{ gap: 1 }}>
-            <InputLabel>
-              {reasonRequired ? 'Reason (required)' : 'Reason'}
-            </InputLabel>
+            <InputLabel>{reasonRequired ? 'Reason (required)' : 'Reason'}</InputLabel>
             <TextField
               size="small"
               value={form.status_reason}
@@ -189,12 +200,38 @@ export default function CustomerEditView() {
             />
           </Stack>
 
+          {!actorIsTester && (
+            <>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(form.is_tester)}
+                    onChange={(e) => handleField('is_tester', e.target.checked)}
+                  />
+                }
+                label="Tester / demo account (is_tester)"
+              />
+              {form.is_tester && (
+                <Stack sx={{ gap: 1 }}>
+                  <InputLabel>Tester OTP (optional)</InputLabel>
+                  <TextField
+                    size="small"
+                    value={form.tester_otp}
+                    onChange={(e) => handleField('tester_otp', e.target.value)}
+                    placeholder="Leave blank to keep current / default"
+                    fullWidth
+                  />
+                </Stack>
+              )}
+            </>
+          )}
+
           <Stack direction="row" justifyContent="flex-end" spacing={2}>
             <Button onClick={() => router.push(`/customers/${id}`)} disabled={saving}>
               Cancel
             </Button>
             <Button variant="contained" onClick={handleSubmit} disabled={saving || loading}>
-              {saving ? 'Saving…' : 'Update status'}
+              {saving ? 'Saving…' : 'Save'}
             </Button>
           </Stack>
         </Stack>

@@ -18,6 +18,11 @@ const STATUS_OPTIONS = [
   { value: String(TABLE_STATUS.SUSPENDED), label: 'Suspended' },
   { value: String(TABLE_STATUS.DELETED), label: 'Deleted' }
 ];
+const TESTER_FILTER_OPTIONS = [
+  { value: '', label: 'Live' },
+  { value: 'true', label: 'Testers' },
+  { value: 'all', label: 'All' }
+];
 
 const KYC_LABELS = {
   PENDING: 'Pending',
@@ -37,6 +42,7 @@ const AVAILABILITY_LABELS = {
 export function RidersView() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const actorIsTester = useSelector((s) => Boolean(s.auth?.user?.is_tester));
   const state = useSelector((s) => s.logistics || {});
   const list = state.riders || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
   const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
@@ -46,7 +52,8 @@ export function RidersView() {
     q: '',
     kyc_status: '',
     availability_status: '',
-    record_status: ''
+    record_status: '',
+    is_tester: ''
   });
 
   const buildParams = (pageNum = page, limit = pageSize) => ({
@@ -55,13 +62,14 @@ export function RidersView() {
     ...(filters.q ? { q: filters.q } : {}),
     ...(filters.kyc_status ? { kyc_status: filters.kyc_status } : {}),
     ...(filters.availability_status ? { availability_status: filters.availability_status } : {}),
-    ...(filters.record_status ? { record_status: filters.record_status } : {})
+    ...(filters.record_status ? { record_status: filters.record_status } : {}),
+    ...(!actorIsTester && filters.is_tester ? { is_tester: filters.is_tester } : {})
   });
 
   useEffect(() => {
     dispatch(logistics.ridersListRequest({ params: buildParams(1, pageSize) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on filter dropdowns; search uses Search button
-  }, [dispatch, filters.kyc_status, filters.availability_status, filters.record_status]);
+  }, [dispatch, filters.kyc_status, filters.availability_status, filters.record_status, filters.is_tester, actorIsTester]);
 
   const handleSearch = () => {
     const next = { ...filters, q: searchQuery.trim() };
@@ -74,7 +82,8 @@ export function RidersView() {
           ...(next.q ? { q: next.q } : {}),
           ...(next.kyc_status ? { kyc_status: next.kyc_status } : {}),
           ...(next.availability_status ? { availability_status: next.availability_status } : {}),
-          ...(next.record_status ? { record_status: next.record_status } : {})
+          ...(next.record_status ? { record_status: next.record_status } : {}),
+          ...(!actorIsTester && next.is_tester ? { is_tester: next.is_tester } : {})
         }
       })
     );
@@ -167,6 +176,22 @@ export function RidersView() {
             </MenuItem>
           ))}
         </TextField>
+        {!actorIsTester && (
+          <TextField
+            select
+            size="small"
+            label="Scope"
+            value={filters.is_tester}
+            onChange={(e) => updateFilter('is_tester', e.target.value)}
+            sx={{ minWidth: 120 }}
+          >
+            {TESTER_FILTER_OPTIONS.map((o) => (
+              <MenuItem key={o.value || 'live'} value={o.value}>
+                {o.label}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
         <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
           Search
         </Button>

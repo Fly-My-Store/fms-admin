@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import CustomersTableSection from 'sections/customers/CustomersTableSection';
 import useAxiosPaginatedList from 'hooks/useAxiosPaginatedList';
@@ -15,15 +16,23 @@ const STATUS_OPTIONS = [
   { value: String(ACCOUNT_STATUS.DELETED), label: 'Deleted' }
 ];
 
+const TESTER_FILTER_OPTIONS = [
+  { value: '', label: 'Live' },
+  { value: 'true', label: 'Testers' },
+  { value: 'all', label: 'All' }
+];
+
 export default function CustomersView() {
   const router = useRouter();
+  const actorIsTester = useSelector((s) => Boolean(s.auth?.user?.is_tester));
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ q: '', status: '' });
+  const [filters, setFilters] = useState({ q: '', status: '', is_tester: '' });
 
   const listParams = {
     type: 'CUSTOMER',
     ...(filters.q ? { q: filters.q } : {}),
-    ...(filters.status ? { status: filters.status } : {})
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(!actorIsTester && filters.is_tester ? { is_tester: filters.is_tester } : {})
   };
 
   const { rows, pageIndex, pageSize, totalPages, handlePaginationChange } = useAxiosPaginatedList(
@@ -71,6 +80,22 @@ export default function CustomersView() {
             </MenuItem>
           ))}
         </TextField>
+        {!actorIsTester && (
+          <TextField
+            select
+            size="small"
+            label="Scope"
+            value={filters.is_tester}
+            onChange={(e) => setFilters((p) => ({ ...p, is_tester: e.target.value }))}
+            sx={{ minWidth: 120 }}
+          >
+            {TESTER_FILTER_OPTIONS.map((o) => (
+              <MenuItem key={o.value || 'live'} value={o.value}>
+                {o.label}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
         <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
           Search
         </Button>
