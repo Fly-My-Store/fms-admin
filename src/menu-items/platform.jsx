@@ -195,16 +195,6 @@ const platformMenuGroups = [
       { id: 'banners', title: 'banners', type: 'item', url: '/banners', icon: icons.PictureOutlined, perm: 'banner', action: 'read' },
       { id: 'faqs', title: 'faqs', type: 'item', url: '/faqs', icon: icons.ProfileOutlined },
       {
-        id: 'pincodes',
-        title: 'pincodes',
-        type: 'item',
-        url: '/pincodes',
-        icon: icons.EnvironmentOutlined,
-        perm: 'geoPincode',
-        action: 'read',
-        legacy: true
-      },
-      {
         id: 'addresses',
         title: 'addresses',
         type: 'item',
