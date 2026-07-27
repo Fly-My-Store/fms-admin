@@ -30,6 +30,8 @@ const APPS = [
     description: 'Shop from local stores and track deliveries',
     manageHref: '/app-releases/customer',
     accent: '#2563eb',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.fmscustomerapp',
+    appStoreUrl: 'https://apps.apple.com/us/app/fly-my-store/id6788622220',
   },
   {
     appType: APP_RELEASE_TYPES.SELLER,
@@ -37,6 +39,8 @@ const APPS = [
     description: 'Manage your store, orders, and inventory',
     manageHref: '/app-releases/seller',
     accent: '#16a34a',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.fmssellerapp',
+    appStoreUrl: 'https://apps.apple.com/us/app/fly-my-store-seller/id6788622391',
   },
   {
     appType: APP_RELEASE_TYPES.RIDER,
@@ -44,6 +48,8 @@ const APPS = [
     description: 'Accept delivery jobs and track earnings',
     manageHref: '/app-releases/rider',
     accent: '#d97706',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.fmsdeliveryapp',
+    appStoreUrl: 'https://apps.apple.com/us/app/fly-my-store-delivery/id6788622397',
   },
 ];
 
@@ -143,7 +149,7 @@ export default function AppReleasesOverviewSection() {
         </Box>
       ) : (
         <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-          {APPS.map(({ appType, label, description, manageHref, accent }) => {
+          {APPS.map(({ appType, label, description, manageHref, accent, playStoreUrl, appStoreUrl }) => {
             const release = releases[appType];
             const downloadUrl = release?.file_url;
 
@@ -199,15 +205,40 @@ export default function AppReleasesOverviewSection() {
                         </Stack>
                       ) : (
                         <Typography variant="body2" color="text.secondary">
-                          No release available yet. Check back soon.
+                          No APK uploaded yet. Store listings are live — use the links below.
                         </Typography>
                       )}
 
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        <Button
+                          size="medium"
+                          variant="contained"
+                          component="a"
+                          href={playStoreUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          startIcon={<LinkOutlined />}
+                          sx={actionBtnSx}
+                        >
+                          Play Store
+                        </Button>
+                        <Button
+                          size="medium"
+                          variant="outlined"
+                          component="a"
+                          href={appStoreUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          startIcon={<LinkOutlined />}
+                          sx={actionBtnSx}
+                        >
+                          App Store
+                        </Button>
+
                         {downloadUrl ? (
                           <Button
                             size="medium"
-                            variant="contained"
+                            variant="outlined"
                             component="a"
                             href={downloadUrl}
                             target="_blank"
@@ -220,17 +251,15 @@ export default function AppReleasesOverviewSection() {
                         ) : null}
 
                         {release ? (
-                          <>
-                            <Button
-                              size="medium"
-                              variant="outlined"
-                              startIcon={<CopyOutlined />}
-                              onClick={() => handleCopyLink(downloadUrl)}
-                              sx={actionBtnSx}
-                            >
-                              Copy link
-                            </Button>
-                          </>
+                          <Button
+                            size="medium"
+                            variant="outlined"
+                            startIcon={<CopyOutlined />}
+                            onClick={() => handleCopyLink(downloadUrl)}
+                            sx={actionBtnSx}
+                          >
+                            Copy APK link
+                          </Button>
                         ) : null}
 
                         {canUpload ? (
