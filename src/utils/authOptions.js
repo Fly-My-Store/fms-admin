@@ -13,7 +13,7 @@ const users = [
 ];
 
 export const authOptions = {
-  secret: process.env.NEXT_PUBLIC_NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || process.env.NEXT_PUBLIC_NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       id: 'login',
