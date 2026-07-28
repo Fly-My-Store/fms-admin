@@ -573,10 +573,36 @@ Seller: Store listing (price + stock)`}
                 ['Customer platform fee', 'Customer → platform'],
                 ['Customer delivery', 'Customer → delivery side'],
                 ['Service / install fee (× qty)', 'Customer → typically rider'],
-                ['Km surcharge', 'Customer (distance slabs; first km may be free)'],
+                ['Km surcharge', 'Customer (store → delivery address; slabs on the category fare)'],
                 ['Gateway %', 'Split per rules (customer and/or seller)'],
                 ['Seller platform %', 'Deducted from seller'],
                 ['Seller delivery amount', 'Deducted from seller per rules']
+              ]}
+            />
+            <Typography variant="subtitle2" sx={{ mt: 2 }}>
+              Km surcharge
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Distance is store location → customer delivery address (not device GPS). Max deliverable distance is 40 km; beyond that checkout fails with NOT_DELIVERABLE. Slabs live on the category fare; mixed cart uses the fare with the higher customer delivery.
+            </Typography>
+            <DontList
+              items={[
+                'Free until the lowest slab’s Min km — not a hard-coded “always free under 5 km”. First slab Min 5 → ≤ 5 km is ₹0. Slab starting at 1 → free only below 1 km.',
+                'Inside a slab: charge that ₹ when distance is above Min km and up to Max km.',
+                'Gap between slabs (e.g. 10–30 with no row): previous slab continues until the next slab starts.',
+                'Past the last slab’s Max but still ≤ 40 km: previous slab continues.',
+                'No km slabs on that fare: surcharge stays ₹0 (base delivery still applies).'
+              ]}
+            />
+            <GuideTable
+              headers={['Distance (example)', 'Result']}
+              rows={[
+                ['≤ 5 km (first Min = 5)', '₹0 free'],
+                ['5–7 km', 'First slab ₹'],
+                ['7–10 km', 'Second slab ₹'],
+                ['10–30 km (no row)', 'Still second slab ₹ (carry forward)'],
+                ['30–40 km', 'That slab ₹'],
+                ['> 40 km', 'Not deliverable']
               ]}
             />
             <Alert severity="info" sx={{ mt: 2 }}>
@@ -598,7 +624,10 @@ Seller: Store listing (price + stock)`}
                 'Do not leave no active gateway bands — same error.',
                 'Do not create overlapping active bands.',
                 'Do not treat GST % as “add 18% on top” of an inclusive fee.',
-                'Do not assume a non-SG category fare changes platform fee the way SG does.'
+                'Do not assume a non-SG category fare changes platform fee the way SG does.',
+                'Do not expect a hard free band of 5 km if lowest slab Min is different — free follows lowest Min km.',
+                'Do not leave gaps if you want a new rate there — gaps keep the previous slab; add a row when the rate should change.',
+                'Do not rely on km surcharge if store geom or address lat/lng is missing — distance becomes 0 and stays free.'
               ]}
             />
           </Section>
@@ -640,6 +669,8 @@ Seller: Store listing (price + stock)`}
                 ['Product not in customer app', 'Product / variant / brand / category / images all Active? Correct category?'],
                 ['Can’t buy / no price', 'Store listing exists? Listing Active? Stock > 0? This exact variant listed?'],
                 ['Checkout NO_FARE_RULE', 'Default category fare + gateway cover this cart value? Both Active + is_active?'],
+                ['Km surcharge always ₹0', 'Store geom set? Address lat/lng? Distance above lowest slab Min? Slabs on the delivery fare?'],
+                ['Checkout NOT_DELIVERABLE', 'Customer farther than 40 km from store?'],
                 ['Options picker empty / wrong', '≤3 axes on category? Axis attrs filled on each variant? Codes linked on category chain?'],
                 ['Attribute save rejected', 'Allowed values? Code linked to category? Wrong data type?'],
                 ['Image upload fails', 'HEIC/SVG? File too large?'],
@@ -680,7 +711,15 @@ Seller: Store listing (price + stock)`}
             <Typography variant="subtitle2" sx={{ mt: 1.5 }}>
               Fare
             </Typography>
-            <DontList items={['Default bands cover ₹0+ with no gaps/overlaps', 'Gateway bands exist similarly', 'SG fare present if SG fees differ', 'GST treated as inclusive']} />
+            <DontList
+              items={[
+                'Default bands cover ₹0+ with no gaps/overlaps',
+                'Gateway bands exist similarly',
+                'SG fare present if SG fees differ',
+                'GST treated as inclusive',
+                'Km slabs: free = lowest Min km; gaps carry previous; store + address coords set'
+              ]}
+            />
           </Section>
 
           <Section title="13. When to call engineering">
