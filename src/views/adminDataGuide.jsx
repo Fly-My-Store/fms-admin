@@ -22,6 +22,8 @@ import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 
 const QUICK_LINKS = [
+  { label: 'Bulk import', href: '/catalog-bulk-import' },
+  { label: 'Pending brands', href: '/catalog-pending/brands' },
   { label: 'Attribute defs', href: '/attribute-defs' },
   { label: 'Categories', href: '/categories' },
   { label: 'Category attrs', href: '/category-attrs' },
@@ -729,7 +731,6 @@ Seller: Store listing (price + stock)`}
                 'Changing how fare inheritance or mixed-cart max/sum works',
                 'Needing more than 3 variant axes',
                 'Item-level GST per variant (planned separately)',
-                'Bulk import of catalog',
                 'Changing Screen Guard membership rules (e.g. deep grandchildren)'
               ]}
             />

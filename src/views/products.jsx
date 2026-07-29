@@ -17,11 +17,20 @@ import { useRouter } from 'next/navigation';
 import { listBrands, listCategories } from 'api/catalog';
 import { RECORD_STATUS } from 'utils/constants';
 
+const DEFAULT_PAGE_SIZE = 10;
+
 const RECORD_STATUS_OPTIONS = [
   { value: '', label: 'All' },
   { value: String(RECORD_STATUS.ACTIVE), label: 'Active' },
   { value: String(RECORD_STATUS.INACTIVE), label: 'Inactive' },
   { value: String(RECORD_STATUS.ARCHIVED), label: 'Archived' }
+];
+
+const SORT_OPTIONS = [
+  { value: 'name', label: 'Name' },
+  { value: 'slug', label: 'Slug' },
+  { value: 'createdAt', label: 'Created' },
+  { value: 'updatedAt', label: 'Updated' }
 ];
 
 function usePagedAutocomplete(listFn) {
@@ -69,16 +78,27 @@ function usePagedAutocomplete(listFn) {
 export function ProductsView() {
   const dispatch = useDispatch();
   const state = useSelector((s) => s.catalog || {});
-  const list = state.products || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1, total: 0 }, loading: false, error: null };
-  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1, total = 1 } = {}, error } = list;
+  const list = state.products || {
+    rows: [],
+    meta: { page: 1, pageSize: DEFAULT_PAGE_SIZE, totalPages: 1, total: 0 },
+    loading: false,
+    error: null
+  };
+  const {
+    rows: data = [],
+    meta: { page = 1, pageSize = DEFAULT_PAGE_SIZE, totalPages = 1, total = 0 } = {},
+    error
+  } = list;
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     q: '',
-    record_status: '',
+    record_status: String(RECORD_STATUS.ACTIVE),
     brand: null,
-    category: null
+    category: null,
+    sort: 'name',
+    dir: 'ASC'
   });
 
   const brandAc = usePagedAutocomplete(listBrands);
@@ -87,21 +107,27 @@ export function ProductsView() {
   const buildParams = (pageNum = page, limit = pageSize, f = filters) => ({
     page: pageNum,
     limit,
+    sort: f.sort || 'name',
+    dir: f.dir || 'ASC',
     ...(f.q ? { q: f.q } : {}),
-    ...(f.record_status ? { record_status: f.record_status } : {}),
+    ...(f.record_status !== '' && f.record_status != null ? { record_status: f.record_status } : {}),
     ...(f.brand?.id ? { brand_id: f.brand.id } : {}),
     ...(f.category?.id ? { category_id: f.category.id } : {})
   });
 
+  const reload = (pageNum = 1, limit = pageSize, f = filters) => {
+    dispatch(catalog.productsListRequest({ params: buildParams(pageNum, limit, f) }));
+  };
+
   useEffect(() => {
-    dispatch(catalog.productsListRequest({ params: buildParams(1, pageSize) }));
+    reload(1, DEFAULT_PAGE_SIZE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, filters.record_status, filters.brand?.id, filters.category?.id]);
+  }, [dispatch, filters.record_status, filters.brand?.id, filters.category?.id, filters.sort, filters.dir]);
 
   const handleSearch = () => {
     const next = { ...filters, q: searchQuery.trim() };
     setFilters(next);
-    dispatch(catalog.productsListRequest({ params: buildParams(1, pageSize, next) }));
+    reload(1, pageSize, next);
   };
 
   const handleAddButton = () => {
@@ -114,7 +140,7 @@ export function ProductsView() {
 
   const handlePaginationChange = (updater) => {
     const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(catalog.productsListRequest({ params: buildParams(next.pageIndex + 1, next.pageSize) }));
+    reload(next.pageIndex + 1, next.pageSize);
   };
 
   useEffect(() => {
@@ -123,107 +149,141 @@ export function ProductsView() {
     }
   }, [error]);
 
-  return (
-    <>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }} flexWrap="wrap">
-        <TextField
-          size="small"
-          label="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Name or slug…"
-          sx={{ minWidth: 200 }}
-        />
-        <Autocomplete
-          sx={{ minWidth: 200 }}
-          options={brandAc.options}
-          value={filters.brand}
-          loading={brandAc.loading}
-          onChange={(_, v) => setFilters((p) => ({ ...p, brand: v }))}
-          onOpen={() => brandAc.load(1, brandAc.query, false)}
-          getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
-          isOptionEqualToValue={(a, b) => a?.id === b?.id}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              size="small"
-              label="Brand"
-              placeholder="Search brand…"
-              onChange={(e) => brandAc.setQuery(e.target.value)}
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {brandAc.loading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-                    {params.InputProps.endAdornment}
-                  </>
-                )
-              }}
-            />
-          )}
-          ListboxProps={{ onScroll: brandAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
-        />
-        <Autocomplete
-          sx={{ minWidth: 200 }}
-          options={categoryAc.options}
-          value={filters.category}
-          loading={categoryAc.loading}
-          onChange={(_, v) => setFilters((p) => ({ ...p, category: v }))}
-          onOpen={() => categoryAc.load(1, categoryAc.query, false)}
-          getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
-          isOptionEqualToValue={(a, b) => a?.id === b?.id}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              size="small"
-              label="Category"
-              placeholder="Search category…"
-              onChange={(e) => categoryAc.setQuery(e.target.value)}
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {categoryAc.loading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-                    {params.InputProps.endAdornment}
-                  </>
-                )
-              }}
-            />
-          )}
-          ListboxProps={{ onScroll: categoryAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
-        />
-        <TextField
-          select
-          size="small"
-          label="Status"
-          value={filters.record_status}
-          onChange={(e) => setFilters((p) => ({ ...p, record_status: e.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          {RECORD_STATUS_OPTIONS.map((o) => (
-            <MenuItem key={o.value || 'all'} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
-          Search
-        </Button>
-      </Stack>
+  const topActions = () => (
+    <Button variant="outlined" size="small" onClick={() => router.push('/catalog-bulk-import')}>
+      Bulk Upload
+    </Button>
+  );
 
-      <ProductsTableSection
-        rows={data}
-        handleAddButton={handleAddButton}
-        handleEditButton={handleEditButton}
-        handleViewButton={(row) => router.push(`/products/${row.id}`)}
-        pageIndex={page - 1}
-        pageSize={pageSize}
-        totalPageCount={totalPages}
-        onPaginationChange={handlePaginationChange}
-        totalCount={total}
+  const topActionsLeft = () => (
+    <Stack
+      direction={{ xs: 'column', md: 'row' }}
+      spacing={1}
+      useFlexGap
+      flexWrap="wrap"
+      alignItems={{ md: 'center' }}
+    >
+      <TextField
+        size="small"
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+        placeholder="Name or slug…"
+        sx={{ minWidth: 180 }}
       />
-    </>
+      <Autocomplete
+        sx={{ minWidth: 170 }}
+        options={brandAc.options}
+        value={filters.brand}
+        loading={brandAc.loading}
+        onChange={(_, v) => setFilters((p) => ({ ...p, brand: v }))}
+        onOpen={() => brandAc.load(1, brandAc.query, false)}
+        getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
+        isOptionEqualToValue={(a, b) => a?.id === b?.id}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            size="small"
+            label="Brand"
+            placeholder="Search brand…"
+            onChange={(e) => brandAc.setQuery(e.target.value)}
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {brandAc.loading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              )
+            }}
+          />
+        )}
+        ListboxProps={{ onScroll: brandAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
+      />
+      <Autocomplete
+        sx={{ minWidth: 170 }}
+        options={categoryAc.options}
+        value={filters.category}
+        loading={categoryAc.loading}
+        onChange={(_, v) => setFilters((p) => ({ ...p, category: v }))}
+        onOpen={() => categoryAc.load(1, categoryAc.query, false)}
+        getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
+        isOptionEqualToValue={(a, b) => a?.id === b?.id}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            size="small"
+            label="Category"
+            placeholder="Search category…"
+            onChange={(e) => categoryAc.setQuery(e.target.value)}
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {categoryAc.loading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              )
+            }}
+          />
+        )}
+        ListboxProps={{ onScroll: categoryAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
+      />
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={filters.record_status}
+        onChange={(e) => setFilters((p) => ({ ...p, record_status: e.target.value }))}
+        sx={{ minWidth: 120 }}
+      >
+        {RECORD_STATUS_OPTIONS.map((o) => (
+          <MenuItem key={o.value || 'all'} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        label="Sort"
+        value={filters.sort}
+        onChange={(e) =>
+          setFilters((p) => ({
+            ...p,
+            sort: e.target.value,
+            dir: e.target.value === 'name' || e.target.value === 'slug' ? 'ASC' : 'DESC'
+          }))
+        }
+        sx={{ minWidth: 120 }}
+      >
+        {SORT_OPTIONS.map((o) => (
+          <MenuItem key={o.value} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <Button variant="outlined" size="small" onClick={handleSearch}>
+        Search
+      </Button>
+    </Stack>
+  );
+
+  return (
+    <ProductsTableSection
+      rows={data}
+      handleAddButton={handleAddButton}
+      handleEditButton={handleEditButton}
+      handleViewButton={(row) => router.push(`/products/${row.id}`)}
+      pageIndex={page - 1}
+      pageSize={pageSize}
+      totalPageCount={totalPages}
+      onPaginationChange={handlePaginationChange}
+      totalCount={total}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
+    />
   );
 }
 

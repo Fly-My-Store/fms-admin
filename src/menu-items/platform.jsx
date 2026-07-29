@@ -27,7 +27,9 @@ import {
   ControlOutlined,
   DeploymentUnitOutlined,
   MobileOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  CloudUploadOutlined,
+  AuditOutlined
 } from '@ant-design/icons';
 
 // ==============================|| ICON MAPPING ||============================== //
@@ -59,7 +61,9 @@ const icons = {
   BellOutlined,
   DeploymentUnitOutlined,
   MobileOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  CloudUploadOutlined,
+  AuditOutlined
 };
 
 // ==============================|| MENU ITEMS - FLY MY STORE (PLATFORM) ||============================== //
@@ -130,6 +134,60 @@ const platformMenuGroups = [
     type: 'group',
     title: 'catalog-setup',
     children: [
+      {
+        id: 'catalog-bulk-import',
+        title: 'catalog-bulk-import',
+        type: 'item',
+        url: '/catalog-bulk-import',
+        icon: icons.CloudUploadOutlined,
+        perm: 'product',
+        action: 'create'
+      },
+      {
+        id: 'catalog-pending-brands',
+        title: 'catalog-pending-brands',
+        type: 'item',
+        url: '/catalog-pending/brands',
+        icon: icons.AuditOutlined,
+        perm: 'brand',
+        action: 'modify'
+      },
+      {
+        id: 'catalog-pending-categories',
+        title: 'catalog-pending-categories',
+        type: 'item',
+        url: '/catalog-pending/categories',
+        icon: icons.AuditOutlined,
+        perm: 'category',
+        action: 'modify'
+      },
+      {
+        id: 'catalog-pending-products',
+        title: 'catalog-pending-products',
+        type: 'item',
+        url: '/catalog-pending/products',
+        icon: icons.AuditOutlined,
+        perm: 'product',
+        action: 'modify'
+      },
+      {
+        id: 'catalog-pending-variants',
+        title: 'catalog-pending-variants',
+        type: 'item',
+        url: '/catalog-pending/variants',
+        icon: icons.AuditOutlined,
+        perm: 'product',
+        action: 'modify'
+      },
+      {
+        id: 'catalog-pending-images',
+        title: 'catalog-pending-images',
+        type: 'item',
+        url: '/catalog-pending/images',
+        icon: icons.PictureOutlined,
+        perm: 'product',
+        action: 'modify'
+      },
       {
         id: 'admin-data-guide',
         title: 'admin-data-guide',

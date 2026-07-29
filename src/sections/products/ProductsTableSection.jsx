@@ -1,11 +1,118 @@
 'use client';
 
-import { useMemo } from 'react';
-import Chip from '@mui/material/Chip';
+import { useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
+import Link from 'next/link';
 import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import LinkMui from '@mui/material/Link';
+import Popover from '@mui/material/Popover';
 import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import BasicReactTable from 'components/tables/basicTable';
 import { RECORD_STATUS } from 'utils/constants';
+
+function ProductThumb({ url, name }) {
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  if (!url) {
+    return (
+      <Avatar variant="rounded" sx={{ width: 40, height: 40, fontSize: 14 }}>
+        {(name || '?').slice(0, 1).toUpperCase()}
+      </Avatar>
+    );
+  }
+
+  const open = Boolean(anchorEl);
+
+  return (
+    <Box
+      onMouseEnter={(e) => setAnchorEl(e.currentTarget)}
+      onMouseLeave={() => setAnchorEl(null)}
+      sx={{ display: 'inline-flex', cursor: 'zoom-in' }}
+    >
+      <Avatar src={url} alt={name || ''} variant="rounded" sx={{ width: 40, height: 40 }} />
+      <Popover
+        open={open}
+        anchorEl={anchorEl}
+        sx={{ pointerEvents: 'none' }}
+        anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'center', horizontal: 'left' }}
+        disableRestoreFocus
+        slotProps={{
+          paper: {
+            sx: {
+              p: 0.5,
+              overflow: 'hidden',
+              boxShadow: 6
+            }
+          }
+        }}
+      >
+        <Box
+          component="img"
+          src={url}
+          alt={name || ''}
+          sx={{
+            display: 'block',
+            maxWidth: 280,
+            maxHeight: 280,
+            width: 'auto',
+            height: 'auto',
+            objectFit: 'contain'
+          }}
+        />
+      </Popover>
+    </Box>
+  );
+}
+
+ProductThumb.propTypes = {
+  url: PropTypes.string,
+  name: PropTypes.string
+};
+
+function CategoryCell({ category }) {
+  if (!category?.id) return '—';
+
+  const parent = category.parent;
+  return (
+    <Typography component="span" variant="body2" sx={{ display: 'inline-flex', flexWrap: 'wrap', gap: 0.5 }}>
+      <LinkMui
+        component={Link}
+        href={`/categories/${category.id}`}
+        underline="hover"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {category.name}
+      </LinkMui>
+      {parent?.id ? (
+        <>
+          <Typography component="span" color="text.secondary">
+            (
+          </Typography>
+          <LinkMui
+            component={Link}
+            href={`/categories/${parent.id}`}
+            underline="hover"
+            color="text.secondary"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {parent.name}
+          </LinkMui>
+          <Typography component="span" color="text.secondary">
+            )
+          </Typography>
+        </>
+      ) : null}
+    </Typography>
+  );
+}
+
+CategoryCell.propTypes = {
+  category: PropTypes.object
+};
 
 export default function ProductsTableSection({
   rows,
@@ -16,10 +123,20 @@ export default function ProductsTableSection({
   totalPageCount,
   onPaginationChange,
   handleViewButton,
-  totalCount
+  totalCount,
+  topActionsLeft,
+  topActions
 }) {
   const columns = useMemo(
     () => [
+      {
+        header: 'Image',
+        id: 'image',
+        cell: ({ row }) => {
+          const img = row.original?.images?.[0];
+          return <ProductThumb url={img?.url} name={row.original?.name} />;
+        }
+      },
       { header: 'Name', accessorKey: 'name' },
       { header: 'Slug', accessorKey: 'slug' },
       {
@@ -30,9 +147,7 @@ export default function ProductsTableSection({
           if (!brand) return '—';
           return (
             <Stack direction="row" alignItems="center" spacing={1}>
-              {brand.logo_url ? (
-                <Avatar src={brand.logo_url} sx={{ width: 22, height: 22 }} />
-              ) : null}
+              {brand.logo_url ? <Avatar src={brand.logo_url} sx={{ width: 22, height: 22 }} /> : null}
               <span>{brand.name}</span>
             </Stack>
           );
@@ -41,7 +156,12 @@ export default function ProductsTableSection({
       {
         header: 'Category',
         accessorFn: (row) => row?.category?.name || '',
-        cell: ({ row }) => row?.original?.category?.name || '—'
+        cell: ({ row }) => <CategoryCell category={row?.original?.category} />
+      },
+      {
+        header: 'Variants',
+        accessorKey: 'variant_count',
+        cell: ({ row }) => Number(row.original?.variant_count ?? 0)
       },
       {
         header: 'Rating',
@@ -49,11 +169,11 @@ export default function ProductsTableSection({
         cell: ({ row }) => {
           const r = Number(row?.original?.rating ?? 0);
           const c = Number(row?.original?.rating_count ?? 0);
-          return `${r.toFixed ? r.toFixed(2) : r} (${c})`;
+          return `${Number.isFinite(r) ? r.toFixed(2) : r} (${c})`;
         }
       },
       {
-        header: 'Record', // record_status numeric → TABLE_STATUS chip
+        header: 'Status',
         accessorKey: 'record_status',
         cell: (cell) => {
           const value = cell.getValue();
@@ -63,7 +183,9 @@ export default function ProductsTableSection({
             case RECORD_STATUS.INACTIVE:
               return <Chip color="warning" label="Inactive" size="small" variant="light" />;
             case RECORD_STATUS.ARCHIVED:
-              return <Chip color="error" label="Suspended" size="small" variant="light" />;
+              return <Chip color="default" label="Archived" size="small" variant="light" />;
+            default:
+              return <Chip color="default" label="Unknown" size="small" variant="light" />;
           }
         }
       }
@@ -75,7 +197,6 @@ export default function ProductsTableSection({
     <BasicReactTable
       columns={columns}
       data={rows}
-      title="Products"
       ariaLebel="Add Product"
       handleAddButton={handleAddButton}
       handleViewButton={handleViewButton}
@@ -86,6 +207,22 @@ export default function ProductsTableSection({
       onPaginationChange={onPaginationChange}
       permissionName={'product'}
       totalCount={totalCount}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
     />
   );
 }
+
+ProductsTableSection.propTypes = {
+  rows: PropTypes.array,
+  handleAddButton: PropTypes.func,
+  handleEditButton: PropTypes.func,
+  handleViewButton: PropTypes.func,
+  pageIndex: PropTypes.number,
+  pageSize: PropTypes.number,
+  totalPageCount: PropTypes.number,
+  onPaginationChange: PropTypes.func,
+  totalCount: PropTypes.number,
+  topActionsLeft: PropTypes.func,
+  topActions: PropTypes.func
+};

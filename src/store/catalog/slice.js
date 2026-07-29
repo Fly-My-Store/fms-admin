@@ -4,8 +4,8 @@ const initialList = () => ({ rows: [], meta: { page: 1, pageSize: 10, total: 0, 
 const initialEntity = () => ({ data: null, loading: false, error: null });
 
 const initialState = {
-  brands: initialList(),
-  categories: initialList(),
+  brands: { rows: [], meta: { page: 1, pageSize: 50, total: 0, totalPages: 1 }, loading: false, error: null },
+  categories: { rows: [], meta: { page: 1, pageSize: 50, total: 0, totalPages: 1 }, loading: false, error: null },
   products: initialList(),
   variants: initialList(),
   brandsDetail: initialEntity(),

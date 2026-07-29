@@ -31,6 +31,7 @@ const MainCard = forwardRef(function MainCard(
     sx = {},
     title,
     modal = false,
+    showTitle = true,
     ...others
   },
   ref
@@ -70,12 +71,12 @@ const MainCard = forwardRef(function MainCard(
       {...others}
     >
       {/* card header and action */}
-      {!darkTitle && title && (
+      {!darkTitle && showTitle && (
         <CardHeader sx={headerSX} slotProps={{ title: { variant: 'subtitle1' } }} title={title} action={secondary} subheader={subheader} />
       )}
-      {darkTitle && title && <CardHeader sx={headerSX} title={<Typography variant="h4">{title}</Typography>} action={secondary} />}
+      {darkTitle && showTitle && <CardHeader sx={headerSX} title={<Typography variant="h4">{title}</Typography>} action={secondary} />}
       {/* content & header divider */}
-      {title && divider && <Divider />}
+      {showTitle && divider && <Divider />}
 
       {/* card content */}
       {content && <CardContent sx={contentSX}>{children}</CardContent>}

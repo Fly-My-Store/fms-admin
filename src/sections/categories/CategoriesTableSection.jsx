@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
+import PropTypes from 'prop-types';
+import Avatar from '@mui/material/Avatar';
 import Chip from '@mui/material/Chip';
 import BasicReactTable from 'components/tables/basicTable';
 import { TABLE_STATUS } from 'utils/constants';
@@ -15,11 +17,26 @@ export default function CategoriesTableSection({
   onPaginationChange,
   topActionsLeft,
   tableActions,
+  topActions,
   handleViewButton,
   totalCount
 }) {
   const columns = useMemo(
     () => [
+      {
+        header: 'Logo',
+        accessorKey: 'icon_url',
+        cell: ({ row }) => (
+          <Avatar
+            src={row.original.icon_url || undefined}
+            alt={row.original.name || ''}
+            variant="rounded"
+            sx={{ width: 40, height: 40, fontSize: 14 }}
+          >
+            {(row.original.name || '?').slice(0, 1).toUpperCase()}
+          </Avatar>
+        )
+      },
       { header: 'Name', accessorKey: 'name' },
       { header: 'Slug', accessorKey: 'slug' },
       {
@@ -60,8 +77,8 @@ export default function CategoriesTableSection({
     <BasicReactTable
       columns={columns}
       topActionsLeft={topActionsLeft}
+      topActions={topActions}
       data={rows}
-      title="Categories"
       ariaLebel="Add Category"
       handleAddButton={handleAddButton}
       handleEditButton={handleEditButton}
@@ -76,3 +93,18 @@ export default function CategoriesTableSection({
     />
   );
 }
+
+CategoriesTableSection.propTypes = {
+  rows: PropTypes.array,
+  handleAddButton: PropTypes.func,
+  handleEditButton: PropTypes.func,
+  pageIndex: PropTypes.number,
+  pageSize: PropTypes.number,
+  totalPageCount: PropTypes.number,
+  onPaginationChange: PropTypes.func,
+  topActionsLeft: PropTypes.func,
+  topActions: PropTypes.func,
+  tableActions: PropTypes.func,
+  handleViewButton: PropTypes.func,
+  totalCount: PropTypes.number
+};

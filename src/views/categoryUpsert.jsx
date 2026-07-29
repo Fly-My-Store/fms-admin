@@ -92,7 +92,7 @@ export function CategoryUpsert() {
       try {
         const limit = 20;
         const payload = await listCategories({ q: parentQuery, page: parentPage, limit });
-        const items = payload?.data || payload?.rows || [];
+        const items = (payload?.data || payload?.rows || []).filter((item) => item.id !== id);
         const pageVal = payload?.page || parentPage;
         const totalPages = payload?.totalPages || (payload?.count ? Math.ceil(payload.count / limit) : 1);
         if (!cancelled) {
@@ -156,7 +156,7 @@ export function CategoryUpsert() {
     const pid = search?.get('parent_id');
     const pname = search?.get('parent_name');
     if (pid) {
-      setForm((p) => ({ ...p, parent_id: pid }));
+      setForm((p) => ({ ...p, parent_id: pid, level: 1 }));
       setParentMeta({ id: pid, name: pname ? decodeURIComponent(pname) : '' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -299,11 +299,16 @@ export function CategoryUpsert() {
               onChange={(_, val) => {
                 if (val && val.id) {
                   setParentMeta({ id: val.id, name: val.name });
-                  setForm((p) => ({ ...p, parent_id: val.id }));
+                  // First time a parent is attached, suggest Sub; keep level if parent already set.
+                  setForm((p) => ({
+                    ...p,
+                    parent_id: val.id,
+                    level: p.parent_id ? p.level : 1
+                  }));
                 } else {
-                  // cleared
+                  // cleared → default back to Root (admin can still change Level after)
                   setParentMeta(null);
-                  setForm((p) => ({ ...p, parent_id: '' }));
+                  setForm((p) => ({ ...p, parent_id: '', level: 0 }));
                   setParentQuery('');
                   setParentPage(1);
                   setParentOptions([]);

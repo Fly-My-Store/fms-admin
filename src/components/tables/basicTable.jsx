@@ -113,7 +113,7 @@ export default function BasicTable({
     // const allowEdit = permissionName ? canModify(permissionName) : false;
     // const allowDelete = permissionName ? canDelete(permissionName) : false;
 
-     const allowView = true;
+    const allowView = true;
     const allowAdd = true;
     const allowEdit = true;
     const allowDelete = true;
@@ -170,7 +170,8 @@ export default function BasicTable({
 
     return (
         <MainCard
-            title={showTitle && title}
+            title={title}
+            showTitle={showTitle}
             secondary={
                 showActions && (
                     <Stack direction="row" sx={{ gap: 1, alignItems: 'center' }}>
@@ -236,7 +237,8 @@ export default function BasicTable({
                                 setPageIndex: table.setPageIndex,
                                 getState: table.getState,
                                 getPageCount: table.getPageCount,
-                                totalCount
+                                totalCount,
+                                initialPageSize: pageSize
                             }}
                         />
                     </Box>}

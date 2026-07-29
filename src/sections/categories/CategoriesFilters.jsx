@@ -19,6 +19,19 @@ const RECORD_STATUS_LIST = [
   { value: 3, label: 'ARCHIVED' }
 ];
 
+const LEVEL_OPTIONS = [
+  { value: '', label: 'All levels' },
+  { value: 'root', label: 'Root' },
+  { value: 'sub', label: 'Sub' }
+];
+
+const SORT_OPTIONS = [
+  { value: 'name', label: 'Name' },
+  { value: 'slug', label: 'Slug' },
+  { value: 'createdAt', label: 'Created' },
+  { value: 'updatedAt', label: 'Updated' }
+];
+
 export default function CategoriesFilters({ value, onChange }) {
   // search & list state for the parent category Autocomplete
   const [query, setQuery] = useState('');
@@ -31,6 +44,8 @@ export default function CategoriesFilters({ value, onChange }) {
   const parent = value?.parent || null;
   const record_status = value?.record_status ?? '';
   const q = value?.q ?? '';
+  const level = value?.level ?? '';
+  const sort = value?.sort ?? 'name';
 
   const load = useCallback(
     async (p = 1, search = query, append = false) => {
@@ -74,9 +89,22 @@ export default function CategoriesFilters({ value, onChange }) {
   const setParent = (val) => onChange({ ...value, parent: val });
   const setRecordStatus = (val) => onChange({ ...value, record_status: val });
   const setQ = (val) => onChange({ ...value, q: val });
+  const setLevel = (val) => onChange({ ...value, level: val });
+  const setSort = (val) =>
+    onChange({
+      ...value,
+      sort: val,
+      dir: val === 'name' || val === 'slug' ? 'ASC' : 'DESC'
+    });
 
   return (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ p: 1 }} alignItems={{ md: 'center' }}>
+    <Stack
+      direction={{ xs: 'column', md: 'row' }}
+      spacing={1}
+      useFlexGap
+      flexWrap="wrap"
+      alignItems={{ md: 'center' }}
+    >
       <TextField
         size="small"
         variant="outlined"
@@ -88,7 +116,7 @@ export default function CategoriesFilters({ value, onChange }) {
       />
 
       {/* Parent category (server-paginated autocomplete) */}
-      <Stack minWidth={{ xs: '100%', md: 280 }} flex={1} sx={{ gap: 1 }}>
+      <Stack minWidth={{ xs: '100%', md: 220 }} sx={{ gap: 1 }}>
         <Autocomplete
           options={options}
           value={parent}
@@ -124,8 +152,7 @@ export default function CategoriesFilters({ value, onChange }) {
         />
       </Stack>
 
-      {/* Record status select */}
-      <Stack sx={{ gap: 1, minWidth: 160 }}>
+      <Stack sx={{ gap: 1, minWidth: 130 }}>
         <TextField
           select
           size="small"
@@ -141,6 +168,36 @@ export default function CategoriesFilters({ value, onChange }) {
           ))}
         </TextField>
       </Stack>
+
+      <TextField
+        select
+        size="small"
+        label="Level"
+        value={level}
+        onChange={(e) => setLevel(e.target.value)}
+        sx={{ minWidth: 110 }}
+      >
+        {LEVEL_OPTIONS.map((option) => (
+          <MenuItem key={option.value || 'all'} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      <TextField
+        select
+        size="small"
+        label="Sort"
+        value={sort}
+        onChange={(e) => setSort(e.target.value)}
+        sx={{ minWidth: 115 }}
+      >
+        {SORT_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </TextField>
     </Stack>
   );
 }
@@ -149,7 +206,10 @@ CategoriesFilters.propTypes = {
   value: PropTypes.shape({
     parent: PropTypes.object,
     record_status: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    q: PropTypes.string
+    q: PropTypes.string,
+    level: PropTypes.string,
+    sort: PropTypes.string,
+    dir: PropTypes.string
   }),
   onChange: PropTypes.func.isRequired
 };
