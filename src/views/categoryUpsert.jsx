@@ -199,6 +199,9 @@ export function CategoryUpsert() {
           const pct = Math.round((evt.loaded / evt.total) * 100);
           setUploadProgress(Number.isFinite(pct) ? pct : 0);
         }
+      }, {
+        purpose: 'category',
+        category_id: id || undefined,
       });
       const url = res?.url || res?.data?.url;
       if (url) {

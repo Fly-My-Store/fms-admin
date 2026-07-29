@@ -90,6 +90,9 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
         if (pe?.total) {
           setUploadProgress(Math.round((pe.loaded * 100) / pe.total));
         }
+      }, {
+        purpose: 'banner',
+        store_id: form.store_id || undefined,
       });
       const url = res?.url || res?.data?.url;
       if (!url) throw new Error('Upload failed: no URL returned');

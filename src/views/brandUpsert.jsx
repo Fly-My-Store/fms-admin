@@ -143,6 +143,9 @@ export function BrandUpsert() {
           const pct = Math.round((pe.loaded * 100) / pe.total);
           setUploadProgress(pct);
         }
+      }, {
+        purpose: 'brand',
+        brand_id: id || undefined,
       });
       const url = res?.url || res?.data?.url;
       if (!url) throw new Error('Upload failed: no URL returned');

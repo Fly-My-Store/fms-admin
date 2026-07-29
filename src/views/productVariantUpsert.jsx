@@ -160,6 +160,10 @@ export default function VariantUpsert() {
             const pct = Math.round((evt.loaded * 100) / evt.total);
             setUploadPct((prev) => (pct > prev ? pct : prev));
           }
+        }, {
+          purpose: 'variant',
+          product_id: form.product_id || product_id_from_query || undefined,
+          variant_id: id || undefined,
         });
         const url = res?.url;
         if (!url) continue;

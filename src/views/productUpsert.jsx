@@ -218,6 +218,9 @@ export default function ProductUpsert() {
             const pct = Math.round((evt.loaded * 100) / evt.total);
             setUploadPct((prev) => (pct > prev ? pct : prev));
           }
+        }, {
+          purpose: 'product',
+          product_id: id || form.id || undefined,
         }); // expects { ok: true, url }
         const url = res?.url || res?.data?.url || res?.result?.url || null;
         if (url) uploaded.push({ url, kind: 'image', role: 'gallery' });
