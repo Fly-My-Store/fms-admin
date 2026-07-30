@@ -40,7 +40,12 @@ export default function BrandsTableSection({
       {
         header: 'Logo',
         accessorKey: 'logo_url',
-        cell: ({ row }) => <BrandLogo url={row.original.logo_url} name={row.original.name} />
+        cell: ({ row }) => (
+          <BrandLogo
+            url={row.original.logo_thumb_url || row.original.logo_url}
+            name={row.original.name}
+          />
+        )
       },
       { header: 'Name', accessorKey: 'name' },
       { header: 'Slug', accessorKey: 'slug' },

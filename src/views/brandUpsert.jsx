@@ -39,6 +39,7 @@ const EMPTY = {
   slug: '',
   description: '',
   logo_url: '',
+  logo_thumb_url: '',
   sort_letter: '',
   record_status: 1
 };
@@ -102,10 +103,11 @@ export function BrandUpsert() {
         slug: row.slug || '',
         description: row.description || '',
         logo_url: row.logo_url || '',
+        logo_thumb_url: row.logo_thumb_url || '',
         record_status: row.record_status ?? 1,
         sort_letter: row.sort_letter || toSortLetter(row.name)
       });
-      setLogoPreview(row.logo_url || '');
+      setLogoPreview(row.logo_thumb_url || row.logo_url || '');
       setLogoFile(null);
     }
   }, [row, id]);
@@ -148,10 +150,11 @@ export function BrandUpsert() {
         brand_id: id || undefined,
       });
       const url = res?.url || res?.data?.url;
+      const thumbUrl = res?.thumb_url || res?.data?.thumb_url || '';
       if (!url) throw new Error('Upload failed: no URL returned');
       // Persist into form and preview
-      setForm((p) => ({ ...p, logo_url: url }));
-      setLogoPreview(url);
+      setForm((p) => ({ ...p, logo_url: url, logo_thumb_url: thumbUrl }));
+      setLogoPreview(thumbUrl || url);
       setLogoFile(null);
       enqueueSnackbar('Logo uploaded', { variant: 'success' });
     } catch (err) {
@@ -168,7 +171,7 @@ export function BrandUpsert() {
   const handleLogoRemove = () => {
     setLogoFile(null);
     setLogoPreview('');
-    setForm((p) => ({ ...p, logo_url: '' }));
+    setForm((p) => ({ ...p, logo_url: '', logo_thumb_url: '' }));
   };
 
   const handleSubmit = async () => {
@@ -178,6 +181,7 @@ export function BrandUpsert() {
         slug: form.slug?.trim() || slugify(form.name),
         description: form.description || '',
         logo_url: form.logo_url || '',
+        logo_thumb_url: form.logo_thumb_url || '',
         sort_letter: (form.sort_letter || toSortLetter(form.name) || '').toUpperCase(),
         record_status: Number(form.record_status ?? 1)
       };
@@ -305,7 +309,7 @@ export function BrandUpsert() {
                   ) : null}
                 </Stack>
                 <FormHelperText>
-                  Choose an image to upload immediately; the returned URL is saved to the form.
+                  Thumbnail preview (400px). Both full and thumbnail URLs are saved.
                 </FormHelperText>
               </Stack>
             </Stack>

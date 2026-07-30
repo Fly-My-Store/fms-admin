@@ -165,7 +165,8 @@ export default function VariantUpsert() {
           product_id: form.product_id || product_id_from_query || undefined,
           variant_id: id || undefined,
         });
-        const url = res?.url;
+        const url = res?.url || res?.data?.url;
+        const thumbUrl = res?.thumb_url || res?.data?.thumb_url || null;
         if (!url) continue;
 
         const hasPrimary = existingImages.some((im) => im.is_primary && !im._delete) || newImages.some((im) => im.is_primary);
@@ -173,6 +174,7 @@ export default function VariantUpsert() {
 
         staged.push({
           url,
+          thumb_url: thumbUrl,
           kind: 'image',
           role: 'gallery',
           is_primary: hasPrimary ? false : staged.length === 0, // first new becomes primary if none
@@ -370,7 +372,7 @@ export default function VariantUpsert() {
             <Stack direction="row" spacing={1} flexWrap="wrap">
               {existingImages.map((im) => (
                 <Stack key={im.id} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
-                  <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1, opacity: im._delete ? 0.4 : 1 }} />
+                  <Avatar variant="rounded" src={im.thumb_url || im.url} sx={{ width: 72, height: 72, borderRadius: 1, opacity: im._delete ? 0.4 : 1 }} />
                   {im.is_primary ? <Chip size="small" label="Primary" /> : null}
                   {im._delete ? <Chip size="small" color="warning" label="To delete" /> : null}
                   <Button size="small" onClick={() => toggleDeleteExisting(im.id)}>{im._delete ? 'Undo' : 'Remove'}</Button>
@@ -378,7 +380,7 @@ export default function VariantUpsert() {
               ))}
               {newImages.map((im, idx) => (
                 <Stack key={`new-${idx}`} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
-                  <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
+                  <Avatar variant="rounded" src={im.thumb_url || im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
                   <Chip size="small" label="New" />
                   {im.is_primary ? <Chip size="small" label="Primary" /> : null}
                   <Button size="small" onClick={() => removeNewImage(idx)}>Remove</Button>
@@ -395,7 +397,7 @@ export default function VariantUpsert() {
                 <FormHelperText>Uploading… {uploadPct}%</FormHelperText>
               </Stack>
             )}
-            <FormHelperText>First image becomes primary unless backend overrides.</FormHelperText>
+            <FormHelperText>Previews use the 400px thumbnail. First image becomes primary unless backend overrides.</FormHelperText>
           </Stack>
 
           <Divider />

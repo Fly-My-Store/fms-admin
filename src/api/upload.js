@@ -30,7 +30,7 @@ function buildUploadParams({ purpose, product_id, variant_id, brand_id, category
  * @param {string} [opts.category_id]
  * @param {string} [opts.store_id]
  * @param {string} [opts.order_id]
- * @returns {Promise<{ok: boolean, url: string}>}
+ * @returns {Promise<{ok: boolean, url: string, thumb_url: string|null}>}
  */
 export async function uploadSingle(file, onUploadProgress, opts = {}) {
   const form = new FormData();
@@ -48,7 +48,7 @@ export async function uploadSingle(file, onUploadProgress, opts = {}) {
  * @param {File[]|FileList} files
  * @param {(progressEvent: ProgressEvent) => void} [onUploadProgress]
  * @param {object} [opts] same as uploadSingle opts
- * @returns {Promise<{ok: boolean, files: string[]}>}
+ * @returns {Promise<{ok: boolean, files: Array<{url: string, thumb_url: string|null}>}>}
  */
 export async function uploadMany(files, onUploadProgress, opts = {}) {
   const form = new FormData();
