@@ -1,4 +1,4 @@
-import { get, post, patch, del } from '../utils/api';
+import { get, post, patch, del, put } from '../utils/api';
 import axiosServices from 'utils/axios';
 
 export const listBrands = (params) => get('admin/catalog/brands', params);
@@ -102,6 +102,12 @@ export const listProductImages = (productId, params) => get(`admin/catalog/produ
 export const createProductImage = (productId, data) => post(`admin/catalog/products/${productId}/images`, data);
 export const updateProductImage = (productId, imageId, data) => patch(`admin/catalog/products/${productId}/images/${imageId}`, data);
 export const removeProductImage = (productId, imageId) => del(`admin/catalog/products/${productId}/images/${imageId}`);
+
+export const listCompatibilities = (params) => get('admin/catalog/compatibilities', params);
+export const putCompatibilities = (data) => put('admin/catalog/compatibilities', data);
+export const createCompatibilityProduct = (data) => post('admin/catalog/compatibilities/products', data);
+/** @deprecated use createCompatibilityProduct */
+export const createCompatibilityDevice = createCompatibilityProduct;
 
 /** Multipart catalog CSV/ZIP import */
 export async function bulkImportCatalog(formData, onUploadProgress) {
