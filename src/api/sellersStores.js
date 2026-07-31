@@ -10,7 +10,8 @@ export const listSellerDocuments = (sellerId, params) => get(`admin/sellers-stor
 export const createSellerDocument = (sellerId, data) => post(`admin/sellers-stores/sellers/${sellerId}/documents`, data);
 export const updateSellerDocument = (sellerId, docId, data) => patch(`admin/sellers-stores/sellers/${sellerId}/documents/${docId}`, data);
 export const deleteSellerDocument = (sellerId, docId) => del(`admin/sellers-stores/sellers/${sellerId}/documents/${docId}`);
-export const verifySellerDocument = (sellerId, docId) => post(`admin/sellers-stores/sellers/${sellerId}/documents/${docId}/verify`);
+export const verifySellerDocument = (sellerId, docId) =>
+  patch(`admin/sellers-stores/sellers/${sellerId}/documents/${docId}/verify`);
 
 export const listSellerBankAccounts = (sellerId, params) => get(`admin/sellers-stores/sellers/${sellerId}/bank-accounts`, params);
 export const createSellerBankAccount = (sellerId, data) => post(`admin/sellers-stores/sellers/${sellerId}/bank-accounts`, data);

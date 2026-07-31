@@ -16,9 +16,11 @@ import {
   Box,
   Button,
   Divider,
+  FormControlLabel,
   InputLabel,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography,
   FormHelperText
@@ -44,7 +46,8 @@ const EMPTY = {
   description: '',
   icon_url: '',
   level: 0,
-  record_status: 1
+  record_status: 1,
+  prescription_required: false
 };
 
 function slugify(s = '') {
@@ -141,6 +144,7 @@ export function CategoryUpsert() {
         description: cat.description || '',
         icon_url: cat.icon_url || '',
         record_status: cat.record_status || 1,
+        prescription_required: Boolean(cat.prescription_required),
         level: Number(cat.level ?? 0)
       });
       // parent meta (best-effort; parent name may not be present in this endpoint)
@@ -238,7 +242,8 @@ export function CategoryUpsert() {
         description: form.description || null,
         icon_url: form.icon_url || null,
         level: Number(form.level ?? 0),
-        record_status: Number(form.record_status ?? 1)
+        record_status: Number(form.record_status ?? 1),
+        prescription_required: Boolean(form.prescription_required),
       };
 
       if (id || form.id) {
@@ -474,6 +479,16 @@ export function CategoryUpsert() {
                 </TextField>
               </Stack>
             </Stack>
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(form.prescription_required)}
+                  onChange={(e) => handleField('prescription_required', e.target.checked)}
+                />
+              }
+              label="Prescription required (checkout)"
+            />
           </Stack>
 
           <Divider />
