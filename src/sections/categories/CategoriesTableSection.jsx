@@ -28,7 +28,7 @@ export default function CategoriesTableSection({
         accessorKey: 'icon_url',
         cell: ({ row }) => (
           <Avatar
-            src={row.original.icon_url || undefined}
+            src={row.original.icon_thumb_url || row.original.icon_url || undefined}
             alt={row.original.name || ''}
             variant="rounded"
             sx={{ width: 40, height: 40, fontSize: 14 }}

@@ -43,6 +43,7 @@ const EMPTY = {
   slug: '',
   description: '',
   icon_url: '',
+  icon_thumb_url: '',
   level: 0,
   record_status: 1
 };
@@ -140,12 +141,13 @@ export function CategoryUpsert() {
         slug: cat.slug || '',
         description: cat.description || '',
         icon_url: cat.icon_url || '',
+        icon_thumb_url: cat.icon_thumb_url || '',
         record_status: cat.record_status || 1,
         level: Number(cat.level ?? 0)
       });
       // parent meta (best-effort; parent name may not be present in this endpoint)
       setParentMeta(cat.parent_id ? { id: cat.parent_id, name: cat.parent?.name || '' } : null);
-      setIconPreview(cat.icon_url || '');
+      setIconPreview(cat.icon_thumb_url || cat.icon_url || '');
       setIconFile(null);
     }
   }, [cat, id]);
@@ -204,10 +206,11 @@ export function CategoryUpsert() {
         category_id: id || undefined,
       });
       const url = res?.url || res?.data?.url;
+      const thumbUrl = res?.thumb_url || res?.data?.thumb_url || '';
       if (url) {
         // store the final URL returned by the server
-        setForm((p) => ({ ...p, icon_url: url }));
-        setIconPreview(url);
+        setForm((p) => ({ ...p, icon_url: url, icon_thumb_url: thumbUrl }));
+        setIconPreview(thumbUrl || url);
       } else {
         enqueueSnackbar('Upload completed but URL missing in response.', { variant: 'warning' });
       }
@@ -225,7 +228,7 @@ export function CategoryUpsert() {
   const handleIconRemove = () => {
     setIconFile(null);
     setIconPreview('');
-    setForm((p) => ({ ...p, icon_url: '' }));
+    setForm((p) => ({ ...p, icon_url: '', icon_thumb_url: '' }));
   };
 
 
@@ -237,6 +240,7 @@ export function CategoryUpsert() {
         slug: form.slug?.trim() || slugify(form.name),
         description: form.description || null,
         icon_url: form.icon_url || null,
+        icon_thumb_url: form.icon_thumb_url || null,
         level: Number(form.level ?? 0),
         record_status: Number(form.record_status ?? 1)
       };
@@ -431,7 +435,7 @@ export function CategoryUpsert() {
                   )}
                 </Stack>
                 <FormHelperText>
-                  Selecting a file uploads immediately. The returned URL is saved to this category.
+                  Thumbnail preview (400px). Both full and thumbnail URLs are saved.
                 </FormHelperText>
               </Stack>
             </Stack>

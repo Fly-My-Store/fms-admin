@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Avatar from '@mui/material/Avatar';
 import BasicReactTable from 'components/tables/basicTable';
 
 export default function ProductImagesTableSection({
@@ -14,6 +15,18 @@ export default function ProductImagesTableSection({
 }) {
   const columns = useMemo(
     () => [
+      {
+        header: 'Thumbnail',
+        accessorKey: 'thumb_url',
+        cell: ({ row }) => (
+          <Avatar
+            src={row.original.thumb_url || row.original.url || undefined}
+            alt={row.original.alt_text || 'Product image'}
+            variant="rounded"
+            sx={{ width: 48, height: 48 }}
+          />
+        )
+      },
       { header: 'URL', accessorKey: 'url' },
       { header: 'Alt Text', accessorKey: 'alt_text' },
       { header: 'Position', accessorKey: 'position' },
