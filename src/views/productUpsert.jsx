@@ -234,7 +234,8 @@ export default function ProductUpsert() {
           product_id: id || form.id || undefined,
         }); // expects { ok: true, url }
         const url = res?.url || res?.data?.url || res?.result?.url || null;
-        if (url) uploaded.push({ url, kind: 'image', role: 'gallery' });
+        const thumbUrl = res?.thumb_url || res?.data?.thumb_url || res?.result?.thumb_url || null;
+        if (url) uploaded.push({ url, thumb_url: thumbUrl, kind: 'image', role: 'gallery' });
       }
       if (!uploaded.length) return;
 
@@ -294,6 +295,7 @@ export default function ProductUpsert() {
           ...newImages.map((im) => ({
             new: true,
             url: im.url,
+            thumb_url: im.thumb_url || null,
             kind: im.kind || 'image',
             role: im.role || 'gallery',
             is_primary: !!im.is_primary
@@ -309,6 +311,7 @@ export default function ProductUpsert() {
         // CREATE: backend accepts either `urls` or `images`. Send rich objects so primary/role can be honored.
         const createImages = newImages.map((im) => ({
           url: im.url,
+          thumb_url: im.thumb_url || null,
           kind: im.kind || 'image',
           role: im.role || 'gallery',
           is_primary: !!im.is_primary
@@ -390,7 +393,7 @@ export default function ProductUpsert() {
                     const marked = removedImageIds.includes(im.id);
                     return (
                       <Stack key={im.id} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1, opacity: marked ? 0.4 : 1 }}>
-                        <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
+                        <Avatar variant="rounded" src={im.thumb_url || im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
                         <Stack direction="row" spacing={0.5}>
                           {im.is_primary ? <Chip size="small" label="Primary" /> : null}
                           {marked ? <Chip size="small" color="warning" label="Will delete" /> : null}
@@ -403,7 +406,7 @@ export default function ProductUpsert() {
                   })}
                   {newImages.map((im, idx) => (
                     <Stack key={`new-${idx}`} alignItems="center" spacing={0.5} sx={{ mr: 1, mb: 1 }}>
-                      <Avatar variant="rounded" src={im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
+                      <Avatar variant="rounded" src={im.thumb_url || im.url} sx={{ width: 72, height: 72, borderRadius: 1 }} />
                       <Stack direction="row" spacing={0.5}>
                         <Chip size="small" label="New" />
                         {im.is_primary ? <Chip size="small" label="Primary" /> : null}
@@ -422,7 +425,7 @@ export default function ProductUpsert() {
                     <FormHelperText>Uploading… {uploadPct}%</FormHelperText>
                   </Stack>
                 )}
-                <FormHelperText>First image becomes primary unless backend overrides.</FormHelperText>
+                <FormHelperText>Previews use the 400px thumbnail. First image becomes primary unless backend overrides.</FormHelperText>
               </Stack>
             </Stack>
 

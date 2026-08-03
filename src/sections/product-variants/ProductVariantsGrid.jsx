@@ -35,7 +35,7 @@ function getFirstImage(row) {
   const imgs = Array.isArray(row?.images) ? row.images : [];
   if (!imgs.length) return null;
   const primary = imgs.find((i) => i?.is_primary) || imgs[0];
-  return primary?.url || null;
+  return primary?.thumb_url || primary?.url || null;
 }
 
 function getOptionSummary(row) {

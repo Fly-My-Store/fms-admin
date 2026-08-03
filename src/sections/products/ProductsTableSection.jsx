@@ -134,7 +134,7 @@ export default function ProductsTableSection({
         id: 'image',
         cell: ({ row }) => {
           const img = row.original?.images?.[0];
-          return <ProductThumb url={img?.url} name={row.original?.name} />;
+          return <ProductThumb url={img?.thumb_url || img?.url} name={row.original?.name} />;
         }
       },
       { header: 'Name', accessorKey: 'name' },
@@ -147,7 +147,9 @@ export default function ProductsTableSection({
           if (!brand) return '—';
           return (
             <Stack direction="row" alignItems="center" spacing={1}>
-              {brand.logo_url ? <Avatar src={brand.logo_url} sx={{ width: 22, height: 22 }} /> : null}
+              {brand.logo_thumb_url || brand.logo_url ? (
+                <Avatar src={brand.logo_thumb_url || brand.logo_url} sx={{ width: 22, height: 22 }} />
+              ) : null}
               <span>{brand.name}</span>
             </Stack>
           );
