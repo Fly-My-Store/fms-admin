@@ -168,13 +168,18 @@ export default function BasicTable({
         key: col.columnDef.accessorKey
     }));
 
+    const hasHeaderActions = Boolean(topActionsLeft || (handleAddButton && allowAdd) || topActions);
+
     return (
         <MainCard
             title={title}
             showTitle={showTitle}
             secondary={
-                showActions && (
-                    <Stack direction="row" sx={{ gap: 1, alignItems: 'center' }}>
+                hasHeaderActions ? (
+                    <Stack
+                        direction={{ xs: 'column', md: 'row' }}
+                        sx={{ gap: 1, alignItems: { xs: 'stretch', md: 'center' }, flexWrap: 'wrap' }}
+                    >
                         {topActionsLeft && topActionsLeft()}
                         {handleAddButton && allowAdd && (
                             <Button variant={'contained'} size="small" onClick={handleAddButton}>
@@ -183,7 +188,7 @@ export default function BasicTable({
                         )}
                         {topActions && topActions()}
                     </Stack>
-                )
+                ) : null
             }
             subheader={
                 subheader && <Stack direction="row" sx={{ gap: 1, pt: 2.5, alignItems: 'center' }}>

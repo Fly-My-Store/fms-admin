@@ -1,14 +1,23 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { enqueueSnackbar } from 'notistack';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import SupportTicketsTableSection from 'sections/support-tickets/SupportTicketsTableSection';
-import { listSupportTickets } from 'api/support';
+import useAxiosPaginatedList from 'hooks/useAxiosPaginatedList';
+import useUrlFilters from 'hooks/useUrlFilters';
 
 const STATUSES = ['', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 const REQUESTER_TYPES = ['', 'CUSTOMER', 'SELLER', 'RIDER'];
+
+const FILTER_DEFAULTS = {
+  q: '',
+  status: '',
+  requester_type: '',
+  order_id: '',
+  page: 1,
+  limit: 20
+};
 
 const formatDate = (iso) => {
   if (!iso) return '—';
@@ -17,128 +26,119 @@ const formatDate = (iso) => {
 
 export default function SupportTicketsView() {
   const router = useRouter();
-  const [rows, setRows] = useState([]);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [totalPages, setTotalPages] = useState(1);
-  const [filters, setFilters] = useState({ q: '', status: '', requester_type: '', order_id: '' });
+  const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
+  });
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
 
-  const load = useCallback(
-    async (opts = {}) => {
-      try {
-        const nextPage = opts.page ?? pageIndex + 1;
-        const nextLimit = opts.limit ?? pageSize;
-        const params = {
-          page: nextPage,
-          limit: nextLimit,
-          ...(filters.q ? { q: filters.q } : {}),
-          ...(filters.status ? { status: filters.status } : {}),
-          ...(filters.requester_type ? { requester_type: filters.requester_type } : {}),
-          ...(filters.order_id ? { order_id: filters.order_id } : {})
-        };
-        const resp = await listSupportTickets(params);
-        const payload = resp || {};
-        const data = payload.data || [];
-        setRows(
-          data.map((row) => ({
-            ...row,
-            requester_label: row.requester?.name || row.requester?.phone || row.requester?.email || '—',
-            category_label: row.category_label || row.category,
-            created_at: formatDate(row.created_at)
-          }))
-        );
-        setTotalPages(payload?.meta?.totalPages || 1);
-        if (opts.page != null) setPageIndex(opts.page - 1);
-      } catch {
-        enqueueSnackbar('Failed to load support tickets', { variant: 'error' });
-      }
-    },
-    [filters, pageIndex, pageSize]
+  const listParams = useMemo(
+    () => ({
+      ...(applied.q ? { q: applied.q } : {}),
+      ...(applied.status ? { status: applied.status } : {}),
+      ...(applied.requester_type ? { requester_type: applied.requester_type } : {}),
+      ...(applied.order_id ? { order_id: applied.order_id } : {})
+    }),
+    [applied.q, applied.status, applied.requester_type, applied.order_id]
+  );
+
+  const { rows: rawRows, totalPages, totalCount, setPageIndex, setPageSize } = useAxiosPaginatedList(
+    'admin/support/tickets',
+    { params: listParams, errorMessage: 'Failed to load support tickets' }
+  );
+
+  const rows = useMemo(
+    () =>
+      (rawRows || []).map((row) => ({
+        ...row,
+        requester_label: row.requester?.name || row.requester?.phone || row.requester?.email || '—',
+        category_label: row.category_label || row.category,
+        created_at: formatDate(row.created_at)
+      })),
+    [rawRows]
   );
 
   useEffect(() => {
-    load();
-  }, [pageIndex, pageSize]);
+    setSearchQuery(applied.q || '');
+    setPageIndex((Number(applied.page) || 1) - 1);
+    setPageSize(Number(applied.limit) || 20);
+  }, [urlKey, applied.q, applied.page, applied.limit, setPageIndex, setPageSize]);
 
-  useEffect(() => {
-    load({ page: 1 });
-  }, [filters.status, filters.requester_type, filters.order_id]);
-
-  const handleSearch = () => load({ page: 1 });
-
-  const handleViewButton = (row) => {
-    if (row?.id) router.push(`/support-tickets/${row.id}`);
+  const handleSearch = () => {
+    applySearch({
+      q: searchQuery.trim(),
+      status: draft.status,
+      requester_type: draft.requester_type,
+      order_id: (draft.order_id || '').trim()
+    });
   };
 
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
-    setPageIndex(next.pageIndex);
-    setPageSize(next.pageSize);
-  };
+  const topActionsLeft = () => (
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
+      <TextField
+        size="small"
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+        placeholder="Subject or description"
+        sx={{ minWidth: 200 }}
+      />
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={draft.status}
+        onChange={(e) => setDraft({ status: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {STATUSES.map((s) => (
+          <MenuItem key={s || 'all'} value={s}>
+            {s || 'All'}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        label="Role"
+        value={draft.requester_type}
+        onChange={(e) => setDraft({ requester_type: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {REQUESTER_TYPES.map((s) => (
+          <MenuItem key={s || 'all'} value={s}>
+            {s || 'All'}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        size="small"
+        label="Order ID"
+        value={draft.order_id}
+        onChange={(e) => setDraft({ order_id: e.target.value })}
+        sx={{ minWidth: 220 }}
+      />
+      <Button variant="outlined" size="small" onClick={handleSearch}>
+        Search
+      </Button>
+    </Stack>
+  );
 
   return (
-    <>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+    <Stack spacing={2}>
+      <Typography variant="body2" color="text.secondary">
         Tickets from customer, seller, and rider apps. Filter by role or open a ticket for full context.
       </Typography>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
-        <TextField
-          size="small"
-          label="Search"
-          value={filters.q}
-          onChange={(e) => setFilters((p) => ({ ...p, q: e.target.value }))}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Subject or description"
-          sx={{ minWidth: 200 }}
-        />
-        <TextField
-          select
-          size="small"
-          label="Status"
-          value={filters.status}
-          onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          {STATUSES.map((s) => (
-            <MenuItem key={s || 'all'} value={s}>
-              {s || 'All'}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Role"
-          value={filters.requester_type}
-          onChange={(e) => setFilters((p) => ({ ...p, requester_type: e.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          {REQUESTER_TYPES.map((s) => (
-            <MenuItem key={s || 'all'} value={s}>
-              {s || 'All'}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          size="small"
-          label="Order ID"
-          value={filters.order_id}
-          onChange={(e) => setFilters((p) => ({ ...p, order_id: e.target.value }))}
-          sx={{ minWidth: 220 }}
-        />
-        <Button variant="contained" onClick={handleSearch}>
-          Search
-        </Button>
-      </Stack>
-
       <SupportTicketsTableSection
         rows={rows}
-        handleViewButton={handleViewButton}
-        pageIndex={pageIndex}
-        pageSize={pageSize}
+        handleViewButton={(row) => row?.id && router.push(`/support-tickets/${row.id}`)}
+        pageIndex={(Number(applied.page) || 1) - 1}
+        pageSize={Number(applied.limit) || 20}
         totalPageCount={totalPages}
+        totalCount={totalCount}
         onPaginationChange={handlePaginationChange}
+        topActionsLeft={topActionsLeft}
       />
-    </>
+    </Stack>
   );
 }

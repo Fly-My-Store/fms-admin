@@ -33,7 +33,8 @@ export default function BrandsTableSection({
   onPaginationChange,
   totalCount,
   topActionsLeft,
-  topActions
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => [
@@ -87,6 +88,7 @@ export default function BrandsTableSection({
       totalCount={totalCount}
       topActionsLeft={topActionsLeft}
       topActions={topActions}
+      showPagination={showPagination}
     />
   );
 }
@@ -101,5 +103,6 @@ BrandsTableSection.propTypes = {
   onPaginationChange: PropTypes.func,
   totalCount: PropTypes.number,
   topActionsLeft: PropTypes.func,
-  topActions: PropTypes.func
+  topActions: PropTypes.func,
+  showPagination: PropTypes.bool
 };

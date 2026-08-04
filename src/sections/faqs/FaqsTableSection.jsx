@@ -29,7 +29,11 @@ export default function FaqsTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  totalCount,
+  topActionsLeft,
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => [
@@ -87,6 +91,10 @@ export default function FaqsTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
+      totalCount={totalCount}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
+      showPagination={showPagination}
     />
   );
 }

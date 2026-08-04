@@ -44,7 +44,11 @@ export default function SellersTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  totalCount,
+  topActionsLeft,
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => [
@@ -160,6 +164,10 @@ export default function SellersTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
+      totalCount={totalCount}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
+      showPagination={showPagination}
       permissionName={'seller'}
       tableActions={(row) => {
         const storeId = resolveStoreId(row);

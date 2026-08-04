@@ -7,7 +7,6 @@ import { enqueueSnackbar } from 'notistack';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
-import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -17,12 +16,19 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import TablePagination from '@mui/material/TablePagination';
+import CircularProgress from '@mui/material/CircularProgress';
 import MainCard from 'components/MainCard';
+import ListPagination from 'components/list/ListPagination';
+import useUrlFilters from 'hooks/useUrlFilters';
 import { RECORD_STATUS } from 'utils/constants';
 
 const DEFAULT_PAGE_SIZE = 20;
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+const FILTER_DEFAULTS = {
+  q: '',
+  page: 1,
+  limit: DEFAULT_PAGE_SIZE
+};
 
 function parsePagedResponse(resp) {
   // get() already unwraps axios → { ok, meta, data }
@@ -50,32 +56,36 @@ export default function CatalogPendingList({
   searchPlaceholder = 'Search…'
 }) {
   const router = useRouter();
-  const [q, setQ] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const { draft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
+  });
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState([]);
 
+  const page = Number(applied.page) || 1;
+  const pageSize = Number(applied.limit) || DEFAULT_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const resp = await loadRows({
-        page: page + 1,
+        page,
         limit: pageSize,
         record_status: RECORD_STATUS.INACTIVE,
-        ...(search ? { q: search } : {})
+        ...(applied.q ? { q: applied.q } : {})
       });
       const { list, total: nextTotal } = parsePagedResponse(resp);
-      const maxPage = Math.max(0, Math.ceil(nextTotal / pageSize) - 1);
+      const maxPage = Math.max(1, Math.ceil(nextTotal / pageSize) || 1);
 
       // If approve/search left us past the last page, clamp and let the effect re-fetch.
       if (page > maxPage) {
         setTotal(nextTotal);
         setSelected([]);
-        setPage(maxPage);
+        handlePaginationChange({ pageIndex: maxPage - 1, pageSize });
         return;
       }
 
@@ -87,11 +97,15 @@ export default function CatalogPendingList({
     } finally {
       setLoading(false);
     }
-  }, [loadRows, page, pageSize, search]);
+  }, [loadRows, page, pageSize, applied.q, handlePaginationChange]);
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+  }, [refresh, urlKey]);
+
+  useEffect(() => {
+    setSearchQuery(applied.q || '');
+  }, [applied.q]);
 
   const toggle = (id) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -123,104 +137,96 @@ export default function CatalogPendingList({
     }
   };
 
-  return (
-    <MainCard title={title}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }} alignItems={{ md: 'center' }}>
-        <TextField
-          size="small"
-          label="Search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              setPage(0);
-              setSearch(q.trim());
-            }
-          }}
-          placeholder={searchPlaceholder}
-          sx={{ minWidth: 220 }}
-        />
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => {
-            setPage(0);
-            setSearch(q.trim());
-          }}
-        >
-          Search
-        </Button>
-        <Button variant="outlined" size="small" disabled={!selected.length || loading} onClick={handleBulk}>
-          Approve selected ({selected.length})
-        </Button>
-        {loading ? <CircularProgress size={18} /> : null}
-      </Stack>
+  const handleSearch = () => {
+    applySearch({ q: searchQuery.trim() });
+  };
 
-      <Paper variant="outlined" sx={{ overflow: 'auto' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  indeterminate={selected.length > 0 && selected.length < rows.length}
-                  checked={rows.length > 0 && selected.length === rows.length}
-                  onChange={toggleAll}
-                  disabled={loading || rows.length === 0}
-                />
-              </TableCell>
-              {columns.map((c) => (
-                <TableCell key={c.key}>{c.header}</TableCell>
-              ))}
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {!loading && rows.length === 0 && (
+  const headerActions = (
+    <Stack
+      direction={{ xs: 'column', md: 'row' }}
+      sx={{ gap: 1, alignItems: { xs: 'stretch', md: 'center' }, flexWrap: 'wrap' }}
+    >
+      <TextField
+        size="small"
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+        placeholder={searchPlaceholder}
+        sx={{ minWidth: 220 }}
+      />
+      <Button variant="outlined" size="small" onClick={handleSearch} disabled={loading}>
+        Search
+      </Button>
+      {loading ? <CircularProgress size={18} /> : null}
+      <Button variant="outlined" size="small" disabled={!selected.length || loading} onClick={handleBulk}>
+        Approve selected ({selected.length})
+      </Button>
+    </Stack>
+  );
+
+  return (
+    <MainCard title={title} secondary={headerActions}>
+      <Stack spacing={2}>
+        <Paper variant="outlined" sx={{ overflow: 'auto' }}>
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={columns.length + 2}>
-                  <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                    No pending items
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-            {rows.map((row) => (
-              <TableRow key={row.id} hover>
                 <TableCell padding="checkbox">
-                  <Checkbox checked={selected.includes(row.id)} onChange={() => toggle(row.id)} />
+                  <Checkbox
+                    indeterminate={selected.length > 0 && selected.length < rows.length}
+                    checked={rows.length > 0 && selected.length === rows.length}
+                    onChange={toggleAll}
+                    disabled={loading || rows.length === 0}
+                  />
                 </TableCell>
                 {columns.map((c) => (
-                  <TableCell key={c.key}>{c.render ? c.render(row) : row[c.key]}</TableCell>
+                  <TableCell key={c.key}>{c.header}</TableCell>
                 ))}
-                <TableCell align="right">
-                  <Stack direction="row" spacing={1} justifyContent="flex-end">
-                    <Button size="small" variant="contained" onClick={() => handleApprove(row.id)}>
-                      Approve
-                    </Button>
-                    <Button size="small" variant="outlined" onClick={() => router.push(editPath(row))}>
-                      Edit
-                    </Button>
-                  </Stack>
-                </TableCell>
+                <TableCell align="right">Actions</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <TablePagination
-          component="div"
-          count={total}
-          page={total === 0 ? 0 : Math.min(page, Math.max(0, Math.ceil(total / pageSize) - 1))}
-          onPageChange={(_, nextPage) => setPage(nextPage)}
-          rowsPerPage={pageSize}
-          rowsPerPageOptions={PAGE_SIZE_OPTIONS}
-          onRowsPerPageChange={(e) => {
-            setPageSize(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
-          showFirstButton
-          showLastButton
+            </TableHead>
+            <TableBody>
+              {!loading && rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={columns.length + 2}>
+                    <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                      No pending items
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {rows.map((row) => (
+                <TableRow key={row.id} hover>
+                  <TableCell padding="checkbox">
+                    <Checkbox checked={selected.includes(row.id)} onChange={() => toggle(row.id)} />
+                  </TableCell>
+                  {columns.map((c) => (
+                    <TableCell key={c.key}>{c.render ? c.render(row) : row[c.key]}</TableCell>
+                  ))}
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button size="small" variant="contained" onClick={() => handleApprove(row.id)}>
+                        Approve
+                      </Button>
+                      <Button size="small" variant="outlined" onClick={() => router.push(editPath(row))}>
+                        Edit
+                      </Button>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
+        <ListPagination
+          page={page}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          totalCount={total}
+          onPaginationChange={handlePaginationChange}
         />
-      </Paper>
+      </Stack>
     </MainCard>
   );
 }

@@ -37,7 +37,11 @@ export default function CustomersTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  totalCount,
+  onPaginationChange,
+  topActionsLeft,
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => [
@@ -113,7 +117,11 @@ export default function CustomersTableSection({
       pageIndex={pageIndex}
       pageSize={pageSize}
       totalPageCount={totalPageCount}
+      totalCount={totalCount}
       onPaginationChange={onPaginationChange}
+      showPagination={showPagination}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
       permissionName="user"
     />
   );

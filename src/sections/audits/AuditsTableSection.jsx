@@ -11,7 +11,17 @@ const formatDate = (iso) => {
 
 const shortId = (id) => (id ? String(id).slice(0, 8) : '—');
 
-export default function AuditsTableSection({ rows, pageIndex, pageSize, totalPageCount, onPaginationChange }) {
+export default function AuditsTableSection({
+  rows,
+  pageIndex,
+  pageSize,
+  totalPageCount,
+  onPaginationChange,
+  totalCount,
+  topActionsLeft,
+  topActions,
+  showPagination = true
+}) {
   const columns = useMemo(
     () => [
       {
@@ -53,6 +63,10 @@ export default function AuditsTableSection({ rows, pageIndex, pageSize, totalPag
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
       permissionName="auditLog"
+      totalCount={totalCount}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
+      showPagination={showPagination}
     />
   );
 }

@@ -10,19 +10,12 @@ import {
   Typography,
   Chip,
   Button,
-  Avatar,
-  Tooltip,
-  Pagination,
-  TextField,
-  MenuItem,
-  Divider
+  Avatar
 } from '@mui/material';
-import { EditOutlined, EyeOutlined, PlusOutlined } from '@ant-design/icons';
+import { EditOutlined, EyeOutlined } from '@ant-design/icons';
 import { RECORD_STATUS } from 'utils/constants';
 
-// =============== Helpers ===============
 const nfINR = new Intl.NumberFormat('en-IN');
-const curr = (c) => (c || 'INR');
 
 function fmtMoney(n) {
   if (n == null) return null;
@@ -61,7 +54,6 @@ function StatusChip({ value }) {
   }
 }
 
-// =============== Price Block ===============
 function PriceBlock({ price_cents, mrp, sale_price, currency = 'INR', tax_inclusive }) {
   const base = price_cents != null ? Math.round(Number(price_cents) / 100) : null;
   const m = mrp != null ? Number(mrp) : null;
@@ -73,7 +65,9 @@ function PriceBlock({ price_cents, mrp, sale_price, currency = 'INR', tax_inclus
     <Stack spacing={0.5}>
       {s != null && m != null && m > 0 && s < m ? (
         <Stack direction="row" spacing={1} alignItems="baseline">
-          <Typography variant="subtitle2">{currency} {fmtMoney(s)}</Typography>
+          <Typography variant="subtitle2">
+            {currency} {fmtMoney(s)}
+          </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
             {currency} {fmtMoney(m)}
           </Typography>
@@ -86,7 +80,6 @@ function PriceBlock({ price_cents, mrp, sale_price, currency = 'INR', tax_inclus
           </Typography>
         )
       )}
-
       {base != null && (
         <Typography variant="caption" color="text.secondary">
           Base: {currency} {fmtMoney(base)} {tax_inclusive ? '(tax incl.)' : ''}
@@ -96,166 +89,108 @@ function PriceBlock({ price_cents, mrp, sale_price, currency = 'INR', tax_inclus
   );
 }
 
-// =============== Main ===============
 export default function ProductVariantsGrid({
   rows = [],
-  handleAddButton,
   handleEditButton,
   handleViewButton,
-  pageIndex = 0,
-  pageSize = 20,
-  totalPageCount = 1,
-  onPaginationChange,
-  totalCount = 0
+  showProductMeta = false
 }) {
   const hasRows = Array.isArray(rows) && rows.length > 0;
 
-  const pageSizeOptions = [10, 20, 50, 100];
-
-  const handlePageChange = (_e, page) => {
-    if (typeof onPaginationChange === 'function') onPaginationChange({ pageIndex: page - 1, pageSize });
-  };
-  const handlePageSizeChange = (e) => {
-    const nextSize = Number(e.target.value) || pageSize;
-    if (typeof onPaginationChange === 'function') onPaginationChange({ pageIndex: 0, pageSize: nextSize });
-  };
-
   return (
-    <Stack spacing={2} sx={{ width: '100%' }}>
-      {/* Header actions */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6">Product Variants{`(${totalCount})`}</Typography>
-        <Button onClick={handleAddButton} startIcon={<PlusOutlined />} variant="contained" size="small">
-          Add Variant
-        </Button>
-      </Stack>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',
+          sm: 'repeat(2, 1fr)',
+          md: 'repeat(3, 1fr)',
+          lg: 'repeat(4, 1fr)'
+        },
+        gap: 2
+      }}
+    >
+      {!hasRows && (
+        <Box sx={{ gridColumn: '1 / -1', py: 6, textAlign: 'center', color: 'text.secondary' }}>
+          <Typography variant="body2">No variants found.</Typography>
+        </Box>
+      )}
 
-      {/* Card grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-            lg: 'repeat(4, 1fr)'
-          },
-          gap: 2
-        }}
-      >
-        {!hasRows && (
-          <Box sx={{ gridColumn: '1 / -1', py: 6, textAlign: 'center', color: 'text.secondary' }}>
-            <Typography variant="body2">No variants found.</Typography>
-          </Box>
-        )}
-
-        {rows.map((row) => {
-          const img = getFirstImage(row);
-          const sw = row?.color_hex;
-          return (
-            <Card key={row.id} variant="outlined" sx={{ display: 'flex', flexDirection: 'column' }}>
-              {/* Media */}
-              <Box
-                sx={{
-                  position: 'relative',
-                  pt: '56.25%',
-                  bgcolor: 'grey.100',
-                  borderBottom: '1px solid',
-                  borderColor: 'divider'
-                }}
-              >
-                {img ? (
-                  <Box
-                    component="img"
-                    src={img}
-                    alt={row.sku || 'variant'}
-                    sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                    onClick={() => handleEditButton && handleEditButton(row)}
-                  />
-                ) : (
-                  <Stack
-                    alignItems="center"
-                    justifyContent="center"
-                    sx={{ position: 'absolute', inset: 0 }}
-                    onClick={() => handleEditButton && handleEditButton(row)}
-                  >
-                    <Avatar sx={{ width: 56, height: 56 }}>{(row?.sku || 'NA').slice(0, 2).toUpperCase()}</Avatar>
-                  </Stack>
-                )}
-              </Box>
-
-              {/* Body */}
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Stack spacing={0.75}>
-                  {/* Title row */}
-                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                    <Typography variant="subtitle1" noWrap title={row.sku}>
-                      {row.sku || '—'}
-                    </Typography>
-                    <StatusChip value={row.record_status} />
-                  </Stack>
-
-                  {/* Price */}
-                  <PriceBlock
-                    price_cents={row?.price_cents}
-                    mrp={row?.mrp}
-                    sale_price={row?.sale_price}
-                    currency={curr(row?.currency)}
-                    tax_inclusive={!!row?.tax_inclusive}
-                  />
-
-                  <Typography variant="h7" >
-                    Barcode  : {row.barcode || ''}
-                  </Typography>
-                  <Typography variant="h7" >
-                    GTIN  : {row.gtin || ''}
-                  </Typography>
-                  <Typography variant="h7"  >
-                    MPN  : {row.mpn || ''}
-                  </Typography>
+      {rows.map((row) => {
+        const img = getFirstImage(row);
+        return (
+          <Card key={row.id} variant="outlined" sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Box
+              sx={{
+                position: 'relative',
+                pt: '56.25%',
+                bgcolor: 'grey.100',
+                borderBottom: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
+              {img ? (
+                <Box
+                  component="img"
+                  src={img}
+                  alt={row.sku || 'variant'}
+                  sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                  onClick={() => handleViewButton && handleViewButton(row)}
+                />
+              ) : (
+                <Stack alignItems="center" justifyContent="center" sx={{ position: 'absolute', inset: 0 }}>
+                  <Avatar variant="rounded">{(row.sku || 'V')[0]}</Avatar>
                 </Stack>
-              </CardContent>
+              )}
+            </Box>
 
-              {/* Actions */}
-              <CardActions sx={{ pt: 0, justifyContent: 'space-between' }}>
-                <Button size="small" startIcon={<EyeOutlined />} onClick={() => handleViewButton && handleViewButton(row)}>
-                  View
-                </Button>
-                <Button size="small" startIcon={<EditOutlined />} onClick={() => handleEditButton && handleEditButton(row)}>
-                  Edit
-                </Button>
-              </CardActions>
-            </Card>
-          );
-        })}
-      </Box>
+            <CardContent sx={{ flex: 1 }}>
+              <Stack spacing={1}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                  <Typography variant="subtitle1" fontWeight={600} noWrap title={row.sku}>
+                    {row.sku || '—'}
+                  </Typography>
+                  <StatusChip value={row.record_status} />
+                </Stack>
+                {showProductMeta ? (
+                  <Stack spacing={0.25}>
+                    <Typography variant="body2" noWrap title={row.product?.name}>
+                      {row.product?.name || '—'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {[row.product?.brand?.name, row.product?.category?.name].filter(Boolean).join(' · ') || '—'}
+                    </Typography>
+                  </Stack>
+                ) : null}
+                <Typography variant="caption" color="text.secondary" noWrap title={getOptionSummary(row)}>
+                  {getOptionSummary(row)}
+                </Typography>
+                <PriceBlock
+                  price_cents={row.price_cents}
+                  mrp={row.mrp}
+                  sale_price={row.sale_price}
+                  currency={row.currency}
+                  tax_inclusive={row.tax_inclusive}
+                />
+              </Stack>
+            </CardContent>
 
-      {/* Pagination */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center" justifyContent="space-between">
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography variant="caption" color="text.secondary">Rows per page:</Typography>
-          <TextField select size="small" value={pageSize} onChange={handlePageSizeChange} sx={{ width: 100 }}>
-            {pageSizeOptions.map((opt) => (
-              <MenuItem key={opt} value={opt}>{opt}</MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-        <Pagination
-          color="primary"
-          count={Math.max(totalPageCount || 1, 1)}
-          page={(pageIndex || 0) + 1}
-          onChange={handlePageChange}
-          siblingCount={1}
-          boundaryCount={1}
-          showFirstButton
-          showLastButton
-        />
-      </Stack>
-    </Stack>
+            <CardActions sx={{ pt: 0, justifyContent: 'space-between' }}>
+              <Button size="small" startIcon={<EyeOutlined />} onClick={() => handleViewButton && handleViewButton(row)}>
+                View
+              </Button>
+              <Button size="small" startIcon={<EditOutlined />} onClick={() => handleEditButton && handleEditButton(row)}>
+                Edit
+              </Button>
+            </CardActions>
+          </Card>
+        );
+      })}
+    </Box>
   );
 }
 
-StatusChip.propTypes = { value: PropTypes.string };
+StatusChip.propTypes = { value: PropTypes.any };
 PriceBlock.propTypes = {
   price_cents: PropTypes.any,
   mrp: PropTypes.any,
@@ -266,10 +201,7 @@ PriceBlock.propTypes = {
 
 ProductVariantsGrid.propTypes = {
   rows: PropTypes.array,
-  handleAddButton: PropTypes.func,
   handleEditButton: PropTypes.func,
-  pageIndex: PropTypes.number,
-  pageSize: PropTypes.number,
-  totalPageCount: PropTypes.number,
-  onPaginationChange: PropTypes.func
+  handleViewButton: PropTypes.func,
+  showProductMeta: PropTypes.bool
 };

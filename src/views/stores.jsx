@@ -6,6 +6,7 @@ import { enqueueSnackbar } from 'notistack';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import { actions as sellersStores } from 'store/sellersStores/slice';
 import StoresTableSection from 'sections/stores/StoresTableSection';
+import useUrlFilters from 'hooks/useUrlFilters';
 import { useRouter } from 'next/navigation';
 import { STORE_STATUS } from 'utils/constants';
 
@@ -22,20 +23,39 @@ const KYB_OPTIONS = [
   { value: 'REJECTED', label: 'Rejected' }
 ];
 
+const FILTER_DEFAULTS = {
+  q: '',
+  status: '',
+  kyb_status: '',
+  page: 1,
+  limit: 20
+};
+
 export function StoresView() {
   const dispatch = useDispatch();
   const router = useRouter();
   const state = useSelector((s) => s.sellersStores || {});
-  const list = state.stores || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
+  const list = state.stores || {
+    rows: [],
+    meta: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+    loading: false,
+    error: null
+  };
 
-  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
+  const {
+    rows: data = [],
+    meta: { total = 0, totalPages = 1 } = {},
+    error
+  } = list;
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ q: '', status: '', kyb_status: '' });
+  const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
+  });
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
 
-  const buildParams = (pageNum = page, limit = pageSize, f = filters) => ({
-    page: pageNum,
-    limit,
+  const buildParams = (f = applied) => ({
+    page: Number(f.page) || 1,
+    limit: Number(f.limit) || 20,
     sort: 'updatedAt',
     dir: 'DESC',
     ...(f.q ? { q: f.q } : {}),
@@ -44,14 +64,26 @@ export function StoresView() {
   });
 
   useEffect(() => {
-    dispatch(sellersStores.storesListRequest({ params: buildParams(1, pageSize) }));
+    dispatch(sellersStores.storesListRequest({ params: buildParams(applied) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, filters.status, filters.kyb_status]);
+  }, [dispatch, urlKey, applied.page, applied.limit, applied.q, applied.status, applied.kyb_status]);
+
+  useEffect(() => {
+    setSearchQuery(applied.q || '');
+  }, [applied.q]);
+
+  useEffect(() => {
+    if (error) {
+      enqueueSnackbar(error, { variant: 'error' });
+    }
+  }, [error]);
 
   const handleSearch = () => {
-    const next = { ...filters, q: searchQuery.trim() };
-    setFilters(next);
-    dispatch(sellersStores.storesListRequest({ params: buildParams(1, pageSize, next) }));
+    applySearch({
+      q: searchQuery.trim(),
+      status: draft.status,
+      kyb_status: draft.kyb_status
+    });
   };
 
   const handleAddButton = () => {
@@ -66,77 +98,64 @@ export function StoresView() {
     router.push(`/stores/${row.id}`);
   };
 
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(
-      sellersStores.storesListRequest({
-        params: buildParams(next.pageIndex + 1, next.pageSize)
-      })
-    );
-  };
-
-  useEffect(() => {
-    if (error) {
-      enqueueSnackbar(error, { variant: 'error' });
-    }
-  }, [error]);
+  const topActionsLeft = () => (
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
+      <TextField
+        size="small"
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+        placeholder="Name, slug, code, phone…"
+        sx={{ minWidth: 220 }}
+      />
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={draft.status}
+        onChange={(e) => setDraft({ status: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {STATUS_OPTIONS.map((o) => (
+          <MenuItem key={o.value || 'all'} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        label="KYB"
+        value={draft.kyb_status}
+        onChange={(e) => setDraft({ kyb_status: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {KYB_OPTIONS.map((o) => (
+          <MenuItem key={o.value || 'all'} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <Button variant="outlined" size="small" onClick={handleSearch}>
+        Search
+      </Button>
+    </Stack>
+  );
 
   return (
-    <>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
-        <TextField
-          size="small"
-          label="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Name, slug, code, phone…"
-          sx={{ minWidth: 220 }}
-        />
-        <TextField
-          select
-          size="small"
-          label="Status"
-          value={filters.status}
-          onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          {STATUS_OPTIONS.map((o) => (
-            <MenuItem key={o.value || 'all'} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="KYB"
-          value={filters.kyb_status}
-          onChange={(e) => setFilters((p) => ({ ...p, kyb_status: e.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          {KYB_OPTIONS.map((o) => (
-            <MenuItem key={o.value || 'all'} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
-          Search
-        </Button>
-      </Stack>
-
-      <StoresTableSection
-        rows={data}
-        handleAddButton={handleAddButton}
-        handleEditButton={handleEditButton}
-        handleViewButton={handleViewButton}
-        pageIndex={page - 1}
-        pageSize={pageSize}
-        totalPageCount={totalPages}
-        onPaginationChange={handlePaginationChange}
-      />
-    </>
+    <StoresTableSection
+      rows={data}
+      handleAddButton={handleAddButton}
+      handleEditButton={handleEditButton}
+      handleViewButton={handleViewButton}
+      pageIndex={(Number(applied.page) || 1) - 1}
+      pageSize={Number(applied.limit) || 20}
+      totalPageCount={totalPages}
+      totalCount={total}
+      onPaginationChange={handlePaginationChange}
+      topActionsLeft={topActionsLeft}
+    />
   );
 }
 

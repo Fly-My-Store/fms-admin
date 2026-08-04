@@ -132,9 +132,8 @@ export default function VariantDetailView() {
       heading: 'product-variant',
       links: [
         { title: 'home', to: '/dashboard' },
-        { title: 'products', to: '/products' },
+        { title: 'product-variants', to: '/product-variants' },
         { title: `${product_id_from_query}-${product_name_from_query}`, to: `/products/${product_id_from_query}`, i18n: false },
-        { title: 'product-variants', to: `/products/${product_id_from_query}?t=variants` },
         { title: name, i18n: false }
       ]
     };
@@ -236,9 +235,26 @@ export default function VariantDetailView() {
                 </Stack>
 
 
-                {/* Actions */}
-                <Stack direction="row" spacing={1}>
-                  <Button variant="outlined" size="small" onClick={() => router.push(`/variants/edit/${data?.id}`)}>Edit Variant</Button>
+                {/* Actions — View keeps older shell edit + attributes; full editor available too */}
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() =>
+                      router.push(
+                        `/product-variants/edit/${data?.id}?p=${data?.product_id || ''}&n=${encodeURIComponent(data?.product?.name || '')}`
+                      )
+                    }
+                  >
+                    Edit variant (shell)
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => router.push(`/product-variants/create?edit=${data?.id}`)}
+                  >
+                    Full editor
+                  </Button>
                 </Stack>
               </>
             )}
@@ -249,7 +265,7 @@ export default function VariantDetailView() {
             <ProductVarientAttrsView
               variant_id={id}
               variantName={data?.sku || ''}
-              category_id={data?.product.category_id || null}
+              category_id={data?.product?.category_id || null}
             />
           </Stack>
         </Stack>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Chip from '@mui/material/Chip';
 import BasicReactTable from 'components/tables/basicTable';
 import { TABLE_STATUS } from 'utils/constants';
@@ -12,7 +12,11 @@ export default function UserTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
+  totalCount,
   onPaginationChange,
+  topActionsLeft,
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => [
@@ -51,17 +55,23 @@ export default function UserTableSection({
     []
   );
 
-  return <BasicReactTable
-    columns={columns}
-    data={users}
-    title="Admin Users"
-    ariaLebel="Add User"
-    handleAddButton={handleAddButton}
-    handleEditButton={handleEditButton}
-    pageIndex={pageIndex}
-    pageSize={pageSize}
-    totalPageCount={totalPageCount}
-    onPaginationChange={onPaginationChange}
-    permissionName={'user'}
-  />;
+  return (
+    <BasicReactTable
+      columns={columns}
+      data={users}
+      title="Admin Users"
+      ariaLebel="Add User"
+      handleAddButton={handleAddButton}
+      handleEditButton={handleEditButton}
+      pageIndex={pageIndex}
+      pageSize={pageSize}
+      totalPageCount={totalPageCount}
+      totalCount={totalCount}
+      onPaginationChange={onPaginationChange}
+      permissionName={'user'}
+      showPagination={showPagination}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
+    />
+  );
 }

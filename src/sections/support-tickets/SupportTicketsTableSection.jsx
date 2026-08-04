@@ -10,9 +10,12 @@ export default function SupportTicketsTableSection({
   pageSize,
   totalPageCount,
   onPaginationChange,
-  topActionsLeft,
   hideRequesterColumn = false,
-  showTitle = true
+  showTitle = true,
+  totalCount,
+  topActionsLeft,
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => {
@@ -41,6 +44,9 @@ export default function SupportTicketsTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
+      totalCount={totalCount}
+      topActions={topActions}
+      showPagination={showPagination}
       topActionsLeft={topActionsLeft}
     />
   );

@@ -73,24 +73,36 @@ RiderDeliveriesSubheader.propTypes = {
 export default function DeliveriesList({
   filters = {},
   variant = 'page',
-  pageSize: initialPageSize = 20,
+  pageSize: pageSizeProp = 20,
+  pageIndex: pageIndexProp,
+  onPaginationChange: onPaginationChangeProp,
+  showPagination = true,
+  onMetaChange,
   onEdit,
   onLoaded,
   refreshKey,
   title = 'Deliveries',
-  showTitle = true
+  showTitle = true,
+  topActionsLeft,
+  topActions
 }) {
+  const isControlled = pageIndexProp != null;
   const [rows, setRows] = useState([]);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [internalPageIndex, setInternalPageIndex] = useState(0);
+  const [internalPageSize, setInternalPageSize] = useState(pageSizeProp);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [error, setError] = useState(null);
+
+  const pageIndex = isControlled ? pageIndexProp : internalPageIndex;
+  const pageSize = isControlled ? pageSizeProp : internalPageSize;
 
   const filterKey = useMemo(() => JSON.stringify(filters), [filters]);
   const parsedFilters = useMemo(() => JSON.parse(filterKey), [filterKey]);
   const onLoadedRef = useRef(onLoaded);
   onLoadedRef.current = onLoaded;
+  const onMetaChangeRef = useRef(onMetaChange);
+  onMetaChangeRef.current = onMetaChange;
 
   const load = useCallback(
     async (page, limit) => {
@@ -105,35 +117,44 @@ export default function DeliveriesList({
 
       try {
         setError(null);
+        onMetaChangeRef.current?.((prev) => ({ ...prev, loading: true }));
         const resp = await listDeliveries(params);
         const list = Array.isArray(resp?.data) ? resp.data : [];
         const normalized = list.map(normalizeDeliveryRow);
+        const nextTotalPages = resp?.meta?.totalPages || 1;
+        const nextTotalCount = resp?.meta?.total ?? normalized.length;
         setRows(normalized);
-        setTotalPages(resp?.meta?.totalPages || 1);
-        setTotalCount(resp?.meta?.total ?? normalized.length);
+        setTotalPages(nextTotalPages);
+        setTotalCount(nextTotalCount);
         onLoadedRef.current?.(normalized, resp?.meta);
+        onMetaChangeRef.current?.({ totalPages: nextTotalPages, totalCount: nextTotalCount, loading: false });
       } catch (e) {
         setError(e?.response?.data?.message || e?.message || 'Failed to load deliveries');
         setRows([]);
         setTotalPages(1);
         setTotalCount(0);
+        onMetaChangeRef.current?.({ totalPages: 1, totalCount: 0, loading: false });
       }
     },
     [parsedFilters]
   );
 
   useEffect(() => {
-    setPageIndex(0);
-  }, [filterKey, refreshKey]);
+    if (!isControlled) setInternalPageIndex(0);
+  }, [filterKey, refreshKey, isControlled]);
 
   useEffect(() => {
     load(pageIndex + 1, pageSize);
   }, [pageIndex, pageSize, filterKey, refreshKey, load]);
 
   const handlePaginationChange = (updater) => {
+    if (onPaginationChangeProp) {
+      onPaginationChangeProp(updater);
+      return;
+    }
     const next = typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
-    setPageIndex(next.pageIndex);
-    setPageSize(next.pageSize);
+    setInternalPageIndex(next.pageIndex);
+    setInternalPageSize(next.pageSize);
   };
 
   const pageColumns = useMemo(
@@ -227,7 +248,10 @@ export default function DeliveriesList({
         totalPageCount={totalPages}
         totalCount={totalCount}
         onPaginationChange={handlePaginationChange}
+        showPagination={showPagination}
         permissionName="deliveryJob"
+        topActionsLeft={topActionsLeft}
+        topActions={topActions}
         subheader={
           isRiderVariant
             ? () => (
@@ -249,9 +273,15 @@ DeliveriesList.propTypes = {
   }),
   variant: PropTypes.oneOf(['page', 'rider']),
   pageSize: PropTypes.number,
+  pageIndex: PropTypes.number,
+  onPaginationChange: PropTypes.func,
+  showPagination: PropTypes.bool,
+  onMetaChange: PropTypes.func,
   onEdit: PropTypes.func,
   onLoaded: PropTypes.func,
   refreshKey: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   title: PropTypes.string,
-  showTitle: PropTypes.bool
+  showTitle: PropTypes.bool,
+  topActionsLeft: PropTypes.func,
+  topActions: PropTypes.func
 };

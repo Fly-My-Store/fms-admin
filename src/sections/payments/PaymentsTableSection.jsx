@@ -14,8 +14,11 @@ export default function PaymentsTableSection({
   totalPageCount,
   onPaginationChange,
   showActions = true,
+  showTitle = true,
+  totalCount,
   topActionsLeft,
-  showTitle = true
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => [
@@ -41,6 +44,9 @@ export default function PaymentsTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
+      totalCount={totalCount}
+      topActions={topActions}
+      showPagination={showPagination}
       permissionName={'payment'}
       showActions={showActions}
       topActionsLeft={topActionsLeft}

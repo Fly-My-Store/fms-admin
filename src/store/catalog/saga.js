@@ -153,8 +153,12 @@ function* productsRemoveWorker(action) {
 
 function* variantsListWorker(action) {
   try {
-    const { product_id, ...query } = action.payload?.params || {};
-    const resp = yield call(api.listVariants, product_id, query);
+    // Always use GET /admin/catalog/variants so product_id, brand_id, category_id,
+    // q, and record_status all travel as query params. The nested
+    // /products/:id/variants path was dropping brand/category filters when
+    // product_id was absent (listVariants(undefined, query) ignored query).
+    const params = action.payload?.params || {};
+    const resp = yield call(api.listAllVariants, params);
     yield put(actions.variantsListSuccess(resp));
   } catch (err) {
     const msg = getErrorMessage(err, 'Failed to load variants');

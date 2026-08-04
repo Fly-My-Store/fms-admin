@@ -7,6 +7,7 @@ import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import { actions as content } from 'store/content/slice';
 import FaqsTableSection from 'sections/faqs/FaqsTableSection';
 import FaqsFormDialog from 'sections/faqs/FaqsFormDialog';
+import useUrlFilters from 'hooks/useUrlFilters';
 import { RECORD_STATUS } from 'utils/constants';
 
 const APP_TYPE_OPTIONS = [
@@ -23,34 +24,63 @@ const RECORD_STATUS_OPTIONS = [
   { value: String(RECORD_STATUS.ARCHIVED), label: 'Archived' }
 ];
 
+const FILTER_DEFAULTS = {
+  q: '',
+  app_type: '',
+  record_status: '',
+  page: 1,
+  limit: 20
+};
+
 export function FaqsView() {
   const dispatch = useDispatch();
   const state = useSelector((s) => s.content || {});
-  const list = state.faqs || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
-  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
+  const list = state.faqs || {
+    rows: [],
+    meta: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+    loading: false,
+    error: null
+  };
+  const {
+    rows: data = [],
+    meta: { total = 0, totalPages = 1 } = {},
+    error
+  } = list;
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ q: '', app_type: '', record_status: '' });
+  const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
+  });
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
 
-  const buildParams = (pageNum = page, limit = pageSize, f = filters) => ({
-    page: pageNum,
-    limit,
+  const buildParams = (f = applied) => ({
+    page: Number(f.page) || 1,
+    limit: Number(f.limit) || 20,
     ...(f.q ? { q: f.q } : {}),
     ...(f.app_type ? { app_type: f.app_type } : {}),
     ...(f.record_status ? { record_status: f.record_status } : {})
   });
 
   useEffect(() => {
-    dispatch(content.faqsListRequest({ params: buildParams(1, pageSize) }));
+    dispatch(content.faqsListRequest({ params: buildParams(applied) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, filters.app_type, filters.record_status]);
+  }, [dispatch, urlKey, applied.page, applied.limit, applied.q, applied.app_type, applied.record_status]);
+
+  useEffect(() => {
+    setSearchQuery(applied.q || '');
+  }, [applied.q]);
+
+  useEffect(() => {
+    if (error) enqueueSnackbar(error, { variant: 'error' });
+  }, [error]);
 
   const handleSearch = () => {
-    const next = { ...filters, q: searchQuery.trim() };
-    setFilters(next);
-    dispatch(content.faqsListRequest({ params: buildParams(1, pageSize, next) }));
+    applySearch({
+      q: searchQuery.trim(),
+      app_type: draft.app_type,
+      record_status: draft.record_status
+    });
   };
 
   const handleDialogToggle = () => {
@@ -68,81 +98,74 @@ export function FaqsView() {
     setOpen(true);
   };
 
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(content.faqsListRequest({ params: buildParams(next.pageIndex + 1, next.pageSize) }));
-  };
-
   const handleSaved = () => {
-    dispatch(content.faqsListRequest({ params: buildParams(page, pageSize) }));
+    dispatch(content.faqsListRequest({ params: buildParams(applied) }));
   };
 
-  useEffect(() => {
-    if (error) {
-      enqueueSnackbar(error, { variant: 'error' });
-    }
-  }, [error]);
+  const topActionsLeft = () => (
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
+      <TextField
+        size="small"
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+        placeholder="Question, answer, section…"
+        sx={{ minWidth: 220 }}
+      />
+      <TextField
+        select
+        size="small"
+        label="App"
+        value={draft.app_type}
+        onChange={(e) => setDraft({ app_type: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {APP_TYPE_OPTIONS.map((o) => (
+          <MenuItem key={o.value || 'all'} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={draft.record_status}
+        onChange={(e) => setDraft({ record_status: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {RECORD_STATUS_OPTIONS.map((o) => (
+          <MenuItem key={o.value || 'all'} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <Button variant="outlined" size="small" onClick={handleSearch}>
+        Search
+      </Button>
+    </Stack>
+  );
 
   return (
     <>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
-        <TextField
-          size="small"
-          label="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Question, answer, section…"
-          sx={{ minWidth: 220 }}
-        />
-        <TextField
-          select
-          size="small"
-          label="App"
-          value={filters.app_type}
-          onChange={(e) => setFilters((p) => ({ ...p, app_type: e.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          {APP_TYPE_OPTIONS.map((o) => (
-            <MenuItem key={o.value || 'all'} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Status"
-          value={filters.record_status}
-          onChange={(e) => setFilters((p) => ({ ...p, record_status: e.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          {RECORD_STATUS_OPTIONS.map((o) => (
-            <MenuItem key={o.value || 'all'} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
-          Search
-        </Button>
-      </Stack>
-
       <FaqsTableSection
         rows={data}
         handleAddButton={handleAddButton}
         handleEditButton={handleEditButton}
-        pageIndex={page - 1}
-        pageSize={pageSize}
+        pageIndex={(Number(applied.page) || 1) - 1}
+        pageSize={Number(applied.limit) || 20}
         totalPageCount={totalPages}
+        totalCount={total}
         onPaginationChange={handlePaginationChange}
+        topActionsLeft={topActionsLeft}
       />
       <FaqsFormDialog
         open={open}
         onClose={handleDialogToggle}
         initialData={selected}
         onSaved={handleSaved}
-        defaultAppType={filters.app_type || 'CUSTOMER'}
+        defaultAppType={applied.app_type || 'CUSTOMER'}
       />
     </>
   );

@@ -75,7 +75,11 @@ export default function RidersTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  onPaginationChange
+  onPaginationChange,
+  totalCount,
+  topActionsLeft,
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => [
@@ -204,6 +208,10 @@ export default function RidersTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
+      totalCount={totalCount}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
+      showPagination={showPagination}
       permissionName={'rider'}
     />
   );

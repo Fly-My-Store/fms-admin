@@ -103,6 +103,9 @@ export const createProductImage = (productId, data) => post(`admin/catalog/produ
 export const updateProductImage = (productId, imageId, data) => patch(`admin/catalog/products/${productId}/images/${imageId}`, data);
 export const removeProductImage = (productId, imageId) => del(`admin/catalog/products/${productId}/images/${imageId}`);
 
+/** JSON quick-create (one or more catalog rows) */
+export const quickCreateCatalog = (rows) => post('admin/catalog/quick-create', { rows: Array.isArray(rows) ? rows : [rows] });
+
 /** Multipart catalog CSV/ZIP import */
 export async function bulkImportCatalog(formData, onUploadProgress) {
   const r = await axiosServices.post('admin/catalog/bulk-import', formData, {

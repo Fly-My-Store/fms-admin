@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import { actions as logistics } from 'store/logistics/slice';
 import RidersTableSection from 'sections/riders/RidersTableSection';
+import useUrlFilters from 'hooks/useUrlFilters';
 import { ACCOUNT_STATUS } from 'utils/constants';
 
 const KYC_OPTIONS = [
@@ -32,24 +33,39 @@ const STATUS_OPTIONS = [
   { value: String(ACCOUNT_STATUS.DELETED), label: 'Deleted' }
 ];
 
+const FILTER_DEFAULTS = {
+  q: '',
+  kyc_status: 'all',
+  availability_status: 'all',
+  status: 'all',
+  page: 1,
+  limit: 20
+};
+
 export function RidersView() {
   const dispatch = useDispatch();
   const router = useRouter();
   const state = useSelector((s) => s.logistics || {});
-  const list = state.riders || { rows: [], meta: { page: 1, pageSize: 20, totalPages: 1 }, loading: false, error: null };
-  const { rows: data = [], meta: { page = 1, pageSize = 20, totalPages = 1 } = {}, error } = list;
+  const list = state.riders || {
+    rows: [],
+    meta: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+    loading: false,
+    error: null
+  };
+  const {
+    rows: data = [],
+    meta: { total = 0, totalPages = 1 } = {},
+    error
+  } = list;
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    q: '',
-    kyc_status: 'all',
-    availability_status: 'all',
-    status: 'all'
+  const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
   });
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
 
-  const buildParams = (pageNum = page, limit = pageSize, f = filters) => ({
-    page: pageNum,
-    limit,
+  const buildParams = (f = applied) => ({
+    page: Number(f.page) || 1,
+    limit: Number(f.limit) || 20,
     ...(f.q ? { q: f.q } : {}),
     ...(f.kyc_status && f.kyc_status !== 'all' ? { kyc_status: f.kyc_status } : {}),
     ...(f.availability_status && f.availability_status !== 'all'
@@ -59,18 +75,36 @@ export function RidersView() {
   });
 
   useEffect(() => {
-    dispatch(logistics.ridersListRequest({ params: buildParams(1, pageSize) }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on filter dropdowns; search uses Search button
-  }, [dispatch, filters.kyc_status, filters.availability_status, filters.status]);
+    dispatch(logistics.ridersListRequest({ params: buildParams(applied) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    dispatch,
+    urlKey,
+    applied.page,
+    applied.limit,
+    applied.q,
+    applied.kyc_status,
+    applied.availability_status,
+    applied.status
+  ]);
+
+  useEffect(() => {
+    setSearchQuery(applied.q || '');
+  }, [applied.q]);
+
+  useEffect(() => {
+    if (error) {
+      enqueueSnackbar(error, { variant: 'error' });
+    }
+  }, [error]);
 
   const handleSearch = () => {
-    const next = { ...filters, q: searchQuery.trim() };
-    setFilters(next);
-    dispatch(logistics.ridersListRequest({ params: buildParams(1, pageSize, next) }));
-  };
-
-  const updateFilter = (key, value) => {
-    setFilters((p) => ({ ...p, [key]: value }));
+    applySearch({
+      q: searchQuery.trim(),
+      kyc_status: draft.kyc_status,
+      availability_status: draft.availability_status,
+      status: draft.status
+    });
   };
 
   const handleAddButton = () => {
@@ -87,91 +121,78 @@ export function RidersView() {
     router.push(`/riders/edit/${row.id}`);
   };
 
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    dispatch(
-      logistics.ridersListRequest({
-        params: buildParams(next.pageIndex + 1, next.pageSize)
-      })
-    );
-  };
-
-  useEffect(() => {
-    if (error) {
-      enqueueSnackbar(error, { variant: 'error' });
-    }
-  }, [error]);
+  const topActionsLeft = () => (
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
+      <TextField
+        size="small"
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+        placeholder="Name, email, phone, vehicle…"
+        sx={{ minWidth: 220 }}
+      />
+      <TextField
+        select
+        size="small"
+        label="KYC"
+        value={draft.kyc_status}
+        onChange={(e) => setDraft({ kyc_status: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {KYC_OPTIONS.map((o) => (
+          <MenuItem key={o.value} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        label="Availability"
+        value={draft.availability_status}
+        onChange={(e) => setDraft({ availability_status: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {AVAILABILITY_OPTIONS.map((o) => (
+          <MenuItem key={o.value} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={draft.status}
+        onChange={(e) => setDraft({ status: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {STATUS_OPTIONS.map((o) => (
+          <MenuItem key={o.value} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <Button variant="outlined" size="small" onClick={handleSearch}>
+        Search
+      </Button>
+    </Stack>
+  );
 
   return (
-    <>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
-        <TextField
-          size="small"
-          label="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Name, email, phone, vehicle…"
-          sx={{ minWidth: 220 }}
-        />
-        <TextField
-          select
-          size="small"
-          label="KYC"
-          value={filters.kyc_status}
-          onChange={(e) => updateFilter('kyc_status', e.target.value)}
-          sx={{ minWidth: 140 }}
-        >
-          {KYC_OPTIONS.map((o) => (
-            <MenuItem key={o.value} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Availability"
-          value={filters.availability_status}
-          onChange={(e) => updateFilter('availability_status', e.target.value)}
-          sx={{ minWidth: 140 }}
-        >
-          {AVAILABILITY_OPTIONS.map((o) => (
-            <MenuItem key={o.value} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Status"
-          value={filters.status}
-          onChange={(e) => updateFilter('status', e.target.value)}
-          sx={{ minWidth: 140 }}
-        >
-          {STATUS_OPTIONS.map((o) => (
-            <MenuItem key={o.value} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
-          Search
-        </Button>
-      </Stack>
-
-      <RidersTableSection
-        rows={data}
-        handleAddButton={handleAddButton}
-        handleEditButton={handleEditButton}
-        handleViewButton={handleViewButton}
-        pageIndex={page - 1}
-        pageSize={pageSize}
-        totalPageCount={totalPages}
-        onPaginationChange={handlePaginationChange}
-      />
-    </>
+    <RidersTableSection
+      rows={data}
+      handleAddButton={handleAddButton}
+      handleEditButton={handleEditButton}
+      handleViewButton={handleViewButton}
+      pageIndex={(Number(applied.page) || 1) - 1}
+      pageSize={Number(applied.limit) || 20}
+      totalPageCount={totalPages}
+      totalCount={total}
+      onPaginationChange={handlePaginationChange}
+      topActionsLeft={topActionsLeft}
+    />
   );
 }
 

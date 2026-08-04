@@ -13,8 +13,11 @@ export default function CartsTableSection({
   onPaginationChange,
   hideCustomerColumn = false,
   showActions = true,
+  showTitle = true,
+  totalCount,
   topActionsLeft,
-  showTitle = true
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => {
@@ -49,6 +52,9 @@ export default function CartsTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
+      totalCount={totalCount}
+      topActions={topActions}
+      showPagination={showPagination}
       permissionName={'cart'}
       showActions={showActions}
       topActionsLeft={topActionsLeft}

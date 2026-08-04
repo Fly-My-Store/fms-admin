@@ -1,94 +1,125 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import CartsTableSection from 'sections/carts/CartsTableSection';
 import CartsFormDialog from 'sections/carts/CartsFormDialog';
 import useAxiosPaginatedList from 'hooks/useAxiosPaginatedList';
+import useUrlFilters from 'hooks/useUrlFilters';
 import { CART_STATUS } from 'utils/constants';
 
 const STATUS_OPTIONS = ['', ...Object.values(CART_STATUS)];
 
+const FILTER_DEFAULTS = {
+  q: '',
+  status: '',
+  store_id: '',
+  page: 1,
+  limit: 20
+};
+
 export default function CartsView() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ q: '', status: '', store_id: '' });
+  const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
+  });
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
 
-  const listParams = {
-    ...(filters.q ? { q: filters.q } : {}),
-    ...(filters.status ? { status: filters.status } : {}),
-    ...(filters.store_id ? { store_id: filters.store_id } : {})
-  };
+  const listParams = useMemo(
+    () => ({
+      ...(applied.q ? { q: applied.q } : {}),
+      ...(applied.status ? { status: applied.status } : {}),
+      ...(applied.store_id ? { store_id: applied.store_id } : {})
+    }),
+    [applied.q, applied.status, applied.store_id]
+  );
 
-  const { rows, pageIndex, pageSize, totalPages, load, handlePaginationChange } = useAxiosPaginatedList(
+  const { rows, totalPages, totalCount, load, setPageIndex, setPageSize } = useAxiosPaginatedList(
     'admin/orders-payments/carts',
     { params: listParams }
   );
 
-  const handleSearch = () => setFilters((p) => ({ ...p, q: searchQuery.trim() }));
+  useEffect(() => {
+    setSearchQuery(applied.q || '');
+    setPageIndex((Number(applied.page) || 1) - 1);
+    setPageSize(Number(applied.limit) || 20);
+  }, [urlKey, applied.q, applied.page, applied.limit, setPageIndex, setPageSize]);
 
-  const handleDialogToggle = () => {
-    setOpen((p) => !p);
-    if (open) setSelected(null);
+  const handleSearch = () => {
+    applySearch({
+      q: searchQuery.trim(),
+      status: draft.status,
+      store_id: (draft.store_id || '').trim()
+    });
   };
-  const handleAddButton = () => {
-    setSelected(null);
-    setOpen(true);
-  };
-  const handleEditButton = (row) => {
-    setSelected(row);
-    setOpen(true);
-  };
+
+  const topActionsLeft = () => (
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
+      <TextField
+        size="small"
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+        placeholder="Customer, store…"
+        sx={{ minWidth: 200 }}
+      />
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={draft.status}
+        onChange={(e) => setDraft({ status: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {STATUS_OPTIONS.map((s) => (
+          <MenuItem key={s || 'all'} value={s}>
+            {s || 'All'}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        size="small"
+        label="Store ID"
+        value={draft.store_id}
+        onChange={(e) => setDraft({ store_id: e.target.value })}
+        sx={{ minWidth: 280 }}
+      />
+      <Button variant="outlined" size="small" onClick={handleSearch}>
+        Search
+      </Button>
+    </Stack>
+  );
 
   return (
     <>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
-        <TextField
-          size="small"
-          label="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Customer, store…"
-          sx={{ minWidth: 200 }}
-        />
-        <TextField
-          select
-          size="small"
-          label="Status"
-          value={filters.status}
-          onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))}
-          sx={{ minWidth: 140 }}
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <MenuItem key={s || 'all'} value={s}>
-              {s || 'All'}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          size="small"
-          label="Store ID"
-          value={filters.store_id}
-          onChange={(e) => setFilters((p) => ({ ...p, store_id: e.target.value.trim() }))}
-          sx={{ minWidth: 280 }}
-        />
-        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
-          Search
-        </Button>
-      </Stack>
-
       <CartsTableSection
         rows={rows}
-        handleAddButton={handleAddButton}
-        handleEditButton={handleEditButton}
-        pageIndex={pageIndex}
-        pageSize={pageSize}
+        handleAddButton={() => {
+          setSelected(null);
+          setOpen(true);
+        }}
+        handleEditButton={(row) => {
+          setSelected(row);
+          setOpen(true);
+        }}
+        pageIndex={(Number(applied.page) || 1) - 1}
+        pageSize={Number(applied.limit) || 20}
         totalPageCount={totalPages}
+        totalCount={totalCount}
         onPaginationChange={handlePaginationChange}
+        topActionsLeft={topActionsLeft}
       />
-      <CartsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={load} />
+      <CartsFormDialog
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setSelected(null);
+        }}
+        initialData={selected}
+        onSaved={load}
+      />
     </>
   );
 }

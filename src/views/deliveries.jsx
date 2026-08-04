@@ -1,84 +1,124 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import DeliveriesList from 'sections/deliveries/DeliveriesList';
 import DeliveryJobsFormDialog from 'sections/delivery-jobs/DeliveryJobsFormDialog';
+import useUrlFilters from 'hooks/useUrlFilters';
 
 const DELIVERY_STATUSES = ['', 'PENDING', 'ASSIGNED', 'REACHED_STORE', 'PICKED_UP', 'DELIVERED', 'CANCELLED', 'FAILED'];
+
+const FILTER_DEFAULTS = {
+  q: '',
+  status: '',
+  rider_id: '',
+  order_id: '',
+  page: 1,
+  limit: 20
+};
 
 export default function DeliveriesView() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ q: '', status: '', rider_id: '', order_id: '' });
+  const { draft, setDraft, applied, applySearch, handlePaginationChange } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
+  });
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
 
-  const handleDialogToggle = () => {
-    setOpen((p) => !p);
-    if (open) setSelected(null);
+  useEffect(() => {
+    setSearchQuery(applied.q || '');
+  }, [applied.q]);
+
+  const appliedFilters = useMemo(
+    () => ({
+      q: applied.q || '',
+      status: applied.status || '',
+      rider_id: applied.rider_id || '',
+      order_id: applied.order_id || ''
+    }),
+    [applied.q, applied.status, applied.rider_id, applied.order_id]
+  );
+
+  const handleSearch = () => {
+    applySearch({
+      q: searchQuery.trim(),
+      status: draft.status,
+      rider_id: (draft.rider_id || '').trim(),
+      order_id: (draft.order_id || '').trim()
+    });
   };
 
-  const handleEditButton = (row) => {
-    setSelected(row);
-    setOpen(true);
-  };
-
-  const handleSearch = () => setFilters((p) => ({ ...p, q: searchQuery.trim() }));
-
-  const updateFilter = (key, value) => {
-    setFilters((p) => ({ ...p, [key]: value }));
-  };
-
-  const handleSaved = () => setRefreshKey((k) => k + 1);
+  const topActionsLeft = () => (
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
+      <TextField
+        size="small"
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+        placeholder="Order, rider, store…"
+        sx={{ minWidth: 200 }}
+      />
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={draft.status}
+        onChange={(e) => setDraft({ status: e.target.value })}
+        sx={{ minWidth: 160 }}
+      >
+        {DELIVERY_STATUSES.map((s) => (
+          <MenuItem key={s || 'all'} value={s}>
+            {s || 'All'}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        size="small"
+        label="Rider ID"
+        value={draft.rider_id}
+        onChange={(e) => setDraft({ rider_id: e.target.value })}
+        sx={{ minWidth: 280 }}
+      />
+      <TextField
+        size="small"
+        label="Order ID"
+        value={draft.order_id}
+        onChange={(e) => setDraft({ order_id: e.target.value })}
+        sx={{ minWidth: 280 }}
+      />
+      <Button variant="outlined" size="small" onClick={handleSearch}>
+        Search
+      </Button>
+    </Stack>
+  );
 
   return (
     <>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
-        <TextField
-          size="small"
-          label="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Order, rider, store…"
-          sx={{ minWidth: 200 }}
-        />
-        <TextField
-          select
-          size="small"
-          label="Status"
-          value={filters.status}
-          onChange={(e) => updateFilter('status', e.target.value)}
-          sx={{ minWidth: 160 }}
-        >
-          {DELIVERY_STATUSES.map((s) => (
-            <MenuItem key={s || 'all'} value={s}>
-              {s || 'All'}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          size="small"
-          label="Rider ID"
-          value={filters.rider_id}
-          onChange={(e) => updateFilter('rider_id', e.target.value)}
-          sx={{ minWidth: 280 }}
-        />
-        <TextField
-          size="small"
-          label="Order ID"
-          value={filters.order_id}
-          onChange={(e) => updateFilter('order_id', e.target.value)}
-          sx={{ minWidth: 280 }}
-        />
-        <Button variant="contained" size="small" onClick={handleSearch} sx={{ alignSelf: 'center' }}>
-          Search
-        </Button>
-      </Stack>
-
-      <DeliveriesList filters={filters} variant="page" onEdit={handleEditButton} refreshKey={refreshKey} />
-      <DeliveryJobsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={handleSaved} />
+      <DeliveriesList
+        filters={appliedFilters}
+        variant="page"
+        pageIndex={(Number(applied.page) || 1) - 1}
+        pageSize={Number(applied.limit) || 20}
+        onPaginationChange={handlePaginationChange}
+        showPagination
+        topActionsLeft={topActionsLeft}
+        onEdit={(row) => {
+          setSelected(row);
+          setOpen(true);
+        }}
+        refreshKey={refreshKey}
+      />
+      <DeliveryJobsFormDialog
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setSelected(null);
+        }}
+        initialData={selected}
+        onSaved={() => setRefreshKey((k) => k + 1)}
+      />
     </>
   );
 }

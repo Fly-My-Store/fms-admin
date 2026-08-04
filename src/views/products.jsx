@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import {
@@ -14,10 +14,12 @@ import {
 import { actions as catalog } from 'store/catalog/slice';
 import ProductsTableSection from 'sections/products/ProductsTableSection';
 import { useRouter } from 'next/navigation';
-import { listBrands, listCategories } from 'api/catalog';
+import { getBrand, getCategory, listBrands, listCategories } from 'api/catalog';
+import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
+import useUrlFilters from 'hooks/useUrlFilters';
 import { RECORD_STATUS } from 'utils/constants';
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 20;
 
 const RECORD_STATUS_OPTIONS = [
   { value: '', label: 'All' },
@@ -33,50 +35,20 @@ const SORT_OPTIONS = [
   { value: 'updatedAt', label: 'Updated' }
 ];
 
-function usePagedAutocomplete(listFn) {
-  const [query, setQuery] = useState('');
-  const [options, setOptions] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
-
-  const load = useCallback(
-    async (p = 1, q = query, append = false) => {
-      try {
-        setLoading(true);
-        const res = await listFn({ page: p, limit: 20, q: q || undefined });
-        const rows = res?.data || [];
-        const meta = res?.meta || { page: p, totalPages: 1 };
-        setOptions((prev) => (append ? [...prev, ...rows] : rows));
-        setPage(meta.page || p);
-        setTotalPages(meta.totalPages || 1);
-      } catch {
-        /* ignore */
-      } finally {
-        setLoading(false);
-      }
-    },
-    [listFn, query]
-  );
-
-  useEffect(() => {
-    const t = setTimeout(() => load(1, query, false), 300);
-    return () => clearTimeout(t);
-  }, [query, load]);
-
-  const handleScroll = (event) => {
-    const node = event.currentTarget;
-    const nearBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 32;
-    if (nearBottom && !loading && page < totalPages) {
-      load(page + 1, query, true);
-    }
-  };
-
-  return { query, setQuery, options, loading, load, handleScroll };
-}
+const FILTER_DEFAULTS = {
+  q: '',
+  record_status: String(RECORD_STATUS.ACTIVE),
+  brand_id: '',
+  category_id: '',
+  sort: 'name',
+  dir: 'ASC',
+  page: 1,
+  limit: DEFAULT_PAGE_SIZE
+};
 
 export function ProductsView() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const state = useSelector((s) => s.catalog || {});
   const list = state.products || {
     rows: [],
@@ -86,83 +58,75 @@ export function ProductsView() {
   };
   const {
     rows: data = [],
-    meta: { page = 1, pageSize = DEFAULT_PAGE_SIZE, totalPages = 1, total = 0 } = {},
+    meta: { totalPages = 1, total = 0 } = {},
     error
   } = list;
-  const router = useRouter();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    q: '',
-    record_status: String(RECORD_STATUS.ACTIVE),
-    brand: null,
-    category: null,
-    sort: 'name',
-    dir: 'ASC'
+  const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
   });
 
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
+  const [brandSel, setBrandSel] = useState(null);
+  const [categorySel, setCategorySel] = useState(null);
   const brandAc = usePagedAutocomplete(listBrands);
   const categoryAc = usePagedAutocomplete(listCategories);
 
-  const buildParams = (pageNum = page, limit = pageSize, f = filters) => ({
-    page: pageNum,
-    limit,
+  const buildParams = (f = applied) => ({
+    page: Number(f.page) || 1,
+    limit: Number(f.limit) || DEFAULT_PAGE_SIZE,
     sort: f.sort || 'name',
     dir: f.dir || 'ASC',
     ...(f.q ? { q: f.q } : {}),
     ...(f.record_status !== '' && f.record_status != null ? { record_status: f.record_status } : {}),
-    ...(f.brand?.id ? { brand_id: f.brand.id } : {}),
-    ...(f.category?.id ? { category_id: f.category.id } : {})
+    ...(f.brand_id ? { brand_id: f.brand_id } : {}),
+    ...(f.category_id ? { category_id: f.category_id } : {})
   });
 
-  const reload = (pageNum = 1, limit = pageSize, f = filters) => {
-    dispatch(catalog.productsListRequest({ params: buildParams(pageNum, limit, f) }));
-  };
-
   useEffect(() => {
-    reload(1, DEFAULT_PAGE_SIZE);
+    dispatch(catalog.productsListRequest({ params: buildParams(applied) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, filters.record_status, filters.brand?.id, filters.category?.id, filters.sort, filters.dir]);
-
-  const handleSearch = () => {
-    const next = { ...filters, q: searchQuery.trim() };
-    setFilters(next);
-    reload(1, pageSize, next);
-  };
-
-  const handleAddButton = () => {
-    router.push('/products/create');
-  };
-
-  const handleEditButton = (row) => {
-    router.push(`/products/edit/${row.id}`);
-  };
-
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    reload(next.pageIndex + 1, next.pageSize);
-  };
+  }, [dispatch, urlKey, applied.page, applied.limit, applied.q, applied.record_status, applied.brand_id, applied.category_id, applied.sort, applied.dir]);
 
   useEffect(() => {
-    if (error) {
-      enqueueSnackbar(error, { variant: 'error' });
-    }
+    setSearchQuery(applied.q || '');
+    let cancelled = false;
+    (async () => {
+      try {
+        if (applied.brand_id) {
+          const res = await getBrand(applied.brand_id);
+          if (!cancelled) setBrandSel(res?.data || res || null);
+        } else setBrandSel(null);
+        if (applied.category_id) {
+          const res = await getCategory(applied.category_id);
+          if (!cancelled) setCategorySel(res?.data || res || null);
+        } else setCategorySel(null);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [applied.brand_id, applied.category_id, applied.q]);
+
+  useEffect(() => {
+    if (error) enqueueSnackbar(error, { variant: 'error' });
   }, [error]);
 
-  const topActions = () => (
-    <Button variant="outlined" size="small" onClick={() => router.push('/catalog-bulk-import')}>
-      Bulk Upload
-    </Button>
-  );
+  const handleSearch = () => {
+    applySearch({
+      q: searchQuery.trim(),
+      brand_id: brandSel?.id || '',
+      category_id: categorySel?.id || '',
+      record_status: draft.record_status,
+      sort: draft.sort,
+      dir: draft.dir
+    });
+  };
 
   const topActionsLeft = () => (
-    <Stack
-      direction={{ xs: 'column', md: 'row' }}
-      spacing={1}
-      useFlexGap
-      flexWrap="wrap"
-      alignItems={{ md: 'center' }}
-    >
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
       <TextField
         size="small"
         label="Search"
@@ -174,20 +138,21 @@ export function ProductsView() {
       />
       <Autocomplete
         sx={{ minWidth: 170 }}
+        size="small"
         options={brandAc.options}
-        value={filters.brand}
+        value={brandSel}
         loading={brandAc.loading}
-        onChange={(_, v) => setFilters((p) => ({ ...p, brand: v }))}
-        onOpen={() => brandAc.load(1, brandAc.query, false)}
+        onChange={(_, v) => setBrandSel(v)}
+        onInputChange={(_, v, reason) => {
+          if (reason === 'reset') return;
+          brandAc.setQuery(v);
+        }}
         getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
         isOptionEqualToValue={(a, b) => a?.id === b?.id}
         renderInput={(params) => (
           <TextField
             {...params}
-            size="small"
             label="Brand"
-            placeholder="Search brand…"
-            onChange={(e) => brandAc.setQuery(e.target.value)}
             InputProps={{
               ...params.InputProps,
               endAdornment: (
@@ -203,20 +168,21 @@ export function ProductsView() {
       />
       <Autocomplete
         sx={{ minWidth: 170 }}
+        size="small"
         options={categoryAc.options}
-        value={filters.category}
+        value={categorySel}
         loading={categoryAc.loading}
-        onChange={(_, v) => setFilters((p) => ({ ...p, category: v }))}
-        onOpen={() => categoryAc.load(1, categoryAc.query, false)}
+        onChange={(_, v) => setCategorySel(v)}
+        onInputChange={(_, v, reason) => {
+          if (reason === 'reset') return;
+          categoryAc.setQuery(v);
+        }}
         getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
         isOptionEqualToValue={(a, b) => a?.id === b?.id}
         renderInput={(params) => (
           <TextField
             {...params}
-            size="small"
             label="Category"
-            placeholder="Search category…"
-            onChange={(e) => categoryAc.setQuery(e.target.value)}
             InputProps={{
               ...params.InputProps,
               endAdornment: (
@@ -234,8 +200,8 @@ export function ProductsView() {
         select
         size="small"
         label="Status"
-        value={filters.record_status}
-        onChange={(e) => setFilters((p) => ({ ...p, record_status: e.target.value }))}
+        value={draft.record_status}
+        onChange={(e) => setDraft({ record_status: e.target.value })}
         sx={{ minWidth: 120 }}
       >
         {RECORD_STATUS_OPTIONS.map((o) => (
@@ -248,13 +214,12 @@ export function ProductsView() {
         select
         size="small"
         label="Sort"
-        value={filters.sort}
+        value={draft.sort}
         onChange={(e) =>
-          setFilters((p) => ({
-            ...p,
+          setDraft({
             sort: e.target.value,
             dir: e.target.value === 'name' || e.target.value === 'slug' ? 'ASC' : 'DESC'
-          }))
+          })
         }
         sx={{ minWidth: 120 }}
       >
@@ -270,14 +235,20 @@ export function ProductsView() {
     </Stack>
   );
 
+  const topActions = () => (
+    <Button variant="outlined" size="small" onClick={() => router.push('/catalog-bulk-import')}>
+      Bulk Upload
+    </Button>
+  );
+
   return (
     <ProductsTableSection
       rows={data}
-      handleAddButton={handleAddButton}
-      handleEditButton={handleEditButton}
+      handleAddButton={() => router.push('/products/create')}
+      handleEditButton={(row) => router.push(`/products/edit/${row.id}`)}
       handleViewButton={(row) => router.push(`/products/${row.id}`)}
-      pageIndex={page - 1}
-      pageSize={pageSize}
+      pageIndex={(Number(applied.page) || 1) - 1}
+      pageSize={Number(applied.limit) || DEFAULT_PAGE_SIZE}
       totalPageCount={totalPages}
       onPaginationChange={handlePaginationChange}
       totalCount={total}

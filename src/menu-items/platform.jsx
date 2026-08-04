@@ -126,7 +126,17 @@ const platformMenuGroups = [
         perm: 'category',
         action: 'read'
       },
-      { id: 'products', breadcrumbs: true, title: 'products', type: 'item', url: '/products', icon: icons.AppstoreOutlined, perm: 'product', action: 'read' }
+      { id: 'products', breadcrumbs: true, title: 'products', type: 'item', url: '/products', icon: icons.AppstoreOutlined, perm: 'product', action: 'read' },
+      {
+        id: 'product-variants',
+        breadcrumbs: true,
+        title: 'product-variants',
+        type: 'item',
+        url: '/product-variants',
+        icon: icons.AppstoreOutlined,
+        perm: 'product',
+        action: 'read'
+      }
     ]
   },
   {

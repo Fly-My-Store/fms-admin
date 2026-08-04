@@ -19,7 +19,8 @@ export default function CategoriesTableSection({
   tableActions,
   topActions,
   handleViewButton,
-  totalCount
+  totalCount,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => [
@@ -90,6 +91,7 @@ export default function CategoriesTableSection({
       onPaginationChange={onPaginationChange}
       permissionName={'category'}
       totalCount={totalCount}
+      showPagination={showPagination}
     />
   );
 }
@@ -106,5 +108,6 @@ CategoriesTableSection.propTypes = {
   topActions: PropTypes.func,
   tableActions: PropTypes.func,
   handleViewButton: PropTypes.func,
-  totalCount: PropTypes.number
+  totalCount: PropTypes.number,
+  showPagination: PropTypes.bool
 };

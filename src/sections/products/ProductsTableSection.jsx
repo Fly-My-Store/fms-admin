@@ -125,7 +125,10 @@ export default function ProductsTableSection({
   handleViewButton,
   totalCount,
   topActionsLeft,
-  topActions
+  topActions,
+  showPagination = true,
+  showTitle = true,
+  title
 }) {
   const columns = useMemo(
     () => [
@@ -211,6 +214,9 @@ export default function ProductsTableSection({
       totalCount={totalCount}
       topActionsLeft={topActionsLeft}
       topActions={topActions}
+      showPagination={showPagination}
+      showTitle={showTitle}
+      title={title}
     />
   );
 }
@@ -226,5 +232,8 @@ ProductsTableSection.propTypes = {
   onPaginationChange: PropTypes.func,
   totalCount: PropTypes.number,
   topActionsLeft: PropTypes.func,
-  topActions: PropTypes.func
+  topActions: PropTypes.func,
+  showPagination: PropTypes.bool,
+  showTitle: PropTypes.bool,
+  title: PropTypes.string
 };

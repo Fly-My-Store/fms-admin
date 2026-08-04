@@ -15,7 +15,11 @@ export default function AddressesTableSection({
   onPaginationChange,
   hideUserIdColumn = false,
   showActions = true,
-  showTitle = true
+  showTitle = true,
+  totalCount,
+  topActionsLeft,
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => {
@@ -43,6 +47,10 @@ export default function AddressesTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
+      totalCount={totalCount}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
+      showPagination={showPagination}
       permissionName={'addresse'}
       showActions={showActions}
     />

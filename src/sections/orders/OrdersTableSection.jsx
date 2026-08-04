@@ -37,14 +37,16 @@ export default function OrdersTableSection({
   pageIndex,
   pageSize,
   totalPageCount,
-  totalCount,
   onPaginationChange,
   filterBar,
   hideStoreColumn = false,
   hideCustomerColumn = false,
   title = 'Orders',
   showTitle = true,
-  topActions
+  totalCount,
+  topActionsLeft,
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => {
@@ -114,6 +116,8 @@ export default function OrdersTableSection({
       permissionName="order"
       subheader={filterBar}
       topActions={topActions}
+      topActionsLeft={topActionsLeft}
+      showPagination={showPagination}
     />
   );
 }

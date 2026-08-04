@@ -1,44 +1,25 @@
 'use client';
+
 import PropTypes from 'prop-types';
-
-import { useEffect, useMemo, useState } from 'react';
-
-// next
+import { useMemo } from 'react';
 import NextLink from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-
-// material-ui
-import { useTheme } from '@mui/material/styles';
 import Divider from '@mui/material/Divider';
-import Grid from '@mui/material/Grid2';
-import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
 import MuiBreadcrumbs from '@mui/material/Breadcrumbs';
-
-// third-party
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import { FormattedMessage } from 'react-intl';
-
-// project imports
-import MainCard from 'components/MainCard';
-import useMenuItems from 'hooks/useMenuItems';
-import { ThemeDirection } from 'config';
-
-// assets
-import ApartmentOutlined from '@ant-design/icons/ApartmentOutlined';
-import HomeOutlined from '@ant-design/icons/HomeOutlined';
-import HomeFilled from '@ant-design/icons/HomeFilled';
-import { Stack } from '@mui/system';
-import { IconButton } from '@mui/material';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import useMenuItems from 'hooks/useMenuItems';
 
+/** Find menu item matching pathname; return nearest collapse parent + item. */
 function resolveMenuTrail(menuGroups, pathname) {
   const walk = (nodes, ancestors) => {
     for (const node of nodes || []) {
       if (node.url === pathname) {
         const collapses = ancestors.filter((a) => a.type === 'collapse');
-        return {
-          main: collapses[collapses.length - 1] || null,
-          item: node
-        };
+        return { main: collapses[collapses.length - 1] || null, item: node };
       }
       if (node.children?.length) {
         const hit = walk(node.children, [...ancestors, node]);
@@ -54,200 +35,104 @@ function resolveMenuTrail(menuGroups, pathname) {
       if (hit) return hit;
     }
   }
-
-  return { main: null, item: null };
+  return null;
 }
 
+function CrumbText({ title, to, i18n = true }) {
+  return (
+    <Typography
+      {...(to ? { component: NextLink, href: to } : {})}
+      variant={to ? 'h6' : 'subtitle1'}
+      color={to ? 'text.secondary' : 'text.primary'}
+      sx={{ textDecoration: 'none' }}
+    >
+      {i18n === false ? String(title) : <FormattedMessage id={title} />}
+    </Typography>
+  );
+}
+
+CrumbText.propTypes = {
+  title: PropTypes.string,
+  to: PropTypes.string,
+  i18n: PropTypes.bool
+};
+
+/**
+ * Auto (layout): derives crumbs + title from the menu for the current path.
+ * Custom (detail/upsert): pass `custom`, `heading`, and `links`.
+ */
 export default function Breadcrumbs({
-  card = false,
   custom = false,
-  divider = false,
   heading,
-  icon,
-  icons,
   links,
-  maxItems,
-  rightAlign,
-  separator,
   title = true,
-  titleBottom = true,
   showBack,
-  sx,
-  ...others
+  divider = true,
+  sx
 }) {
-  const theme = useTheme();
-  const location = usePathname();
+  const pathname = usePathname();
   const router = useRouter();
-  const menuItems = useMenuItems();
+  const { items: menuItems = [] } = useMenuItems();
 
-  const [main, setMain] = useState(null);
-  const [item, setItem] = useState(null);
+  const trail = useMemo(() => {
+    if (custom) return null;
+    return resolveMenuTrail(menuItems, pathname);
+  }, [custom, menuItems, pathname]);
 
-  const iconSX = {
-    marginRight: theme.direction === ThemeDirection.RTL ? 0 : theme.spacing(0.75),
-    marginLeft: theme.direction === ThemeDirection.RTL ? theme.spacing(0.75) : 0,
-    width: '1rem',
-    height: '1rem',
-    color: theme.palette.secondary.main
-  };
-
-  const menuKey = useMemo(() => JSON.stringify(menuItems.items || []), [menuItems.items]);
-
-  useEffect(() => {
-    if (custom) {
-      setMain(null);
-      setItem(null);
-      return;
+  const crumbs = useMemo(() => {
+    if (custom) return Array.isArray(links) ? links : [];
+    if (!trail?.item || trail.item.breadcrumbs === false) return [];
+    const next = [{ title: 'home', to: '/dashboard' }];
+    if (trail.main?.type === 'collapse' && trail.main.breadcrumbs !== false) {
+      next.push({ title: trail.main.title });
     }
+    next.push({ title: trail.item.title });
+    return next;
+  }, [custom, links, trail]);
 
-    const trail = resolveMenuTrail(menuItems.items, location);
-    setMain(trail?.main ?? null);
-    setItem(trail?.item ?? null);
-  }, [custom, location, menuKey, menuItems.items]);
+  const headingId = custom ? heading : trail?.item?.title;
+  const withBack = showBack ?? custom;
 
-  const SeparatorIcon = separator;
-  const separatorIcon = separator ? <SeparatorIcon style={{ fontSize: '0.75rem', marginTop: 2 }} /> : '/';
+  if (!crumbs.length || (!custom && trail?.item?.breadcrumbs === false)) return null;
 
-  let mainContent;
-  let itemContent;
-  let breadcrumbContent = null;
-  let CollapseIcon;
-  let ItemIcon;
+  return (
+    <Stack spacing={1} sx={{ mb: 3, ...sx }}>
+      <MuiBreadcrumbs aria-label="breadcrumb" separator="/">
+        {crumbs.map((link, index) => (
+          <CrumbText key={`${link.title}-${index}`} title={link.title} to={link.to} i18n={link.i18n} />
+        ))}
+      </MuiBreadcrumbs>
 
-  if (!custom && main && main.type === 'collapse' && main.breadcrumbs !== false) {
-    CollapseIcon = main.icon ? main.icon : ApartmentOutlined;
-    mainContent = (
-      <Typography variant="h6" color="text.secondary" sx={{ textDecoration: 'none' }}>
-        {icons && <CollapseIcon style={iconSX} />}
-        <FormattedMessage id={main.title} />
-      </Typography>
-    );
-  }
-
-  const showAuto = !custom && item && (item.type === 'item' || (item.type === 'group' && item.url));
-  const showCustom = custom && links?.length > 0;
-  const showBackButton = showBack ?? custom;
-
-  if (showAuto || showCustom) {
-    let tempContent;
-
-    if (showCustom) {
-      tempContent = (
-        <MuiBreadcrumbs aria-label="breadcrumb" maxItems={maxItems || 8} separator={separatorIcon}>
-          {links.map((link, index) => {
-            CollapseIcon = link.icon ? link.icon : ApartmentOutlined;
-            return (
-              <Typography
-                key={index}
-                {...(link.to && { component: NextLink, href: link.to })}
-                variant={!link.to ? 'subtitle1' : 'h6'}
-                sx={{ textDecoration: 'none' }}
-                color={!link.to ? 'text.primary' : 'text.secondary'}
-              >
-                {link.icon && <CollapseIcon style={iconSX} />}
-                {link.i18n === false ? String(link.title) : <FormattedMessage id={link.title} />}
-              </Typography>
-            );
-          })}
-        </MuiBreadcrumbs>
-      );
-    } else {
-      ItemIcon = item?.icon ? item.icon : ApartmentOutlined;
-      itemContent = (
-        <Typography variant="subtitle1" color="text.primary">
-          {icons && <ItemIcon style={iconSX} />}
-          <FormattedMessage id={item.title} />
-        </Typography>
-      );
-
-      tempContent = (
-        <MuiBreadcrumbs aria-label="breadcrumb" maxItems={maxItems || 8} separator={separatorIcon}>
-          <Typography
-            component={NextLink}
-            href="/dashboard"
-            color="text.secondary"
-            variant="h6"
-            sx={{ textDecoration: 'none' }}
-          >
-            {icons && <HomeOutlined style={iconSX} />}
-            {icon && !icons && <HomeFilled style={{ ...iconSX, marginRight: 0 }} />}
-            {(!icon || icons) && <FormattedMessage id="home" />}
+      {title && headingId ? (
+        <Stack direction="row" alignItems="center" spacing={1}>
+          {withBack ? (
+            <IconButton onClick={() => router.back()} color="primary" aria-label="go back" size="small">
+              <ArrowLeftOutlined />
+            </IconButton>
+          ) : null}
+          <Typography variant="h2">
+            <FormattedMessage id={headingId} />
           </Typography>
-          {mainContent}
-          {itemContent}
-        </MuiBreadcrumbs>
-      );
-    }
+        </Stack>
+      ) : null}
 
-    if (item?.breadcrumbs !== false || custom) {
-      breadcrumbContent = (
-        <MainCard
-          border={card}
-          sx={card === false ? { mb: 3, bgcolor: 'inherit', backgroundImage: 'none', ...sx } : { mb: 3, ...sx }}
-          {...others}
-          content={card}
-          shadow="none"
-        >
-          <Grid
-            container
-            direction={rightAlign ? 'row' : 'column'}
-            justifyContent={rightAlign ? 'space-between' : 'flex-start'}
-            alignItems={rightAlign ? 'center' : 'flex-start'}
-            spacing={1}
-          >
-            {title && !titleBottom && (
-              <Grid>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  {showBackButton && (
-                    <IconButton onClick={() => router.back()} aria-label="go back">
-                      <ArrowLeftOutlined />
-                    </IconButton>
-                  )}
-                  <Typography variant="h2">
-                    <FormattedMessage id={custom ? heading : item?.title} />
-                  </Typography>
-                </Stack>
-              </Grid>
-            )}
-            <Grid>{tempContent}</Grid>
-            {title && titleBottom && (
-              <Grid sx={{ mt: card === false ? 0.25 : 1 }}>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  {showBackButton && (
-                    <IconButton onClick={() => router.back()} color="primary" aria-label="go back">
-                      <ArrowLeftOutlined />
-                    </IconButton>
-                  )}
-                  <Typography variant="h2">
-                    <FormattedMessage id={custom ? heading : item?.title} />
-                  </Typography>
-                </Stack>
-              </Grid>
-            )}
-          </Grid>
-          {card === false && divider !== false && <Divider sx={{ mt: 2 }} />}
-        </MainCard>
-      );
-    }
-  }
-
-  return breadcrumbContent;
+      {divider ? <Divider sx={{ mt: 1 }} /> : null}
+    </Stack>
+  );
 }
 
 Breadcrumbs.propTypes = {
-  card: PropTypes.bool,
   custom: PropTypes.bool,
-  divider: PropTypes.bool,
   heading: PropTypes.string,
-  icon: PropTypes.bool,
-  icons: PropTypes.bool,
-  links: PropTypes.array,
-  maxItems: PropTypes.number,
-  rightAlign: PropTypes.bool,
-  separator: PropTypes.any,
+  links: PropTypes.arrayOf(
+    PropTypes.shape({
+      title: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
+      to: PropTypes.string,
+      i18n: PropTypes.bool
+    })
+  ),
   title: PropTypes.bool,
-  titleBottom: PropTypes.bool,
   showBack: PropTypes.bool,
-  sx: PropTypes.any,
-  others: PropTypes.any
+  divider: PropTypes.bool,
+  sx: PropTypes.object
 };

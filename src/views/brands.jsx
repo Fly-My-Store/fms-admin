@@ -8,7 +8,10 @@ import { actions as catalog } from 'store/catalog/slice';
 import BrandsTableSection from 'sections/brands/BrandsTableSection';
 import BrandsBulkUploadDialog from 'sections/brands/BrandsBulkUploadDialog';
 import { useRouter } from 'next/navigation';
+import useUrlFilters from 'hooks/useUrlFilters';
 import { RECORD_STATUS } from 'utils/constants';
+
+const DEFAULT_PAGE_SIZE = 20;
 
 const RECORD_STATUS_OPTIONS = [
   { value: '', label: 'All' },
@@ -24,7 +27,14 @@ const SORT_OPTIONS = [
   { value: 'updatedAt', label: 'Updated' }
 ];
 
-const DEFAULT_PAGE_SIZE = 50;
+const FILTER_DEFAULTS = {
+  q: '',
+  record_status: String(RECORD_STATUS.ACTIVE),
+  sort: 'name',
+  dir: 'ASC',
+  page: 1,
+  limit: DEFAULT_PAGE_SIZE
+};
 
 export function BrandsView() {
   const router = useRouter();
@@ -38,64 +48,49 @@ export function BrandsView() {
   };
   const {
     rows: data = [],
-    meta: { page = 1, pageSize = DEFAULT_PAGE_SIZE, totalPages = 1, total = 0 } = {},
+    meta: { totalPages = 1, total = 0 } = {},
     error
   } = list;
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    q: '',
-    record_status: String(RECORD_STATUS.ACTIVE),
-    sort: 'name',
-    dir: 'ASC'
+  const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
   });
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
 
-  const buildParams = (pageNum = page, limit = pageSize, f = filters) => ({
-    page: pageNum,
-    limit,
+  const buildParams = (f = applied) => ({
+    page: Number(f.page) || 1,
+    limit: Number(f.limit) || DEFAULT_PAGE_SIZE,
     sort: f.sort || 'name',
     dir: f.dir || 'ASC',
     ...(f.q ? { q: f.q } : {}),
     ...(f.record_status !== '' && f.record_status != null ? { record_status: f.record_status } : {})
   });
 
-  const reload = (pageNum = 1, limit = pageSize, f = filters) => {
-    dispatch(catalog.brandsListRequest({ params: buildParams(pageNum, limit, f) }));
-  };
-
   useEffect(() => {
-    reload(1, DEFAULT_PAGE_SIZE);
+    dispatch(catalog.brandsListRequest({ params: buildParams(applied) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, filters.record_status, filters.sort, filters.dir]);
-
-  const handleSearch = () => {
-    const next = { ...filters, q: searchQuery.trim() };
-    setFilters(next);
-    reload(1, pageSize, next);
-  };
-
-  const handleAddButton = () => {
-    router.push('/brands/create');
-  };
-
-  const handleEditButton = (row) => {
-    router.push(`/brands/edit/${row.id}`);
-  };
-
-  const handlePaginationChange = (updater) => {
-    const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
-    reload(next.pageIndex + 1, next.pageSize);
-  };
+  }, [dispatch, urlKey, applied.page, applied.limit, applied.q, applied.record_status, applied.sort, applied.dir]);
 
   useEffect(() => {
-    if (error) {
-      enqueueSnackbar(error, { variant: 'error' });
-    }
+    setSearchQuery(applied.q || '');
+  }, [applied.q]);
+
+  useEffect(() => {
+    if (error) enqueueSnackbar(error, { variant: 'error' });
   }, [error]);
 
+  const handleSearch = () => {
+    applySearch({
+      q: searchQuery.trim(),
+      record_status: draft.record_status,
+      sort: draft.sort,
+      dir: draft.dir
+    });
+  };
+
   const topActionsLeft = () => (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }}>
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
       <TextField
         size="small"
         label="Search"
@@ -109,8 +104,8 @@ export function BrandsView() {
         select
         size="small"
         label="Status"
-        value={filters.record_status}
-        onChange={(e) => setFilters((p) => ({ ...p, record_status: e.target.value }))}
+        value={draft.record_status}
+        onChange={(e) => setDraft({ record_status: e.target.value })}
         sx={{ minWidth: 120 }}
       >
         {RECORD_STATUS_OPTIONS.map((o) => (
@@ -123,13 +118,12 @@ export function BrandsView() {
         select
         size="small"
         label="Sort"
-        value={filters.sort}
+        value={draft.sort}
         onChange={(e) =>
-          setFilters((p) => ({
-            ...p,
+          setDraft({
             sort: e.target.value,
             dir: e.target.value === 'name' || e.target.value === 'slug' ? 'ASC' : 'DESC'
-          }))
+          })
         }
         sx={{ minWidth: 120 }}
       >
@@ -155,21 +149,17 @@ export function BrandsView() {
     <>
       <BrandsTableSection
         rows={data}
-        handleAddButton={handleAddButton}
-        handleEditButton={handleEditButton}
-        pageIndex={page - 1}
-        pageSize={pageSize}
+        handleAddButton={() => router.push('/brands/create')}
+        handleEditButton={(row) => router.push(`/brands/edit/${row.id}`)}
+        pageIndex={(Number(applied.page) || 1) - 1}
+        pageSize={Number(applied.limit) || DEFAULT_PAGE_SIZE}
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
         totalCount={total}
         topActionsLeft={topActionsLeft}
         topActions={topActions}
       />
-      <BrandsBulkUploadDialog
-        open={bulkOpen}
-        onClose={() => setBulkOpen(false)}
-        onDone={() => reload(1, pageSize)}
-      />
+      <BrandsBulkUploadDialog open={bulkOpen} onClose={() => setBulkOpen(false)} onDone={() => applySearch()} />
     </>
   );
 }

@@ -28,7 +28,11 @@ export default function WebhookeventsTableSection({
   onPaginationChange,
   onView,
   onReplay,
-  replayingId
+  replayingId,
+  totalCount,
+  topActionsLeft,
+  topActions,
+  showPagination = true
 }) {
   const columns = useMemo(
     () => [
@@ -60,6 +64,10 @@ export default function WebhookeventsTableSection({
       pageSize={pageSize}
       totalPageCount={totalPageCount}
       onPaginationChange={onPaginationChange}
+      totalCount={totalCount}
+      topActionsLeft={topActionsLeft}
+      topActions={topActions}
+      showPagination={showPagination}
       permissionName="webhookEvent"
       tableActions={(row) => (
         <Stack direction="row" spacing={0.5} alignItems="center">
