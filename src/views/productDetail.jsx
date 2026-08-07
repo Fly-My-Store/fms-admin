@@ -24,6 +24,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { actions as catalog } from 'store/catalog/slice';
 import { ProductAttrsView } from './productAttributes';
 import ProductVariantsView from './productVariants';
+import CompatibleProductsSection from 'sections/compatibility/CompatibleProductsSection';
 import { HomeOutlined } from '@ant-design/icons';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
@@ -230,6 +231,11 @@ export default function ProductDetail() {
             />
           </Stack>
         </Stack>
+        <Divider sx={{ my: 2 }} />
+        <CompatibleProductsSection
+          productId={id}
+          title="Compatible products (product-level)"
+        />
         <Divider sx={{ my: 2 }} />
         <ProductAttrsView
           product_id={id}

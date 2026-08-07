@@ -1,4 +1,4 @@
-import { get, post, patch, del } from '../utils/api';
+import { get, post, patch, del, put } from '../utils/api';
 import axiosServices from 'utils/axios';
 
 export const listBrands = (params) => get('admin/catalog/brands', params);
@@ -105,6 +105,11 @@ export const removeProductImage = (productId, imageId) => del(`admin/catalog/pro
 
 /** JSON quick-create (one or more catalog rows) */
 export const quickCreateCatalog = (rows) => post('admin/catalog/quick-create', { rows: Array.isArray(rows) ? rows : [rows] });
+export const listCompatibilities = (params) => get('admin/catalog/compatibilities', params);
+export const putCompatibilities = (data) => put('admin/catalog/compatibilities', data);
+export const createCompatibilityProduct = (data) => post('admin/catalog/compatibilities/products', data);
+/** @deprecated use createCompatibilityProduct */
+export const createCompatibilityDevice = createCompatibilityProduct;
 
 /** Multipart catalog CSV/ZIP import */
 export async function bulkImportCatalog(formData, onUploadProgress) {

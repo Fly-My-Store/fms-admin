@@ -21,6 +21,7 @@ import {
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { actions as catalog } from 'store/catalog/slice';
 import { ProductVarientAttrsView } from './productVarientAttributes';
+import CompatibleProductsSection from 'sections/compatibility/CompatibleProductsSection';
 
 // ========= helpers =========
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
@@ -266,6 +267,12 @@ export default function VariantDetailView() {
               variant_id={id}
               variantName={data?.sku || ''}
               category_id={data?.product?.category_id || null}
+            />
+            <Divider />
+            <CompatibleProductsSection
+              productId={data?.product_id || data?.product?.id}
+              variantId={id}
+              title="Compatible products (this variant)"
             />
           </Stack>
         </Stack>
