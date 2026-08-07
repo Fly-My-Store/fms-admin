@@ -25,7 +25,7 @@ import { RECORD_STATUS } from 'utils/constants';
 const DEFAULT_PAGE_SIZE = 20;
 
 const RECORD_STATUS_OPTIONS = [
-  { value: '', label: 'All' },
+  { value: 'all', label: 'All' },
   { value: String(RECORD_STATUS.ACTIVE), label: 'Active' },
   { value: String(RECORD_STATUS.INACTIVE), label: 'Inactive' },
   { value: String(RECORD_STATUS.ARCHIVED), label: 'Archived' }
@@ -40,6 +40,13 @@ const FILTER_DEFAULTS = {
   page: 1,
   limit: DEFAULT_PAGE_SIZE
 };
+
+/** Keep the selected row visible even when it is not in the current page of options. */
+function withSelectedOption(options, selected) {
+  if (!selected?.id) return options;
+  if (options.some((o) => o?.id === selected.id)) return options;
+  return [selected, ...options];
+}
 
 /**
  * Global Product Variants list, or product-scoped when `product_id` is passed
@@ -97,19 +104,25 @@ export default function ProductVariantsView({ product_id, productName }) {
   const brandAc = usePagedAutocomplete(listBrands);
   const categoryAc = usePagedAutocomplete(listCategories);
 
-  const buildParams = (f = applied) => ({
-    page: Number(f.page) || 1,
-    limit: Number(f.limit) || DEFAULT_PAGE_SIZE,
-    ...(f.q ? { q: f.q } : {}),
-    ...(f.record_status !== '' ? { record_status: f.record_status } : {}),
-    ...(scoped
-      ? { product_id }
-      : {
-          ...(f.product_id ? { product_id: f.product_id } : {}),
-          ...(f.brand_id ? { brand_id: f.brand_id } : {}),
-          ...(f.category_id ? { category_id: f.category_id } : {})
-        })
-  });
+  const buildParams = (f = applied) => {
+    const status = f.record_status;
+    const hasProduct = Boolean(scoped ? product_id : f.product_id);
+    return {
+      page: Number(f.page) || 1,
+      limit: Number(f.limit) || DEFAULT_PAGE_SIZE,
+      ...(f.q ? { q: f.q } : {}),
+      ...(status && status !== 'all' ? { record_status: status } : {}),
+      ...(scoped
+        ? { product_id }
+        : {
+            // Product is the narrowest scope — do not AND leftover brand/category
+            // filters (that combination often returns 0 rows incorrectly).
+            ...(f.product_id ? { product_id: f.product_id } : {}),
+            ...(!hasProduct && f.brand_id ? { brand_id: f.brand_id } : {}),
+            ...(!hasProduct && f.category_id ? { category_id: f.category_id } : {})
+          })
+    };
+  };
 
   // Fetch whenever applied filters / URL change (Search or pagination or back)
   useEffect(() => {
@@ -126,8 +139,15 @@ export default function ProductVariantsView({ product_id, productName }) {
       try {
         if (applied.product_id) {
           const res = await getProduct(applied.product_id);
-          if (!cancelled) setProductSel(res?.data || res || null);
-        } else setProductSel(null);
+          if (!cancelled) {
+            setProductSel(res?.data || res || null);
+            // Product scope wins — don't show stale brand/category chips from old URLs
+            setBrandSel(null);
+            setCategorySel(null);
+          }
+          return;
+        }
+        setProductSel(null);
         if (applied.brand_id) {
           const res = await getBrand(applied.brand_id);
           if (!cancelled) setBrandSel(res?.data || res || null);
@@ -150,12 +170,28 @@ export default function ProductVariantsView({ product_id, productName }) {
   }, [error]);
 
   const handleSearch = () => {
+    const nextProductId = productSel?.id || '';
     applySearch({
       q: searchQuery.trim(),
-      product_id: productSel?.id || '',
-      brand_id: brandSel?.id || '',
-      category_id: categorySel?.id || '',
-      record_status: draft.record_status
+      product_id: nextProductId,
+      // Drop brand/category when a product is chosen so URL + fetch stay consistent
+      brand_id: nextProductId ? '' : brandSel?.id || '',
+      category_id: nextProductId ? '' : categorySel?.id || '',
+      record_status: draft.record_status || 'all'
+    });
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setProductSel(null);
+    setBrandSel(null);
+    setCategorySel(null);
+    applySearch({
+      q: '',
+      product_id: '',
+      brand_id: '',
+      category_id: '',
+      record_status: String(RECORD_STATUS.ACTIVE)
     });
   };
 
@@ -189,18 +225,25 @@ export default function ProductVariantsView({ product_id, productName }) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="SKU or barcode…"
+            placeholder="SKU, product, brand…"
             sx={{ minWidth: 180 }}
           />
           <Autocomplete
             sx={{ minWidth: 180 }}
             size="small"
-            options={productAc.options}
+            options={withSelectedOption(productAc.options, productSel)}
             value={productSel}
             loading={productAc.loading}
             getOptionLabel={(o) => o?.name || ''}
             isOptionEqualToValue={(a, b) => a?.id === b?.id}
-            onChange={(_, v) => setProductSel(v)}
+            onChange={(_, v) => {
+              setProductSel(v);
+              // Product supersedes brand/category — clear so Search cannot AND them
+              if (v) {
+                setBrandSel(null);
+                setCategorySel(null);
+              }
+            }}
             onInputChange={(_, v, reason) => {
               if (reason === 'reset') return;
               productAc.setQuery(v);
@@ -225,9 +268,10 @@ export default function ProductVariantsView({ product_id, productName }) {
           <Autocomplete
             sx={{ minWidth: 160 }}
             size="small"
-            options={brandAc.options}
+            options={withSelectedOption(brandAc.options, brandSel)}
             value={brandSel}
             loading={brandAc.loading}
+            disabled={Boolean(productSel)}
             getOptionLabel={(o) => o?.name || ''}
             isOptionEqualToValue={(a, b) => a?.id === b?.id}
             onChange={(_, v) => setBrandSel(v)}
@@ -255,9 +299,10 @@ export default function ProductVariantsView({ product_id, productName }) {
           <Autocomplete
             sx={{ minWidth: 160 }}
             size="small"
-            options={categoryAc.options}
+            options={withSelectedOption(categoryAc.options, categorySel)}
             value={categorySel}
             loading={categoryAc.loading}
+            disabled={Boolean(productSel)}
             getOptionLabel={(o) => o?.name || ''}
             isOptionEqualToValue={(a, b) => a?.id === b?.id}
             onChange={(_, v) => setCategorySel(v)}
@@ -286,18 +331,21 @@ export default function ProductVariantsView({ product_id, productName }) {
             select
             size="small"
             label="Status"
-            value={draft.record_status}
+            value={draft.record_status === '' ? 'all' : draft.record_status}
             onChange={(e) => setDraft({ record_status: e.target.value })}
             sx={{ minWidth: 120 }}
           >
             {RECORD_STATUS_OPTIONS.map((o) => (
-              <MenuItem key={o.value || 'all'} value={o.value}>
+              <MenuItem key={o.value} value={o.value}>
                 {o.label}
               </MenuItem>
             ))}
           </TextField>
           <Button variant="outlined" size="small" onClick={handleSearch} disabled={loading}>
             Search
+          </Button>
+          <Button variant="text" size="small" onClick={handleClearFilters} disabled={loading}>
+            Clear
           </Button>
         </>
       ) : null}
