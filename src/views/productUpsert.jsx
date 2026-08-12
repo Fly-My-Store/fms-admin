@@ -35,6 +35,12 @@ const RECORD_STATUS_LIST = [
   { value: 3, label: 'ARCHIVED' }
 ];
 
+const RX_OVERRIDE_OPTIONS = [
+  { value: 'inherit', label: 'Inherit from category' },
+  { value: 'required', label: 'Required' },
+  { value: 'not_required', label: 'Not required' }
+];
+
 const EMPTY = {
   id: '',
   brand_id: '',
@@ -43,7 +49,8 @@ const EMPTY = {
   slug: '',
   description: '',
   spec_json: '',
-  record_status: 1
+  record_status: 1,
+  prescription_override: 'inherit'
 };
 
 function slugify(s = '') {
@@ -119,6 +126,9 @@ export default function ProductUpsert() {
   // hydrate when loaded
   useEffect(() => {
     if (!product || !id) return;
+    let prescription_override = 'inherit';
+    if (product.prescription_required === true) prescription_override = 'required';
+    if (product.prescription_required === false) prescription_override = 'not_required';
     setForm({
       id: product.id || '',
       brand_id: product.brand_id || product.brand?.id || '',
@@ -128,6 +138,7 @@ export default function ProductUpsert() {
       description: product.description || '',
       spec_json: product.spec_json ? JSON.stringify(product.spec_json, null, 2) : '',
       record_status: product.record_status ?? 1,
+      prescription_override,
     });
 
     setBrandSel(product.brand || null);
@@ -267,6 +278,12 @@ export default function ProductUpsert() {
         description: form.description || null,
         spec_json: spec || null,
         record_status: Number(form.record_status ?? 1),
+        prescription_required:
+          form.prescription_override === 'required'
+            ? true
+            : form.prescription_override === 'not_required'
+              ? false
+              : null,
       };
 
       // Build images payload per backend contract
@@ -500,6 +517,24 @@ export default function ProductUpsert() {
                   onChange={(e) => handleField('record_status', e.target.value)}
                 >
                   {RECORD_STATUS_LIST.map((r) => (
+                    <MenuItem key={r.value} value={r.value}>
+                      {r.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
+
+              <Stack sx={{ gap: 1 }}>
+                <InputLabel>Prescription requirement</InputLabel>
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  value={form.prescription_override || 'inherit'}
+                  onChange={(e) => handleField('prescription_override', e.target.value)}
+                  helperText="Override category default when needed"
+                >
+                  {RX_OVERRIDE_OPTIONS.map((r) => (
                     <MenuItem key={r.value} value={r.value}>
                       {r.label}
                     </MenuItem>

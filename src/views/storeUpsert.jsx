@@ -9,6 +9,7 @@ import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 
 import { createStore, updateStore } from 'api/sellersStores';
+import PharmacyLicenseReviewPanel from 'sections/seller-documents/PharmacyLicenseReviewPanel';
 
 // MUI
 import {
@@ -139,7 +140,8 @@ const EMPTY = {
     support_email: '',
     support_phone: '',
     cod_enabled: false,
-    can_sell_screen_guard: false
+    can_sell_screen_guard: false,
+    is_pharmacy: false
   },
 
   // Seller owner user nested
@@ -231,7 +233,8 @@ export default function StoreUpsert() {
         support_email: seller.support_email || '',
         support_phone: seller.support_phone || '',
         cod_enabled: Boolean(seller.cod_enabled),
-        can_sell_screen_guard: Boolean(seller.can_sell_screen_guard)
+        can_sell_screen_guard: Boolean(seller.can_sell_screen_guard),
+        is_pharmacy: Boolean(seller.is_pharmacy)
       },
       user: {
         id: user.id || '',
@@ -507,10 +510,12 @@ export default function StoreUpsert() {
         'support_email',
         'support_phone',
         'cod_enabled',
-        'can_sell_screen_guard'
+        'can_sell_screen_guard',
+        'is_pharmacy'
       ]);
       sellerPayload.cod_enabled = Boolean(form.seller?.cod_enabled);
       sellerPayload.can_sell_screen_guard = Boolean(form.seller?.can_sell_screen_guard);
+      sellerPayload.is_pharmacy = Boolean(form.seller?.is_pharmacy);
 
       // Seller owner user payload
       const userPayload = pick(form.user || {}, ['id', 'name', 'email', 'phone']);
@@ -658,7 +663,27 @@ export default function StoreUpsert() {
               }
               label="Can sell screen guards"
             />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(form.seller?.is_pharmacy)}
+                  onChange={(e) => handleSellerField('is_pharmacy', e.target.checked)}
+                />
+              }
+              label="Pharmacy seller (ops override)"
+            />
           </Stack>
+
+          {form.seller?.id ? (
+            <>
+              <Divider />
+              <PharmacyLicenseReviewPanel
+                sellerId={form.seller.id}
+                isPharmacy={Boolean(form.seller?.is_pharmacy)}
+                onChanged={() => id && dispatch(sellersStores.storesGetRequest({ params: { id } }))}
+              />
+            </>
+          ) : null}
 
           <Divider />
 
