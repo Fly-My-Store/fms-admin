@@ -163,7 +163,7 @@ export default function AdminDataGuideView() {
                 ['Fare “active”', 'Rule needs Active record status and is_active on. Prefer new band + deactivate old.'],
                 ['GST on fees', 'Amounts are GST-inclusive. GST % only splits tax inside the fee — does not add on top.'],
                 ['Mixed cart', 'Platform & delivery across groups: MAX. Seller platform %: SUM. Service fee: sum of fee × qty.'],
-                ['Non-SG category fares', 'Mostly affect service fee. Platform/delivery groups are Default vs Screen Guard — not every category.'],
+                ['Category fares', 'Any category can own platform/delivery/km/service. Lookup: exact → parents → Default. Mixed cart: MAX delivery/platform, SUM seller %.'],
                 ['SG sellers', 'Store/seller needs can_sell_screen_guard or they will not see SG catalog.'],
                 ['SG riders', 'SG orders need a screen-guard-capable rider or assignment can fail.'],
                 ['SG tree depth', 'Put device/type as direct children of screen-guard. Grandchildren are not treated as SG.']
@@ -545,14 +545,14 @@ Seller: Store listing (price + stock)`}
               ]}
             />
             <Typography variant="subtitle2" sx={{ mt: 2 }}>
-              Default vs Screen Guard vs other categories
+              Default vs category-specific fares
             </Typography>
             <DontList
               items={[
-                'Default (category empty): used for most non-SG products’ platform/delivery group, and as fallback.',
-                'Screen Guard items form their own fare group. Keep SG fare rows if fees differ; missing SG can fall back to default.',
-                'Other category-specific fares mainly drive service/install fee (parent → default fallback). They do not each get a separate platform/delivery group like SG.',
-                'An explicit ₹0 service fee is kept — it does not keep falling back to parents.'
+                'Default (category empty): fallback when the product category and its parents have no matching fare band.',
+                'Any category fare (phones, accessories, Screen Guard, etc.) forms its own platform/delivery/km/service group.',
+                'Lookup for every group: exact category → parents → Default.',
+                'An explicit matched row (including ₹0 fees) is kept — it does not keep falling back to parents.'
               ]}
             />
             <Typography variant="subtitle2" sx={{ mt: 2 }}>
@@ -626,7 +626,7 @@ Seller: Store listing (price + stock)`}
                 'Do not leave no active gateway bands — same error.',
                 'Do not create overlapping active bands.',
                 'Do not treat GST % as “add 18% on top” of an inclusive fee.',
-                'Do not assume a non-SG category fare changes platform fee the way SG does.',
+                'Do not assume only Default/Screen Guard control delivery — any active category fare applies via exact → parents → default.',
                 'Do not expect a hard free band of 5 km if lowest slab Min is different — free follows lowest Min km.',
                 'Do not leave gaps if you want a new rate there — gaps keep the previous slab; add a row when the rate should change.',
                 'Do not rely on km surcharge if store geom or address lat/lng is missing — distance becomes 0 and stays free.'

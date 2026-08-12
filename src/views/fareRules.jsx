@@ -58,9 +58,10 @@ const GATEWAY_HELPER =
   'Gateway % applies once to the full cart total.';
 
 const CATEGORY_HELPER =
-  "Category fees (platform + delivery + km) use each product group's subtotal band. Mixed carts take MAX delivery / platform and SUM seller platform %. " +
+  "Category fees (platform + delivery + km + service) use each product category group's subtotal band (any category, not only Screen Guard). " +
+  'Mixed carts take MAX delivery / platform and SUM seller platform %. ' +
   'Service/install fee is charged per unit (fee × qty), summed across all lines, and paid 100% to the rider. ' +
-  'Missing category fare falls back to parent then default; an explicit ₹0 service fee stays 0. ' +
+  'Missing category fare falls back to parent then default for platform, delivery, km, and service; an explicit ₹0 fee stays 0. ' +
   'Rupee amounts and seller platform % are GST-inclusive; GST % only splits tax inside the fee.';
 
 const formatCents = (v) => {
