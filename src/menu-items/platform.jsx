@@ -145,6 +145,51 @@ const platformMenuGroups = [
     title: 'catalog-setup',
     children: [
       {
+        id: 'admin-data-guide',
+        title: 'admin-data-guide',
+        type: 'item',
+        url: '/admin-data-guide',
+        icon: icons.FileTextOutlined
+      },
+      {
+        id: 'attribute-defs',
+        title: 'attribute-defs',
+        type: 'item',
+        url: '/attribute-defs',
+        icon: icons.ProfileOutlined,
+        perm: 'attributeDef',
+        action: 'read'
+      },
+      {
+        id: 'category-attributes',
+        title: 'category-attributes',
+        type: 'item',
+        url: '/category-attrs',
+        icon: icons.DeploymentUnitOutlined,
+        perm: 'categoryAttribute',
+        action: 'read'
+      },
+      {
+        id: 'attribute-groups',
+        title: 'attribute-groups',
+        type: 'item',
+        url: '/attribute-groups',
+        icon: icons.BlockOutlined,
+        perm: 'attributeGroup',
+        action: 'read',
+        legacy: true
+      },
+      {
+        id: 'plp-configs',
+        title: 'plp-configs',
+        type: 'item',
+        url: '/plp-configs',
+        icon: icons.LayoutOutlined,
+        perm: 'categoryPLPConfig',
+        action: 'read',
+        legacy: true
+      },
+      {
         id: 'catalog-bulk-import',
         title: 'catalog-bulk-import',
         type: 'item',
@@ -197,51 +242,6 @@ const platformMenuGroups = [
         icon: icons.PictureOutlined,
         perm: 'product',
         action: 'modify'
-      },
-      {
-        id: 'admin-data-guide',
-        title: 'admin-data-guide',
-        type: 'item',
-        url: '/admin-data-guide',
-        icon: icons.FileTextOutlined
-      },
-      {
-        id: 'attribute-defs',
-        title: 'attribute-defs',
-        type: 'item',
-        url: '/attribute-defs',
-        icon: icons.ProfileOutlined,
-        perm: 'attributeDef',
-        action: 'read'
-      },
-      {
-        id: 'category-attributes',
-        title: 'category-attributes',
-        type: 'item',
-        url: '/category-attrs',
-        icon: icons.DeploymentUnitOutlined,
-        perm: 'categoryAttribute',
-        action: 'read'
-      },
-      {
-        id: 'attribute-groups',
-        title: 'attribute-groups',
-        type: 'item',
-        url: '/attribute-groups',
-        icon: icons.BlockOutlined,
-        perm: 'attributeGroup',
-        action: 'read',
-        legacy: true
-      },
-      {
-        id: 'plp-configs',
-        title: 'plp-configs',
-        type: 'item',
-        url: '/plp-configs',
-        icon: icons.LayoutOutlined,
-        perm: 'categoryPLPConfig',
-        action: 'read',
-        legacy: true
       }
     ]
   },
