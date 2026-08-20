@@ -7,17 +7,21 @@ import { actions as sellersStores } from 'store/sellersStores/slice';
 import { useParams, useRouter } from 'next/navigation';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
+import FormErrorsSummary from 'components/FormErrorsSummary';
 
 import { createStore, updateStore } from 'api/sellersStores';
+import { buildErrorSummaryMessage, normalizeValidationErrors } from 'utils/formErrors';
 import PharmacyLicenseReviewPanel from 'sections/seller-documents/PharmacyLicenseReviewPanel';
+import SellerKycDocumentsPanel from 'sections/seller-documents/SellerKycDocumentsPanel';
+import StoreLocationPicker from 'sections/stores/StoreLocationPicker';
 
 // MUI
 import {
   Alert,
+  Box,
   Button,
-  Divider,
+  Chip,
   FormControlLabel,
-  InputLabel,
   MenuItem,
   Stack,
   Switch,
@@ -25,6 +29,7 @@ import {
   Typography,
   LinearProgress
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 
 // -------------------- Constants --------------------
 const RECORD_STATUS_LIST = [
@@ -99,7 +104,6 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[0-9+\-\s]{7,20}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
-const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/i;
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i;
 
 // -------------------- Empty form --------------------
@@ -456,16 +460,13 @@ export default function StoreUpsert() {
   // Keep submit-time validator that populates `errors`
   const validateForm = () => validateState(form);
 
-  // Live errors (for disabling the submit button)
-  const liveErrors = useMemo(() => validateState(form), [form]);
-
   // ----- Submit -----
   const handleSubmit = async () => {
     try {
       const e = validateForm();
       if (Object.keys(e).length) {
         setErrors(e);
-        enqueueSnackbar('Please fix the highlighted fields.', { variant: 'warning' });
+        enqueueSnackbar(buildErrorSummaryMessage(e) || 'Please fix the highlighted fields.', { variant: 'warning' });
         return;
       }
       // Prepare store payload
@@ -549,16 +550,13 @@ export default function StoreUpsert() {
       }
       router.push('/stores');
     } catch (err) {
-      // Handle validation errors from server
       const response = err?.response?.data;
-      if (response?.errors) {
-        // Server returned field-specific errors
-        setErrors(response.errors);
-        const errorMsg = response.message || 'Validation failed';
-        enqueueSnackbar(errorMsg, { variant: 'error' });
+      const { message, errors: apiErrors } = normalizeValidationErrors(response);
+      if (Object.keys(apiErrors).length) {
+        setErrors(apiErrors);
+        enqueueSnackbar(buildErrorSummaryMessage(apiErrors) || message || 'Validation failed', { variant: 'error' });
       } else {
-        // Generic error message
-        const msg = response?.message || err?.message || 'Something went wrong.';
+        const msg = message || err?.message || 'Something went wrong.';
         enqueueSnackbar(msg, { variant: 'error' });
       }
     }
@@ -576,348 +574,411 @@ export default function StoreUpsert() {
     };
   }, [form?.name, id]);
 
+  const verificationChips = useMemo(() => {
+    const sel = form.seller || {};
+    return [
+      { label: `KYC: ${sel.kyc_status || '—'}`, color: sel.kyc_status === 'APPROVED' ? 'success' : 'default' },
+      { label: `Seller KYB: ${sel.kyb_status || '—'}`, color: sel.kyb_status === 'APPROVED' ? 'success' : 'default' },
+      { label: `Store KYB: ${form.kyb_status || '—'}`, color: form.kyb_status === 'APPROVED' ? 'success' : 'default' },
+    ];
+  }, [form.kyb_status, form.seller]);
+
   return (
     <>
       <Breadcrumbs custom heading={breadcrumb.heading} links={breadcrumb.links} />
-      <MainCard border={false} boxShadow>
-        <Stack spacing={2}>
-          {loading && <LinearProgress />}
-          {error && <Alert severity="error">{String(error)}</Alert>}
+      {loading && <LinearProgress sx={{ mb: 1 }} />}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{String(error)}</Alert>}
+      <FormErrorsSummary errors={errors} />
 
-
-
-          {/* Seller Owner (User) */}
-          <Typography variant="h6">Seller Owner</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required={!id}>Name{!id && ' *'}</InputLabel>
-              <TextField size="small" value={form.user?.name || ''} onChange={(e) => handleUserField('name', e.target.value)} error={!!errors['user.name']} helperText={errors['user.name'] || ''} required={!id} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required={!id}>Email{!id && ' *'}</InputLabel>
-              <TextField size="small" type="email" value={form.user?.email || ''} onChange={(e) => handleUserField('email', e.target.value)} error={!!errors['user.email']} helperText={errors['user.email'] || ''} required={!id} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Phone</InputLabel>
-              <TextField size="small" value={form.user?.phone || ''} onChange={(e) => handleUserField('phone', e.target.value)} error={!!errors['user.phone']} helperText={errors['user.phone'] || ''} />
-            </Stack>
-          </Stack>
-
-          <Divider />
-
-          {/* Seller (Business) */}
-          <Typography variant="h6">Seller</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Legal Name *</InputLabel>
-              <TextField size="small" value={form.seller?.legal_name || ''} onChange={(e) => handleSellerField('legal_name', e.target.value)} error={!!errors['seller.legal_name']} helperText={errors['seller.legal_name'] || ''} required />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Display Name *</InputLabel>
-              <TextField size="small" value={form.seller?.display_name || ''} onChange={(e) => handleSellerField('display_name', e.target.value)} error={!!errors['seller.display_name']} helperText={errors['seller.display_name'] || ''} required />
-            </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>GSTIN</InputLabel>
-              <TextField size="small" value={form.seller?.gstin || ''} onChange={(e) => handleSellerField('gstin', e.target.value)} error={!!errors['seller.gstin']} helperText={errors['seller.gstin'] || ''} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>PAN</InputLabel>
-              <TextField size="small" value={form.seller?.pan || ''} onChange={(e) => handleSellerField('pan', e.target.value)} error={!!errors['seller.pan']} helperText={errors['seller.pan'] || ''} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>CIN</InputLabel>
-              <TextField size="small" value={form.seller?.cin || ''} onChange={(e) => handleSellerField('cin', e.target.value)} />
-            </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Seller Support Email</InputLabel>
-              <TextField size="small" value={form.seller?.support_email || ''} onChange={(e) => handleSellerField('support_email', e.target.value)} error={!!errors['seller.support_email']} helperText={errors['seller.support_email'] || ''} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Seller Support Phone</InputLabel>
-              <TextField size="small" value={form.seller?.support_phone || ''} onChange={(e) => handleSellerField('support_phone', e.target.value)} error={!!errors['seller.support_phone']} helperText={errors['seller.support_phone'] || ''} />
-            </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={Boolean(form.seller?.cod_enabled)}
-                  onChange={(e) => handleSellerField('cod_enabled', e.target.checked)}
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <MainCard title="Store details" subheader="Customer-facing store identity and contact">
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Store name"
+                  required={!id}
+                  fullWidth
+                  value={form.name || ''}
+                  onChange={(e) => handleField('name', e.target.value)}
+                  error={!!errors.name}
+                  helperText={errors.name || ''}
                 />
-              }
-              label="Accept Pay on Delivery"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={Boolean(form.seller?.can_sell_screen_guard)}
-                  onChange={(e) => handleSellerField('can_sell_screen_guard', e.target.checked)}
+                <TextField
+                  size="small"
+                  label="Slug"
+                  required={!id}
+                  fullWidth
+                  value={form.slug || ''}
+                  onChange={(e) => handleField('slug', e.target.value)}
+                  error={!!errors.slug}
+                  helperText={errors.slug || (slugManuallyEdited ? '' : 'Auto-generated from name')}
+                  placeholder="my-store"
                 />
-              }
-              label="Can sell screen guards"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={Boolean(form.seller?.is_pharmacy)}
-                  onChange={(e) => handleSellerField('is_pharmacy', e.target.checked)}
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Store code"
+                  required
+                  fullWidth
+                  value={form.code || ''}
+                  onChange={(e) => handleField('code', e.target.value)}
+                  error={!!errors.code}
+                  helperText={errors.code || (codeManuallyEdited ? '' : 'Auto-generated from name')}
                 />
-              }
-              label="Pharmacy seller (ops override)"
-            />
-          </Stack>
-
-          {form.seller?.id ? (
-            <>
-              <Divider />
-              <PharmacyLicenseReviewPanel
-                sellerId={form.seller.id}
-                isPharmacy={Boolean(form.seller?.is_pharmacy)}
-                onChanged={() => id && dispatch(sellersStores.storesGetRequest({ params: { id } }))}
-              />
-            </>
-          ) : null}
-
-          <Divider />
-
-          {/* Store section */}
-          <Typography variant="h6">Store</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required={!id}>Name{!id && ' *'}</InputLabel>
-              <TextField size="small" value={form.name || ''} onChange={(e) => handleField('name', e.target.value)} error={!!errors['name']} helperText={errors['name'] || ''} required={!id} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required={!id}>Slug{!id && ' *'}</InputLabel>
+                <TextField
+                  size="small"
+                  label="Phone"
+                  required
+                  fullWidth
+                  value={form.phone || ''}
+                  onChange={(e) => handleField('phone', e.target.value)}
+                  error={!!errors.phone}
+                  helperText={errors.phone || ''}
+                />
+              </Stack>
               <TextField
                 size="small"
-                value={form.slug || ''}
-                onChange={(e) => handleField('slug', e.target.value)}
-                error={!!errors['slug']}
-                helperText={errors['slug'] || (slugManuallyEdited ? '' : 'Auto-generated from name')}
-                required={!id}
-                placeholder="Auto-generated from name"
-              />
-            </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Phone *</InputLabel>
-              <TextField size="small" value={form.phone || ''} onChange={(e) => handleField('phone', e.target.value)} error={!!errors['phone']} helperText={errors['phone'] || ''} required />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Email *</InputLabel>
-              <TextField size="small" type="email" value={form.email || ''} onChange={(e) => handleField('email', e.target.value)} error={!!errors['email']} helperText={errors['email'] || ''} required />
-            </Stack>
-          </Stack>
-
-          <Stack sx={{ gap: 1 }}>
-            <InputLabel required>Address *</InputLabel>
-            <TextField size="small" value={form.address_text || ''} onChange={(e) => handleField('address_text', e.target.value)} error={!!errors['address_text']} helperText={errors['address_text'] || ''} required />
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Latitude *</InputLabel>
-              <TextField size="small" type="number" value={form.lat || ''} onChange={(e) => handleField('lat', e.target.value)} error={!!errors['lat']} helperText={errors['lat'] || ''} required />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Longitude *</InputLabel>
-              <TextField size="small" type="number" value={form.lng || ''} onChange={(e) => handleField('lng', e.target.value)} error={!!errors['lng']} helperText={errors['lng'] || ''} required />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Delivery Radius (m)</InputLabel>
-              <TextField size="small" value={form.delivery_radius_m || ''} onChange={(e) => handleField('delivery_radius_m', e.target.value)} error={!!errors['delivery_radius_m']} helperText={errors['delivery_radius_m'] || ''} />
-            </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Open Time (HH:mm)</InputLabel>
-              <TextField
-                size="small"
-                type="time"
-                value={form.open_time || ''}
-                onChange={(e) => handleField('open_time', e.target.value)}
-                error={!!errors['open_time']}
-                helperText={errors['open_time'] || 'Format: HH:mm (e.g., 09:00)'}
-                inputProps={{
-                  step: 60, // 1 minute steps
-                  pattern: '[0-9]{2}:[0-9]{2}',
-                  max: '23:59',
-                  min: '00:00'
-                }}
-                placeholder="09:00"
-              />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Close Time (HH:mm)</InputLabel>
-              <TextField
-                size="small"
-                type="time"
-                value={form.close_time || ''}
-                onChange={(e) => handleField('close_time', e.target.value)}
-                error={!!errors['close_time']}
-                helperText={errors['close_time'] || 'Format: HH:mm (e.g., 18:00)'}
-                inputProps={{
-                  step: 60, // 1 minute steps
-                  pattern: '[0-9]{2}:[0-9]{2}',
-                  max: '23:59',
-                  min: '00:00'
-                }}
-                placeholder="18:00"
-              />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Is Open</InputLabel>
-              <TextField select size="small" value={form.is_open} onChange={(e) => handleField('is_open', e.target.value)}>
-                <MenuItem value="true">true</MenuItem>
-                <MenuItem value="false">false</MenuItem>
-              </TextField>
-            </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Code *</InputLabel>
-              <TextField
-                size="small"
-                value={form.code || ''}
-                onChange={(e) => handleField('code', e.target.value)}
-                error={!!errors['code']}
-                helperText={errors['code'] || (codeManuallyEdited ? '' : 'Auto-generated from name')}
+                label="Email"
+                type="email"
                 required
-                placeholder="Auto-generated from name"
+                fullWidth
+                value={form.email || ''}
+                onChange={(e) => handleField('email', e.target.value)}
+                error={!!errors.email}
+                helperText={errors.email || ''}
               />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Support email"
+                  fullWidth
+                  value={form.support_email || ''}
+                  onChange={(e) => handleField('support_email', e.target.value)}
+                  error={!!errors.support_email}
+                  helperText={errors.support_email || ''}
+                />
+                <TextField
+                  size="small"
+                  label="Support phone"
+                  fullWidth
+                  value={form.support_phone || ''}
+                  onChange={(e) => handleField('support_phone', e.target.value)}
+                  error={!!errors.support_phone}
+                  helperText={errors.support_phone || ''}
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Open time"
+                  type="time"
+                  fullWidth
+                  value={form.open_time || ''}
+                  onChange={(e) => handleField('open_time', e.target.value)}
+                  error={!!errors.open_time}
+                  helperText={errors.open_time || 'HH:mm'}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  size="small"
+                  label="Close time"
+                  type="time"
+                  fullWidth
+                  value={form.close_time || ''}
+                  onChange={(e) => handleField('close_time', e.target.value)}
+                  error={!!errors.close_time}
+                  helperText={errors.close_time || 'HH:mm'}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={form.is_open === 'true'}
+                      onChange={(e) => handleField('is_open', e.target.checked ? 'true' : 'false')}
+                    />
+                  }
+                  label="Store is open"
+                />
+                <TextField
+                  select
+                  size="small"
+                  label="Status"
+                  fullWidth
+                  value={form.status}
+                  onChange={(e) => handleField('status', e.target.value)}
+                  error={!!errors.status}
+                  helperText={errors.status || ''}
+                >
+                  {STORE_STATUS.map((s) => (
+                    <MenuItem key={s} value={s}>{s}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  select
+                  size="small"
+                  label="Record status"
+                  fullWidth
+                  value={form.record_status}
+                  onChange={(e) => handleField('record_status', Number(e.target.value))}
+                  error={!!errors.record_status}
+                  helperText={errors.record_status || ''}
+                >
+                  {RECORD_STATUS_LIST.map((s) => (
+                    <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
             </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Support Email</InputLabel>
-              <TextField size="small" value={form.support_email || ''} onChange={(e) => handleField('support_email', e.target.value)} error={!!errors['support_email']} helperText={errors['support_email'] || ''} />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Support Phone</InputLabel>
-              <TextField size="small" value={form.support_phone || ''} onChange={(e) => handleField('support_phone', e.target.value)} error={!!errors['support_phone']} helperText={errors['support_phone'] || ''} />
-            </Stack>
-          </Stack>
+          </MainCard>
+        </Grid>
 
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Status</InputLabel>
-              <TextField select size="small" value={form.status} onChange={(e) => handleField('status', e.target.value)} error={!!errors['status']} helperText={errors['status'] || ''}>
-                {STORE_STATUS.map((s) => (
-                  <MenuItem key={s} value={s}>{s}</MenuItem>
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <MainCard title="Location" subheader="Address and map pin for delivery radius">
+            <StoreLocationPicker
+              address={form.address_text}
+              lat={form.lat}
+              lng={form.lng}
+              deliveryRadiusM={form.delivery_radius_m}
+              errors={errors}
+              storeName={form.name}
+              onAddressChange={(v) => handleField('address_text', v)}
+              onLatChange={(v) => handleField('lat', v)}
+              onLngChange={(v) => handleField('lng', v)}
+              onDeliveryRadiusChange={(v) => handleField('delivery_radius_m', v)}
+            />
+          </MainCard>
+        </Grid>
+
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <MainCard title="Seller" subheader="Business entity linked to this store">
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Legal name"
+                  required
+                  fullWidth
+                  value={form.seller?.legal_name || ''}
+                  onChange={(e) => handleSellerField('legal_name', e.target.value)}
+                  error={!!errors['seller.legal_name']}
+                  helperText={errors['seller.legal_name'] || ''}
+                />
+                <TextField
+                  size="small"
+                  label="Display name"
+                  required
+                  fullWidth
+                  value={form.seller?.display_name || ''}
+                  onChange={(e) => handleSellerField('display_name', e.target.value)}
+                  error={!!errors['seller.display_name']}
+                  helperText={errors['seller.display_name'] || ''}
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="GSTIN"
+                  fullWidth
+                  value={form.seller?.gstin || ''}
+                  onChange={(e) => handleSellerField('gstin', e.target.value)}
+                  error={!!errors['seller.gstin']}
+                  helperText={errors['seller.gstin'] || '15 characters'}
+                  placeholder="22AAAAA0000A1Z5"
+                />
+                <TextField
+                  size="small"
+                  label="PAN"
+                  fullWidth
+                  value={form.seller?.pan || ''}
+                  onChange={(e) => handleSellerField('pan', e.target.value)}
+                  error={!!errors['seller.pan']}
+                  helperText={errors['seller.pan'] || 'Format: ABCDE1234F'}
+                />
+                <TextField
+                  size="small"
+                  label="CIN"
+                  fullWidth
+                  value={form.seller?.cin || ''}
+                  onChange={(e) => handleSellerField('cin', e.target.value)}
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Seller support email"
+                  fullWidth
+                  value={form.seller?.support_email || ''}
+                  onChange={(e) => handleSellerField('support_email', e.target.value)}
+                  error={!!errors['seller.support_email']}
+                  helperText={errors['seller.support_email'] || ''}
+                />
+                <TextField
+                  size="small"
+                  label="Seller support phone"
+                  fullWidth
+                  value={form.seller?.support_phone || ''}
+                  onChange={(e) => handleSellerField('support_phone', e.target.value)}
+                  error={!!errors['seller.support_phone']}
+                  helperText={errors['seller.support_phone'] || ''}
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} flexWrap="wrap" useFlexGap>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(form.seller?.cod_enabled)}
+                      onChange={(e) => handleSellerField('cod_enabled', e.target.checked)}
+                    />
+                  }
+                  label="Pay on delivery"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(form.seller?.can_sell_screen_guard)}
+                      onChange={(e) => handleSellerField('can_sell_screen_guard', e.target.checked)}
+                    />
+                  }
+                  label="Screen guards"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(form.seller?.is_pharmacy)}
+                      onChange={(e) => handleSellerField('is_pharmacy', e.target.checked)}
+                    />
+                  }
+                  label="Pharmacy seller"
+                />
+              </Stack>
+            </Stack>
+          </MainCard>
+        </Grid>
+
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <MainCard title="Account owner" subheader="Seller app login for this store">
+            <Stack spacing={2}>
+              <TextField
+                size="small"
+                label="Owner name"
+                required={!id}
+                fullWidth
+                value={form.user?.name || ''}
+                onChange={(e) => handleUserField('name', e.target.value)}
+                error={!!errors['user.name']}
+                helperText={errors['user.name'] || ''}
+              />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Owner email"
+                  type="email"
+                  required={!id}
+                  fullWidth
+                  value={form.user?.email || ''}
+                  onChange={(e) => handleUserField('email', e.target.value)}
+                  error={!!errors['user.email']}
+                  helperText={errors['user.email'] || ''}
+                />
+                <TextField
+                  size="small"
+                  label="Owner phone"
+                  fullWidth
+                  value={form.user?.phone || ''}
+                  onChange={(e) => handleUserField('phone', e.target.value)}
+                  error={!!errors['user.phone']}
+                  helperText={errors['user.phone'] || ''}
+                />
+              </Stack>
+            </Stack>
+          </MainCard>
+        </Grid>
+
+        <Grid size={12}>
+          <MainCard
+            title="Verification"
+            subheader="Review documents and set KYC / KYB status"
+            secondary={(
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {verificationChips.map((chip) => (
+                  <Chip key={chip.label} size="small" label={chip.label} color={chip.color} variant="outlined" />
                 ))}
-              </TextField>
+              </Stack>
+            )}
+          >
+            <Stack spacing={2}>
+              <SellerKycDocumentsPanel
+                sellerId={form.seller?.id}
+                editable
+                title=""
+                kycStatuses={KYC_STATUSES}
+                kybStatuses={KYB_STATUS}
+                errors={errors}
+                sellerKyc={{
+                  status: form.seller?.kyc_status,
+                  reason: form.seller?.kyc_reason,
+                  onStatusChange: (v) => handleSellerField('kyc_status', v),
+                  onReasonChange: (v) => handleSellerField('kyc_reason', v),
+                }}
+                sellerKyb={{
+                  status: form.seller?.kyb_status,
+                  reason: form.seller?.kyb_reason,
+                  onStatusChange: (v) => handleSellerField('kyb_status', v),
+                  onReasonChange: (v) => handleSellerField('kyb_reason', v),
+                }}
+                storeKyb={{
+                  status: form.kyb_status,
+                  reason: form.kyb_reason,
+                  onStatusChange: (v) => handleField('kyb_status', v),
+                  onReasonChange: (v) => handleField('kyb_reason', v),
+                }}
+              />
+              {form.seller?.id ? (
+                <PharmacyLicenseReviewPanel
+                  sellerId={form.seller.id}
+                  isPharmacy={Boolean(form.seller?.is_pharmacy)}
+                  onChanged={() => id && dispatch(sellersStores.storesGetRequest({ params: { id } }))}
+                />
+              ) : (
+                <Alert severity="info" variant="outlined">
+                  Pharmacy license review appears after the store is linked to a seller.
+                </Alert>
+              )}
             </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Record Status</InputLabel>
-              <TextField select size="small" value={form.record_status} onChange={(e) => handleField('record_status', Number(e.target.value))} error={!!errors['record_status']} helperText={errors['record_status'] || ''}>
-                {RECORD_STATUS_LIST.map((s) => (
-                  <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-          </Stack>
+          </MainCard>
+        </Grid>
+      </Grid>
 
-          <Divider />
-
-          {/* Verification (KYC / KYB) */}
-          <Typography variant="h6">Verification</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
-            Seller identity (KYC), business entity (KYB), and store location (Store KYB). Reason is required when status is REJECTED (or RESUBMIT for KYC).
+      <Box
+        sx={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 10,
+          mt: 2,
+          py: 2,
+          px: 2,
+          mx: -2,
+          bgcolor: 'background.paper',
+          borderTop: 1,
+          borderColor: 'divider',
+          boxShadow: (theme) => theme.shadows[4],
+        }}
+      >
+        <Stack direction="row" spacing={2} justifyContent="flex-end" alignItems="center">
+          <Typography variant="body2" color="text.secondary" sx={{ mr: 'auto', display: { xs: 'none', sm: 'block' } }}>
+            {id ? 'Update store, seller, and verification settings' : 'Create store with seller and owner account'}
           </Typography>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
-            <Stack sx={{ gap: 1, flex: 1, minWidth: 200 }}>
-              <InputLabel>Seller KYC Status</InputLabel>
-              <TextField select size="small" fullWidth value={form.seller.kyc_status} onChange={(e) => handleSellerField('kyc_status', e.target.value)} error={!!errors['seller.kyc_status']} helperText={errors['seller.kyc_status'] || ''}>
-                {KYC_STATUSES.map((s) => (
-                  <MenuItem key={s} value={s}>{s}</MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 2 }}>
-              <InputLabel>KYC Reason</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                multiline
-                minRows={2}
-                value={form.seller?.kyc_reason || ''}
-                onChange={(e) => handleSellerField('kyc_reason', e.target.value)}
-                error={!!errors['seller.kyc_reason']}
-                helperText={errors['seller.kyc_reason'] || 'Required when KYC is REJECTED or RESUBMIT'}
-              />
-            </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
-            <Stack sx={{ gap: 1, flex: 1, minWidth: 200 }}>
-              <InputLabel>Seller KYB Status</InputLabel>
-              <TextField select size="small" fullWidth value={form.seller.kyb_status} onChange={(e) => handleSellerField('kyb_status', e.target.value)} error={!!errors['seller.kyb_status']} helperText={errors['seller.kyb_status'] || ''}>
-                {KYB_STATUS.map((s) => (
-                  <MenuItem key={s} value={s}>{s}</MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 2 }}>
-              <InputLabel>Seller KYB Reason</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                multiline
-                minRows={2}
-                value={form.seller?.kyb_reason || ''}
-                onChange={(e) => handleSellerField('kyb_reason', e.target.value)}
-                error={!!errors['seller.kyb_reason']}
-                helperText={errors['seller.kyb_reason'] || 'Required when seller KYB is REJECTED'}
-              />
-            </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
-            <Stack sx={{ gap: 1, flex: 1, minWidth: 200 }}>
-              <InputLabel>Store KYB Status</InputLabel>
-              <TextField select size="small" fullWidth value={form.kyb_status} onChange={(e) => handleField('kyb_status', e.target.value)} error={!!errors['kyb_status']} helperText={errors['kyb_status'] || ''}>
-                {KYB_STATUS.map((s) => (
-                  <MenuItem key={s} value={s}>{s}</MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 2 }}>
-              <InputLabel>Store KYB Reason</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                multiline
-                minRows={2}
-                value={form.kyb_reason || ''}
-                onChange={(e) => handleField('kyb_reason', e.target.value)}
-                error={!!errors['kyb_reason']}
-                helperText={errors['kyb_reason'] || 'Required when store KYB is REJECTED'}
-              />
-            </Stack>
-          </Stack>
-
-          <Divider />
-
-          {/* Actions */}
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
-            <Button onClick={() => router.push('/stores')}>Cancel</Button>
-            <Button variant="contained" onClick={handleSubmit} >
-              {id ? 'Update' : 'Create'}
-            </Button>
-          </Stack>
+          <Button onClick={() => router.push('/stores')}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+            {id ? 'Update store' : 'Create store'}
+          </Button>
         </Stack>
-      </MainCard>
+      </Box>
     </>
   );
 }

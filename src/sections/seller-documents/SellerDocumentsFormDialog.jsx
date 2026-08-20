@@ -11,15 +11,32 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
+import Link from '@mui/material/Link';
+import MenuItem from '@mui/material/MenuItem';
 import { CloseOutlined } from '@ant-design/icons';
-import axiosServices from 'utils/axios';
+import { enqueueSnackbar } from 'notistack';
+import { createSellerDocument, updateSellerDocument } from 'api/sellersStores';
+
+const DOC_TYPES = ['GST', 'PAN', 'AADHAAR', 'SHOP_ACT', 'BANK_PROOF', 'ADDRESS_PROOF', 'PHARMACY_LICENSE'];
+const STATUSES = ['PENDING', 'APPROVED', 'REJECTED'];
+
+const EMPTY = { seller_id: '', doc_type: 'GST', file_url: '', verified_status: 'PENDING' };
 
 export default function SellerDocumentsFormDialog({ open, onClose, initialData = null, onSaved }) {
-  const [form, setForm] = useState({ seller_id: '', doc_type: '', doc_number: '', file_url: '', status: '' });
+  const [form, setForm] = useState({ ...EMPTY });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (initialData) setForm({ ...{ seller_id: '', doc_type: '', doc_number: '', file_url: '', status: '' }, ...initialData });
-    else setForm({ seller_id: '', doc_type: '', doc_number: '', file_url: '', status: '' });
+    if (initialData) {
+      setForm({
+        seller_id: initialData.seller_id || '',
+        doc_type: initialData.doc_type || 'GST',
+        file_url: initialData.file_url || '',
+        verified_status: initialData.verified_status || 'PENDING',
+      });
+    } else {
+      setForm({ ...EMPTY });
+    }
   }, [initialData, open]);
 
   const handleChange = (e) => {
@@ -28,53 +45,81 @@ export default function SellerDocumentsFormDialog({ open, onClose, initialData =
   };
 
   const handleSubmit = async () => {
+    const sellerId = String(form.seller_id || '').trim();
+    if (!sellerId) {
+      enqueueSnackbar('Seller ID is required', { variant: 'warning' });
+      return;
+    }
+    if (!form.file_url?.trim()) {
+      enqueueSnackbar('File URL is required', { variant: 'warning' });
+      return;
+    }
+    setSaving(true);
     try {
-      const payload = { ...form };
-      if (initialData?.id) await axiosServices.put('admin/sellers-stores/seller-documents/' + initialData.id, payload);
-      else await axiosServices.post('admin/sellers-stores/seller-documents', payload);
-      onSaved && onSaved();
+      if (initialData?.id) {
+        await updateSellerDocument(sellerId, initialData.id, {
+          file_url: form.file_url,
+          verification_status: form.verified_status,
+        });
+      } else {
+        await createSellerDocument(sellerId, {
+          doc_type: form.doc_type,
+          file_url: form.file_url,
+          verification_status: form.verified_status,
+        });
+      }
+      enqueueSnackbar(initialData ? 'Document updated' : 'Document added', { variant: 'success' });
+      onSaved?.();
       onClose();
-    } catch (e) {}
+    } catch (e) {
+      enqueueSnackbar(e?.message || 'Save failed', { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {initialData ? 'Edit Seller Document' : 'Add New Seller Document'}
         <IconButton onClick={onClose}><CloseOutlined /></IconButton>
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={2} mt={1} minWidth='420px'>
-
+        <Stack spacing={2} mt={1}>
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Seller ID</InputLabel>
-            <TextField id="seller_id" name="seller_id" value={form.seller_id || ''} onChange={(e)=>setForm(p=>({...p, seller_id: e.target.value}))} placeholder="Seller ID" fullWidth />
+            <TextField name="seller_id" value={form.seller_id} onChange={handleChange} placeholder="Seller UUID" fullWidth disabled={Boolean(initialData?.id)} />
           </Stack>
-
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Doc Type</InputLabel>
-            <TextField id="doc_type" name="doc_type" value={form.doc_type || ''} onChange={(e)=>setForm(p=>({...p, doc_type: e.target.value}))} placeholder="Doc Type" fullWidth />
+            <TextField name="doc_type" select value={form.doc_type} onChange={handleChange} fullWidth disabled={Boolean(initialData?.id)}>
+              {DOC_TYPES.map((type) => (
+                <MenuItem key={type} value={type}>{type}</MenuItem>
+              ))}
+            </TextField>
           </Stack>
-
-          <Stack sx={{ gap: 1 }}>
-            <InputLabel>Doc Number</InputLabel>
-            <TextField id="doc_number" name="doc_number" value={form.doc_number || ''} onChange={(e)=>setForm(p=>({...p, doc_number: e.target.value}))} placeholder="Doc Number" fullWidth />
-          </Stack>
-
           <Stack sx={{ gap: 1 }}>
             <InputLabel>File URL</InputLabel>
-            <TextField id="file_url" name="file_url" value={form.file_url || ''} onChange={(e)=>setForm(p=>({...p, file_url: e.target.value}))} placeholder="File URL" fullWidth />
+            <TextField name="file_url" value={form.file_url} onChange={handleChange} placeholder="File URL" fullWidth />
+            {form.file_url ? (
+              <Link href={form.file_url} target="_blank" rel="noopener noreferrer">
+                Open uploaded file
+              </Link>
+            ) : null}
           </Stack>
-
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Status</InputLabel>
-            <TextField id="status" name="status" value={form.status || ''} onChange={(e)=>setForm(p=>({...p, status: e.target.value}))} placeholder="Status" fullWidth />
+            <TextField name="verified_status" select value={form.verified_status} onChange={handleChange} fullWidth>
+              {STATUSES.map((status) => (
+                <MenuItem key={status} value={status}>{status}</MenuItem>
+              ))}
+            </TextField>
           </Stack>
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleSubmit}>{initialData ? 'Update' : 'Submit'}</Button>
+        <Button variant="contained" disabled={saving} onClick={handleSubmit}>{initialData ? 'Update' : 'Submit'}</Button>
       </DialogActions>
     </Dialog>
   );

@@ -7,6 +7,7 @@ export const updateSeller = (id, data) => patch(`admin/sellers-stores/sellers/${
 export const removeSeller = (id, data) => patch(`admin/sellers-stores/sellers/${id}`, data);
 
 export const listSellerDocuments = (sellerId, params) => get(`admin/sellers-stores/sellers/${sellerId}/documents`, params);
+export const listAllSellerDocuments = (params) => get('admin/sellers-stores/seller-documents', params);
 export const createSellerDocument = (sellerId, data) => post(`admin/sellers-stores/sellers/${sellerId}/documents`, data);
 export const updateSellerDocument = (sellerId, docId, data) => patch(`admin/sellers-stores/sellers/${sellerId}/documents/${docId}`, data);
 export const deleteSellerDocument = (sellerId, docId) => del(`admin/sellers-stores/sellers/${sellerId}/documents/${docId}`);

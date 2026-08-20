@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { enqueueSnackbar } from 'notistack';
 import __TABLE__ from 'sections/seller-documents/SellerDocumentsTableSection';
 import __FORM__ from 'sections/seller-documents/SellerDocumentsFormDialog';
-import axiosServices from 'utils/axios';
+import { listAllSellerDocuments } from 'api/sellersStores';
 
 export default function SellerDocumentsView() {
   const [rows, setRows] = useState([]);
@@ -25,14 +25,15 @@ export default function SellerDocumentsView() {
 
   const load = async () => {
     try {
-      const resp = await axiosServices.get('admin/sellers-stores/seller-documents', { params: { page: pageIndex + 1, limit: pageSize } });
-      const payload = resp?.data || {};
-      setRows(payload.data || []);
+      const payload = await listAllSellerDocuments({ page: pageIndex + 1, limit: pageSize });
+      setRows(payload?.data || []);
       setTotalPages(payload?.meta?.totalPages || 1);
-    } catch (e) { enqueueSnackbar('Failed to load', { variant: 'error' }); }
+    } catch (e) {
+      enqueueSnackbar(e?.message || 'Failed to load documents', { variant: 'error' });
+    }
   };
 
-  useEffect(() => { {load()}; }, [pageIndex, pageSize]);
+  useEffect(() => { load(); }, [pageIndex, pageSize]);
 
   return (
     <>

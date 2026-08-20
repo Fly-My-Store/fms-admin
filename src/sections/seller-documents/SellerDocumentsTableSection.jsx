@@ -1,7 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
+import Link from '@mui/material/Link';
 import BasicReactTable from 'components/tables/basicTable';
+
+function sellerName(row) {
+  return row?.seller?.display_name || row?.seller?.legal_name || row?.seller_id || '—';
+}
 
 export default function SellerDocumentsTableSection({
   rows,
@@ -14,11 +19,29 @@ export default function SellerDocumentsTableSection({
 }) {
   const columns = useMemo(
     () => [
-      { header: 'Seller ID', accessorKey: 'seller_id' },
+      {
+        header: 'Seller',
+        accessorKey: 'seller_id',
+        cell: ({ row }) => sellerName(row.original),
+      },
       { header: 'Type', accessorKey: 'doc_type' },
-      { header: 'Number', accessorKey: 'doc_number' },
-      { header: 'File URL', accessorKey: 'file_url' },
-      { header: 'Status', accessorKey: 'status' },
+      {
+        header: 'File',
+        accessorKey: 'file_url',
+        cell: ({ row }) => {
+          const url = row.original?.file_url;
+          if (!url) return '—';
+          return (
+            <Link href={url} target="_blank" rel="noopener noreferrer">
+              View
+            </Link>
+          );
+        },
+      },
+      {
+        header: 'Status',
+        accessorKey: 'verified_status',
+      },
     ],
     []
   );

@@ -18,6 +18,8 @@ import StoreOrdersCard from 'sections/stores/StoreOrdersCard';
 import StoreVariantsGrid from 'sections/stores/StoreVariantsGrid';
 import SellerPayoutsCard from 'sections/stores/SellerPayoutsCard';
 import StoreSupportTicketsCard from 'sections/stores/StoreSupportTicketsCard';
+import SellerKycDocumentsPanel from 'sections/seller-documents/SellerKycDocumentsPanel';
+import PharmacyLicenseReviewPanel from 'sections/seller-documents/PharmacyLicenseReviewPanel';
 import { getStore } from 'api/sellersStores';
 import { RECORD_STATUS, TABLE_STATUS } from 'utils/constants';
 
@@ -203,8 +205,6 @@ export default function StoreDetailView() {
                   <KV label="GSTIN" value={seller.gstin} />
                   <KV label="PAN" value={seller.pan} />
                   <KV label="CIN" value={seller.cin} />
-                  <KV label="KYC status" value={seller.kyc_status} />
-                  <KV label="KYB status" value={seller.kyb_status} />
                   <KV label="Support email" value={seller.support_email} />
                   <KV label="Support phone" value={seller.support_phone} />
                 </Stack>
@@ -247,20 +247,40 @@ export default function StoreDetailView() {
             <MainCard title="Verification & status">
               <Stack spacing={1}>
                 <KV label="Store status" value={data?.status} />
-                <KV label="Store KYB" value={data?.kyb_status} />
-                <KV label="KYB reason" value={data?.kyb_reason} />
                 <KV label="Record status" value={recordStatusLabel(data?.record_status)} />
-                {seller && (
-                  <>
-                    <KV label="Seller KYC" value={seller.kyc_status} />
-                    <KV label="KYC reason" value={seller.kyc_reason} />
-                    <KV label="Seller KYB" value={seller.kyb_status} />
-                    <KV label="KYB reason" value={seller.kyb_reason} />
-                  </>
-                )}
               </Stack>
             </MainCard>
           </Grid>
+
+          {sellerId ? (
+            <Grid size={12}>
+              <MainCard title="Verification">
+                <Stack spacing={2}>
+                  <SellerKycDocumentsPanel
+                    sellerId={sellerId}
+                    title=""
+                    sellerKyc={{
+                      status: seller?.kyc_status,
+                      reason: seller?.kyc_reason,
+                    }}
+                    sellerKyb={{
+                      status: seller?.kyb_status,
+                      reason: seller?.kyb_reason,
+                    }}
+                    storeKyb={{
+                      status: data?.kyb_status,
+                      reason: data?.kyb_reason,
+                    }}
+                  />
+                  <PharmacyLicenseReviewPanel
+                    sellerId={sellerId}
+                    isPharmacy={Boolean(seller?.is_pharmacy)}
+                    editable={false}
+                  />
+                </Stack>
+              </MainCard>
+            </Grid>
+          ) : null}
 
           <Grid size={12}>
             <StoreOrdersCard storeId={id} />
