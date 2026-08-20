@@ -48,7 +48,8 @@ const EMPTY = {
   icon_thumb_url: '',
   level: 0,
   record_status: 1,
-  prescription_required: false
+  prescription_required: false,
+  is_featured: false
 };
 
 function slugify(s = '') {
@@ -147,6 +148,7 @@ export function CategoryUpsert() {
         icon_thumb_url: cat.icon_thumb_url || '',
         record_status: cat.record_status || 1,
         prescription_required: Boolean(cat.prescription_required),
+        is_featured: Boolean(cat.is_featured),
         level: Number(cat.level ?? 0)
       });
       // parent meta (best-effort; parent name may not be present in this endpoint)
@@ -248,6 +250,7 @@ export function CategoryUpsert() {
         level: Number(form.level ?? 0),
         record_status: Number(form.record_status ?? 1),
         prescription_required: Boolean(form.prescription_required),
+        is_featured: Boolean(form.is_featured),
       };
 
       if (id || form.id) {
@@ -492,6 +495,15 @@ export function CategoryUpsert() {
                 />
               }
               label="Prescription required (checkout)"
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(form.is_featured)}
+                  onChange={(e) => handleField('is_featured', e.target.checked)}
+                />
+              }
+              label="Featured on home"
             />
           </Stack>
 

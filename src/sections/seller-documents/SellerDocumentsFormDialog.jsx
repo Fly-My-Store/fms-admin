@@ -17,7 +17,7 @@ import { CloseOutlined } from '@ant-design/icons';
 import { enqueueSnackbar } from 'notistack';
 import { createSellerDocument, updateSellerDocument } from 'api/sellersStores';
 
-const DOC_TYPES = ['GST', 'PAN', 'AADHAAR', 'SHOP_ACT', 'BANK_PROOF', 'ADDRESS_PROOF', 'PHARMACY_LICENSE'];
+const DOC_TYPES = ['GST', 'PAN', 'AADHAAR', 'SHOP_ACT', 'BANK_PROOF', 'ADDRESS_PROOF', 'PHARMACY_LICENSE', 'FSSAI'];
 const STATUSES = ['PENDING', 'APPROVED', 'REJECTED'];
 
 const EMPTY = { seller_id: '', doc_type: 'GST', file_url: '', verified_status: 'PENDING' };

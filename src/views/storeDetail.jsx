@@ -150,7 +150,14 @@ export default function StoreDetailView() {
             <MainCard border={false} boxShadow>
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}>
                 <Stack direction="row" spacing={2} alignItems="center">
-                  <Avatar sx={{ width: 48, height: 48 }}>{(data?.name || 'S').slice(0, 1).toUpperCase()}</Avatar>
+                  <Avatar
+                    src={data?.logo_thumb_url || data?.logo_url || undefined}
+                    alt={data?.name || 'Store'}
+                    sx={{ width: 48, height: 48 }}
+                    variant="rounded"
+                  >
+                    {(data?.name || 'S').slice(0, 1).toUpperCase()}
+                  </Avatar>
                   <Stack spacing={0.5}>
                     <Typography variant="h5">{safe(data?.name)}</Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -186,6 +193,7 @@ export default function StoreDetailView() {
                 <KV label="Support phone" value={data?.support_phone} />
                 <KV label="Support email" value={data?.support_email} />
                 <KV label="Hours" value={data?.open_time && data?.close_time ? `${data.open_time} – ${data.close_time}` : '—'} />
+                <KV label="FSSAI" value={data?.fssai_number} />
                 <KV
                   label="Rating"
                   value={data?.rating != null ? `${data.rating} (${data.rating_count ?? 0})` : '—'}

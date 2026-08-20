@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Avatar from '@mui/material/Avatar';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
@@ -120,12 +121,22 @@ export default function SellersTableSection({
             return <Typography variant="body2" color="text.secondary">No store</Typography>;
           }
           return (
-            <Stack spacing={0.25}>
-              <Typography variant="body2">{store.name}</Typography>
-              <Typography variant="caption" color="text.secondary">
-                {[store.code, store.slug].filter(Boolean).join(' · ') || '—'}
-                {count > 1 ? ` · +${count - 1} more` : ''}
-              </Typography>
+            <Stack direction="row" spacing={1.25} alignItems="center">
+              <Avatar
+                src={store.logo_thumb_url || store.logo_url || undefined}
+                alt={store.name || 'Store'}
+                variant="rounded"
+                sx={{ width: 32, height: 32 }}
+              >
+                {(store.name || '?').slice(0, 1).toUpperCase()}
+              </Avatar>
+              <Stack spacing={0.25}>
+                <Typography variant="body2">{store.name}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {[store.code, store.slug].filter(Boolean).join(' · ') || '—'}
+                  {count > 1 ? ` · +${count - 1} more` : ''}
+                </Typography>
+              </Stack>
             </Stack>
           );
         }

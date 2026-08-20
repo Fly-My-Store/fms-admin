@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import Box from '@mui/material/Box';
+import Avatar from '@mui/material/Avatar';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -72,16 +73,26 @@ export default function StoresTableSection({
         cell: ({ row }) => {
           const data = row.original;
           return (
-            <Stack spacing={0.25}>
-              <Typography variant="subtitle2">{data.name || '—'}</Typography>
-              <Typography variant="caption" color="text.secondary">
-                {[data.code, data.slug].filter(Boolean).join(' · ') || '—'}
-              </Typography>
-              {data.seller?.legal_name ? (
+            <Stack direction="row" spacing={1.25} alignItems="center">
+              <Avatar
+                src={data.logo_thumb_url || data.logo_url || undefined}
+                alt={data.name || 'Store'}
+                variant="rounded"
+                sx={{ width: 36, height: 36 }}
+              >
+                {(data.name || '?').slice(0, 1).toUpperCase()}
+              </Avatar>
+              <Stack spacing={0.25}>
+                <Typography variant="subtitle2">{data.name || '—'}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {data.seller.legal_name}
+                  {[data.code, data.slug].filter(Boolean).join(' · ') || '—'}
                 </Typography>
-              ) : null}
+                {data.seller?.legal_name ? (
+                  <Typography variant="caption" color="text.secondary">
+                    {data.seller.legal_name}
+                  </Typography>
+                ) : null}
+              </Stack>
             </Stack>
           );
         },

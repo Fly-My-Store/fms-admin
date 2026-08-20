@@ -39,6 +39,16 @@ export default function CategoriesTableSection({
         )
       },
       { header: 'Name', accessorKey: 'name' },
+      {
+        header: 'Home',
+        accessorKey: 'is_featured',
+        cell: ({ row }) =>
+          row.original.is_featured ? (
+            <Chip color="info" label="Featured" size="small" variant="light" />
+          ) : (
+            '—'
+          )
+      },
       { header: 'Slug', accessorKey: 'slug' },
       {
         header: 'Parent',

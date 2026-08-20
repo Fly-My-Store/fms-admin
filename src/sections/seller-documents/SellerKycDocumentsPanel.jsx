@@ -18,6 +18,7 @@ const DOC_LABELS = {
   SHOP_ACT: 'Shop Act / trade license',
   BANK_PROOF: 'Bank proof',
   ADDRESS_PROOF: 'Address proof',
+  FSSAI: 'FSSAI license',
 };
 
 const GROUPS = [
@@ -31,15 +32,15 @@ const GROUPS = [
   {
     key: 'seller_kyb',
     title: 'Seller KYB documents',
-    hint: 'Business documents (GST, bank proof).',
+    hint: 'Business documents. GST certificate is optional.',
     types: ['GST', 'BANK_PROOF'],
     reasonHint: 'Required when seller KYB is REJECTED',
   },
   {
     key: 'store_kyb',
     title: 'Store KYB documents',
-    hint: 'Store / premises documents (Shop Act, address proof).',
-    types: ['SHOP_ACT', 'ADDRESS_PROOF'],
+    hint: 'Store / premises documents. FSSAI license is optional.',
+    types: ['SHOP_ACT', 'ADDRESS_PROOF', 'FSSAI'],
     reasonHint: 'Required when store KYB is REJECTED',
   },
 ];

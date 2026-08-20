@@ -10,6 +10,7 @@ import MainCard from 'components/MainCard';
 import FormErrorsSummary from 'components/FormErrorsSummary';
 
 import { createStore, updateStore } from 'api/sellersStores';
+import { uploadSingle } from 'api/upload';
 import { buildErrorSummaryMessage, normalizeValidationErrors } from 'utils/formErrors';
 import PharmacyLicenseReviewPanel from 'sections/seller-documents/PharmacyLicenseReviewPanel';
 import SellerKycDocumentsPanel from 'sections/seller-documents/SellerKycDocumentsPanel';
@@ -18,10 +19,12 @@ import StoreLocationPicker from 'sections/stores/StoreLocationPicker';
 // MUI
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Chip,
   FormControlLabel,
+  InputLabel,
   MenuItem,
   Stack,
   Switch,
@@ -122,6 +125,9 @@ const EMPTY = {
   is_open: 'true', // keep as string for select binding, coerce on submit
   delivery_radius_m: 5000,
   code: '',
+  fssai_number: '',
+  logo_url: '',
+  logo_thumb_url: '',
   support_email: '',
   support_phone: '',
   status: 'ACTIVE',
@@ -172,7 +178,9 @@ export default function StoreUpsert() {
   const [form, setForm] = useState({ ...EMPTY });
   const [errors, setErrors] = useState({});
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
-  const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
+  const [logoPreview, setLogoPreview] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoProgress, setLogoProgress] = useState(0);
 
   // Reset form when id is cleared (navigating to create)
   useEffect(() => {
@@ -180,7 +188,7 @@ export default function StoreUpsert() {
       setForm({ ...EMPTY });
       setErrors({});
       setSlugManuallyEdited(false);
-      setCodeManuallyEdited(false);
+      setLogoPreview('');
     }
   }, [id]);
 
@@ -201,7 +209,6 @@ export default function StoreUpsert() {
     // Reset manual edit flags when loading existing data
     // Don't auto-generate slug/code for existing records
     setSlugManuallyEdited(true);
-    setCodeManuallyEdited(true);
 
     setForm((prev) => ({
       ...prev,
@@ -218,6 +225,9 @@ export default function StoreUpsert() {
       is_open: String(Boolean(data.is_open)),
       delivery_radius_m: data.delivery_radius_m ?? 5000,
       code: data.code || '',
+      fssai_number: data.fssai_number || '',
+      logo_url: data.logo_url || '',
+      logo_thumb_url: data.logo_thumb_url || '',
       support_email: data.support_email || '',
       support_phone: data.support_phone || '',
       kyb_status: data.kyb_status || 'NONE',
@@ -247,6 +257,7 @@ export default function StoreUpsert() {
         phone: user.phone || ''
       }
     }));
+    setLogoPreview(data.logo_thumb_url || data.logo_url || '');
   }, [data, id]);
 
   useEffect(() => {
@@ -273,22 +284,11 @@ export default function StoreUpsert() {
           const slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
           updated.slug = slug;
         }
-        // Auto-generate code from name (if code hasn't been manually edited)
-        if (!codeManuallyEdited && value) {
-          const namePart = value.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
-          // Use a consistent random part based on name length for same name
-          const randomPart = Math.floor(100 + Math.random() * 900);
-          updated.code = `${namePart || 'STR'}-${randomPart}`;
-        }
         return updated;
       });
     } else if (name === 'slug') {
       // Track manual slug edits
       setSlugManuallyEdited(true);
-      setForm((p) => ({ ...p, [name]: value }));
-    } else if (name === 'code') {
-      // Track manual code edits
-      setCodeManuallyEdited(true);
       setForm((p) => ({ ...p, [name]: value }));
     } else {
       setForm((p) => ({ ...p, [name]: value }));
@@ -303,6 +303,46 @@ export default function StoreUpsert() {
   const handleUserField = (name, value) => {
     setForm((p) => ({ ...p, user: { ...(p.user || {}), [name]: value } }));
     clearError(`user.${name}`);
+  };
+
+  const handleLogoSelect = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      setLogoPreview(URL.createObjectURL(f));
+    } catch { }
+    setUploadingLogo(true);
+    setLogoProgress(0);
+    try {
+      const res = await uploadSingle(f, (evt) => {
+        if (evt?.total) {
+          const pct = Math.round((evt.loaded / evt.total) * 100);
+          setLogoProgress(Number.isFinite(pct) ? pct : 0);
+        }
+      }, {
+        purpose: 'store',
+        store_id: id || undefined,
+      });
+      const url = res?.url || res?.data?.url;
+      const thumbUrl = res?.thumb_url || res?.data?.thumb_url || '';
+      if (url) {
+        setForm((p) => ({ ...p, logo_url: url, logo_thumb_url: thumbUrl }));
+        setLogoPreview(thumbUrl || url);
+      } else {
+        enqueueSnackbar('Upload completed but URL missing in response.', { variant: 'warning' });
+      }
+    } catch (err) {
+      enqueueSnackbar(err?.response?.data?.message || err?.message || 'Logo upload failed', { variant: 'error' });
+      setLogoPreview(form.logo_thumb_url || form.logo_url || '');
+    } finally {
+      setUploadingLogo(false);
+      setLogoProgress(0);
+    }
+  };
+
+  const handleLogoRemove = () => {
+    setLogoPreview('');
+    setForm((p) => ({ ...p, logo_url: '', logo_thumb_url: '' }));
   };
 
   // Validation function (pure)
@@ -351,12 +391,9 @@ export default function StoreUpsert() {
     if (lat !== null && !isNaN(lat) && (lat < -90 || lat > 90)) add('lat', 'Latitude must be between -90 and 90');
     if (lng !== null && !isNaN(lng) && (lng < -180 || lng > 180)) add('lng', 'Longitude must be between -180 and 180');
 
-    // Required address and code
+    // Required address
     const addressText = String(f.address_text || '').trim();
     if (!addressText) add('address_text', 'Address is required');
-
-    const code = String(f.code || '').trim();
-    if (!code) add('code', 'Code is required');
 
     const dr = f.delivery_radius_m === '' ? null : Number(f.delivery_radius_m);
     if (dr !== null && (isNaN(dr) || dr < 0)) add('delivery_radius_m', 'Delivery radius must be a positive number');
@@ -478,13 +515,15 @@ export default function StoreUpsert() {
         'address_text',
         'open_time',
         'close_time',
-        'code',
         'support_email',
         'support_phone',
         'status',
         'kyb_status',
         'kyb_reason',
-        'record_status'
+        'record_status',
+        'fssai_number',
+        'logo_url',
+        'logo_thumb_url'
       ];
 
       // Coerce numeric / boolean fields
@@ -493,7 +532,10 @@ export default function StoreUpsert() {
         lat: toNumOrNull(form.lat),
         lng: toNumOrNull(form.lng),
         delivery_radius_m: toNumOrNull(form.delivery_radius_m),
-        is_open: form.is_open === 'true'
+        is_open: form.is_open === 'true',
+        fssai_number: String(form.fssai_number || '').replace(/\D/g, '') || null,
+        logo_url: form.logo_url || null,
+        logo_thumb_url: form.logo_thumb_url || null
       };
 
       // Seller payload (optional on update; created if missing on create)
@@ -542,6 +584,9 @@ export default function StoreUpsert() {
 
       let storeId = id || form.id;
       if (storeId) {
+        payload.logo_url = form.logo_url || null;
+        payload.logo_thumb_url = form.logo_thumb_url || null;
+        payload.fssai_number = String(form.fssai_number || '').replace(/\D/g, '') || null;
         await updateStore(storeId, payload);
         enqueueSnackbar('Store updated', { variant: 'success' });
       } else {
@@ -594,6 +639,49 @@ export default function StoreUpsert() {
         <Grid size={{ xs: 12, lg: 6 }}>
           <MainCard title="Store details" subheader="Customer-facing store identity and contact">
             <Stack spacing={2}>
+              <Stack sx={{ gap: 1 }}>
+                <InputLabel>Store logo</InputLabel>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  {(logoPreview || form.logo_url) ? (
+                    <Box
+                      sx={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'grey.100',
+                        border: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                    >
+                      <img
+                        src={logoPreview || form.logo_url}
+                        alt={form.name || 'Store logo'}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
+                    </Box>
+                  ) : (
+                    <Avatar variant="rounded" sx={{ width: 72, height: 72 }}>
+                      {(form.name || 'S').slice(0, 1).toUpperCase()}
+                    </Avatar>
+                  )}
+                  <Stack spacing={1}>
+                    <Button component="label" variant="outlined" size="small" disabled={uploadingLogo}>
+                      {form.logo_url ? 'Change logo' : 'Upload logo'}
+                      <input type="file" hidden accept="image/*" onChange={handleLogoSelect} />
+                    </Button>
+                    {form.logo_url ? (
+                      <Button size="small" color="inherit" onClick={handleLogoRemove} disabled={uploadingLogo}>
+                        Remove
+                      </Button>
+                    ) : null}
+                    {uploadingLogo ? <LinearProgress variant="determinate" value={logoProgress} sx={{ width: 160 }} /> : null}
+                  </Stack>
+                </Stack>
+              </Stack>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   size="small"
@@ -613,7 +701,7 @@ export default function StoreUpsert() {
                   value={form.slug || ''}
                   onChange={(e) => handleField('slug', e.target.value)}
                   error={!!errors.slug}
-                  helperText={errors.slug || (slugManuallyEdited ? '' : 'Auto-generated from name')}
+                  helperText={errors.slug || (slugManuallyEdited ? '' : 'From name · a suffix is added if that name is already used')}
                   placeholder="my-store"
                 />
               </Stack>
@@ -621,13 +709,23 @@ export default function StoreUpsert() {
                 <TextField
                   size="small"
                   label="Store code"
-                  required
                   fullWidth
                   value={form.code || ''}
-                  onChange={(e) => handleField('code', e.target.value)}
-                  error={!!errors.code}
-                  helperText={errors.code || (codeManuallyEdited ? '' : 'Auto-generated from name')}
+                  disabled
+                  helperText={id ? 'Assigned automatically' : 'Assigned automatically on create'}
                 />
+                <TextField
+                  size="small"
+                  label="FSSAI number"
+                  fullWidth
+                  value={form.fssai_number || ''}
+                  onChange={(e) => handleField('fssai_number', e.target.value.replace(/\D/g, '').slice(0, 14))}
+                  error={!!errors.fssai_number}
+                  helperText={errors.fssai_number || 'Optional'}
+                  placeholder="12345678901234"
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   size="small"
                   label="Phone"
@@ -638,18 +736,18 @@ export default function StoreUpsert() {
                   error={!!errors.phone}
                   helperText={errors.phone || ''}
                 />
+                <TextField
+                  size="small"
+                  label="Email"
+                  type="email"
+                  required
+                  fullWidth
+                  value={form.email || ''}
+                  onChange={(e) => handleField('email', e.target.value)}
+                  error={!!errors.email}
+                  helperText={errors.email || ''}
+                />
               </Stack>
-              <TextField
-                size="small"
-                label="Email"
-                type="email"
-                required
-                fullWidth
-                value={form.email || ''}
-                onChange={(e) => handleField('email', e.target.value)}
-                error={!!errors.email}
-                helperText={errors.email || ''}
-              />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   size="small"
@@ -695,15 +793,6 @@ export default function StoreUpsert() {
                 />
               </Stack>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={form.is_open === 'true'}
-                      onChange={(e) => handleField('is_open', e.target.checked ? 'true' : 'false')}
-                    />
-                  }
-                  label="Store is open"
-                />
                 <TextField
                   select
                   size="small"
@@ -787,7 +876,7 @@ export default function StoreUpsert() {
                   value={form.seller?.gstin || ''}
                   onChange={(e) => handleSellerField('gstin', e.target.value)}
                   error={!!errors['seller.gstin']}
-                  helperText={errors['seller.gstin'] || '15 characters'}
+                  helperText={errors['seller.gstin'] || 'Optional · 15 characters'}
                   placeholder="22AAAAA0000A1Z5"
                 />
                 <TextField
