@@ -17,7 +17,7 @@ import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
 import { InboxOutlined } from '@ant-design/icons';
 import MainCard from 'components/MainCard';
-import { bulkImportCatalog } from 'api/catalog';
+import { bulkImportCatalog, downloadCatalogImportExample } from 'api/catalog';
 
 function isAllowedFile(file) {
   if (!file) return false;
@@ -95,6 +95,14 @@ export default function CatalogBulkImportView() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExample = async () => {
+    try {
+      await downloadCatalogImportExample();
+    } catch {
+      enqueueSnackbar('Failed to download example CSV', { variant: 'error' });
+    }
+  };
+
   const failedRows = (result?.rows || []).filter((r) => r.status === 'failed');
   const summary = result?.summary;
 
@@ -106,6 +114,10 @@ export default function CatalogBulkImportView() {
           when all images are http(s) URLs. New brands, categories, products, and variants are created as{' '}
           <strong>INACTIVE</strong> — approve them under Pending pages. Duplicate SKUs fail that row only.
         </Alert>
+
+        <Button variant="outlined" size="small" onClick={handleExample} sx={{ alignSelf: 'flex-start' }}>
+          Download example CSV
+        </Button>
 
         <Paper
           variant="outlined"

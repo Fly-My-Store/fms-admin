@@ -120,3 +120,17 @@ export async function bulkImportCatalog(formData, onUploadProgress) {
   });
   return r.data;
 }
+
+/** Download catalog bulk-import example CSV */
+export async function downloadCatalogImportExample() {
+  const r = await axiosServices.get('admin/catalog/bulk-import/example.csv', {
+    responseType: 'blob'
+  });
+  const blob = new Blob([r.data], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'catalog-import-example.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
