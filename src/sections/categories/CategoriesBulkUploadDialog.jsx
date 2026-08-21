@@ -16,10 +16,11 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { bulkImportCategories, downloadCategoriesImportExample } from 'api/catalog';
 
-const EXAMPLE_CSV = `name,slug,description,logo,parent_name,parent_slug,parent_description,parent_logo
-Accessories,,Accessories and wearable devices,images/accessories.png,,,,
-Neckband,,Wireless neckband earphones,images/neckband.png,Accessories,,Accessories and wearable devices,images/accessories.png
-Smart Watches,smart-watches,Wearable smart watches,https://cdn.example.com/categories/watches.png,Accessories,,Accessories and wearable devices,images/accessories.png
+const EXAMPLE_CSV = `name,slug,description,logo,prescription_required,is_featured,parent_name,parent_slug,parent_description,parent_logo,parent_prescription_required,parent_is_featured
+Accessories,,Accessories and wearable devices,images/accessories.png,false,true,,,,,,
+Neckband,,Wireless neckband earphones,images/neckband.png,false,false,Accessories,,Accessories and wearable devices,images/accessories.png,false,true
+Medicines,,OTC and Rx medicines,,true,false,Pharmacy,,,,true,true
+Smart Watches,smart-watches,Wearable smart watches,https://cdn.example.com/categories/watches.png,false,false,Accessories,,Accessories and wearable devices,images/accessories.png,false,true
 `;
 
 function isAllowedFile(file) {
