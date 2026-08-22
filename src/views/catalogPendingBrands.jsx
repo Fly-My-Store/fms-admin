@@ -4,7 +4,10 @@ import CatalogPendingList, { Thumb } from 'views/catalogPendingList';
 import {
   listBrands,
   approveBrand,
-  approveBrandsBulk
+  approveBrandsBulk,
+  purgeBrand,
+  purgeBrandsBulk,
+  purgeAllPendingBrands
 } from 'api/catalog';
 
 export default function CatalogPendingBrandsView() {
@@ -15,6 +18,9 @@ export default function CatalogPendingBrandsView() {
       loadRows={listBrands}
       approveOne={approveBrand}
       approveBulk={approveBrandsBulk}
+      purgeOne={purgeBrand}
+      purgeBulk={purgeBrandsBulk}
+      purgeAll={purgeAllPendingBrands}
       editPath={(row) => `/brands/edit/${row.id}`}
       columns={[
         {

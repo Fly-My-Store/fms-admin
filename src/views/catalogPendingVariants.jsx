@@ -5,7 +5,10 @@ import CatalogPendingList, { Thumb } from 'views/catalogPendingList';
 import {
   listAllVariants,
   approveVariant,
-  approveVariantsBulk
+  approveVariantsBulk,
+  purgeVariant,
+  purgeVariantsBulk,
+  purgeAllPendingVariants
 } from 'api/catalog';
 
 export default function CatalogPendingVariantsView() {
@@ -16,7 +19,10 @@ export default function CatalogPendingVariantsView() {
       loadRows={listAllVariants}
       approveOne={approveVariant}
       approveBulk={approveVariantsBulk}
-      editPath={(row) => `/product-variants/edit/${row.id}`}
+      purgeOne={purgeVariant}
+      purgeBulk={purgeVariantsBulk}
+      purgeAll={purgeAllPendingVariants}
+      editPath={(row) => `/product-variants/create?edit=${row.id}`}
       columns={[
         {
           key: 'images',

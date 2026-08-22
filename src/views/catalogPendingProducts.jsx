@@ -5,7 +5,10 @@ import CatalogPendingList, { Thumb } from 'views/catalogPendingList';
 import {
   listProducts,
   approveProduct,
-  approveProductsBulk
+  approveProductsBulk,
+  purgeProduct,
+  purgeProductsBulk,
+  purgeAllPendingProducts
 } from 'api/catalog';
 
 export default function CatalogPendingProductsView() {
@@ -16,6 +19,9 @@ export default function CatalogPendingProductsView() {
       loadRows={listProducts}
       approveOne={approveProduct}
       approveBulk={approveProductsBulk}
+      purgeOne={purgeProduct}
+      purgeBulk={purgeProductsBulk}
+      purgeAll={purgeAllPendingProducts}
       editPath={(row) => `/products/edit/${row.id}`}
       columns={[
         {

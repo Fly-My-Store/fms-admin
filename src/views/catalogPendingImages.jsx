@@ -1,7 +1,7 @@
 'use client';
 
 import CatalogPendingList, { Thumb } from 'views/catalogPendingList';
-import { approveImage, approveImagesBulk, listAllImages } from 'api/catalog';
+import { approveImage, approveImagesBulk, listAllImages, purgeImage, purgeImagesBulk, purgeAllPendingImages } from 'api/catalog';
 
 function ownerProduct(row) {
   return row.product || row.variant?.product;
@@ -15,7 +15,14 @@ export default function CatalogPendingImagesView() {
       loadRows={listAllImages}
       approveOne={approveImage}
       approveBulk={approveImagesBulk}
-      editPath={(row) => (row.variant ? `/product-variants/edit/${row.variant.id}` : `/products/edit/${row.product.id}`)}
+      purgeOne={purgeImage}
+      purgeBulk={purgeImagesBulk}
+      purgeAll={purgeAllPendingImages}
+      editPath={(row) =>
+        row.variant
+          ? `/product-variants/create?edit=${row.variant.id}`
+          : `/products/edit/${row.product.id}`
+      }
       columns={[
         {
           key: 'preview',

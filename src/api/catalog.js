@@ -8,6 +8,9 @@ export const updateBrand = (id, data) => patch(`admin/catalog/brands/${id}`, dat
 export const removeBrand = (id) => del(`admin/catalog/brands/${id}`);
 export const approveBrand = (id) => post(`admin/catalog/brands/${id}/approve`);
 export const approveBrandsBulk = (ids) => post('admin/catalog/brands/approve-bulk', { ids });
+export const purgeBrand = (id) => del(`admin/catalog/brands/${id}/purge`);
+export const purgeBrandsBulk = (ids) => post('admin/catalog/brands/purge-bulk', { ids });
+export const purgeAllPendingBrands = () => post('admin/catalog/brands/purge-all-pending');
 
 /** Multipart brands CSV/ZIP import (name, slug, logo) */
 export async function bulkImportBrands(formData, onUploadProgress) {
@@ -42,6 +45,9 @@ export const listCategoryChildren = (id) => get(`admin/catalog/categories/${id}/
 export const checkCategorySlug = (slug) => get(`admin/catalog/categories/slug/${encodeURIComponent(slug)}/available`);
 export const approveCategory = (id) => post(`admin/catalog/categories/${id}/approve`);
 export const approveCategoriesBulk = (ids) => post('admin/catalog/categories/approve-bulk', { ids });
+export const purgeCategory = (id) => del(`admin/catalog/categories/${id}/purge`);
+export const purgeCategoriesBulk = (ids) => post('admin/catalog/categories/purge-bulk', { ids });
+export const purgeAllPendingCategories = () => post('admin/catalog/categories/purge-all-pending');
 
 /** Multipart categories CSV/ZIP import */
 export async function bulkImportCategories(formData, onUploadProgress) {
@@ -74,6 +80,9 @@ export const updateProduct = (id, data) => patch(`admin/catalog/products/${id}`,
 export const removeProduct = (id) => del(`admin/catalog/products/${id}`);
 export const approveProduct = (id) => post(`admin/catalog/products/${id}/approve`);
 export const approveProductsBulk = (ids) => post('admin/catalog/products/approve-bulk', { ids });
+export const purgeProduct = (id) => del(`admin/catalog/products/${id}/purge`);
+export const purgeProductsBulk = (ids) => post('admin/catalog/products/purge-bulk', { ids });
+export const purgeAllPendingProducts = () => post('admin/catalog/products/purge-all-pending');
 export const rejectProduct = (id) => post(`admin/catalog/products/${id}/reject`);
 export const archiveProduct = (id) => post(`admin/catalog/products/${id}/archive`);
 
@@ -94,10 +103,16 @@ export const updateVariant = (id, data) => patch(`admin/catalog/variants/${id}`,
 export const removeVariant = (id) => del(`admin/catalog/variants/${id}`);
 export const approveVariant = (id) => post(`admin/catalog/variants/${id}/approve`);
 export const approveVariantsBulk = (ids) => post('admin/catalog/variants/approve-bulk', { ids });
+export const purgeVariant = (id) => del(`admin/catalog/variants/${id}/purge`);
+export const purgeVariantsBulk = (ids) => post('admin/catalog/variants/purge-bulk', { ids });
+export const purgeAllPendingVariants = () => post('admin/catalog/variants/purge-all-pending');
 
 export const listAllImages = (params) => get('admin/catalog/images', params);
 export const approveImage = (id) => post(`admin/catalog/images/${id}/approve`);
 export const approveImagesBulk = (ids) => post('admin/catalog/images/approve-bulk', { ids });
+export const purgeImage = (id) => del(`admin/catalog/images/${id}/purge`);
+export const purgeImagesBulk = (ids) => post('admin/catalog/images/purge-bulk', { ids });
+export const purgeAllPendingImages = () => post('admin/catalog/images/purge-all-pending');
 export const listProductImages = (productId, params) => get(`admin/catalog/products/${productId}/images`, params);
 export const createProductImage = (productId, data) => post(`admin/catalog/products/${productId}/images`, data);
 export const updateProductImage = (productId, imageId, data) => patch(`admin/catalog/products/${productId}/images/${imageId}`, data);

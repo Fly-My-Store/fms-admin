@@ -887,14 +887,31 @@ export default function CatalogQuickCreateView() {
     }
   };
 
-  const breadcrumb = {
-    heading: editId ? 'update-variant' : 'create-variant',
-    links: [
+  const breadcrumb = useMemo(() => {
+    const skuLabel = editId ? form.sku || 'edit' : 'create';
+    const productLabel = form.product_name || productSel?.name || '';
+    const productId = form.product_id || productSel?.id || presetProductId || '';
+    const links = [
       { title: 'home', to: '/dashboard' },
-      { title: 'product-variants', to: '/product-variants' },
-      { title: editId ? form.sku || 'edit' : 'create', i18n: false }
-    ]
-  };
+      { title: 'product-variants', to: '/product-variants' }
+    ];
+    if (productId && productLabel) {
+      links.push({ title: productLabel, to: `/products/${productId}`, i18n: false });
+    }
+    links.push({ title: skuLabel, i18n: false });
+    return {
+      heading: editId ? 'update-variant' : 'create-variant',
+      links
+    };
+  }, [
+    editId,
+    form.sku,
+    form.product_name,
+    form.product_id,
+    productSel?.name,
+    productSel?.id,
+    presetProductId
+  ]);
 
   if (loadingEdit) {
     return (

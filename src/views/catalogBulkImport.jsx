@@ -70,9 +70,12 @@ export default function CatalogBulkImportView() {
       const data = resp?.data || resp;
       setResult(data);
       const failed = data?.summary?.failed || 0;
+      const firstError = (data?.rows || []).find((r) => r.status === 'failed' && r.error)?.error;
       enqueueSnackbar(
         failed
-          ? `Import finished with ${failed} failed row(s)`
+          ? firstError
+            ? `Import finished with ${failed} failed row(s). ${firstError}`
+            : `Import finished with ${failed} failed row(s)`
           : `Import OK — ${data?.summary?.created || 0} variant(s) created`,
         { variant: failed ? 'warning' : 'success' }
       );
@@ -204,7 +207,7 @@ export default function CatalogBulkImportView() {
                   <TableCell>Row</TableCell>
                   <TableCell>SKU</TableCell>
                   <TableCell>Product</TableCell>
-                  <TableCell>Error</TableCell>
+                    <TableCell>Error</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -213,7 +216,9 @@ export default function CatalogBulkImportView() {
                     <TableCell>{r.row}</TableCell>
                     <TableCell>{r.sku}</TableCell>
                     <TableCell>{r.product_name}</TableCell>
-                    <TableCell>{r.error}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxWidth: 520 }}>
+                      {r.error}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -129,16 +129,33 @@ export default function VariantDetailView() {
 
   const breadcrumb = useMemo(() => {
     const name = data?.sku || id || 'product-variant';
+    const productId = product_id_from_query || data?.product_id || data?.product?.id || '';
+    const productName = product_name_from_query || data?.product?.name || '';
+    const links = [
+      { title: 'home', to: '/dashboard' },
+      { title: 'product-variants', to: '/product-variants' }
+    ];
+    if (productId) {
+      links.push({
+        title: productName || 'product',
+        to: `/products/${productId}`,
+        i18n: false
+      });
+    }
+    links.push({ title: name, i18n: false });
     return {
       heading: 'product-variant',
-      links: [
-        { title: 'home', to: '/dashboard' },
-        { title: 'product-variants', to: '/product-variants' },
-        { title: `${product_id_from_query}-${product_name_from_query}`, to: `/products/${product_id_from_query}`, i18n: false },
-        { title: name, i18n: false }
-      ]
+      links
     };
-  }, [data?.sku, id]);
+  }, [
+    data?.sku,
+    data?.product_id,
+    data?.product?.id,
+    data?.product?.name,
+    id,
+    product_id_from_query,
+    product_name_from_query
+  ]);
 
   useEffect(() => {
     if (!id) return;

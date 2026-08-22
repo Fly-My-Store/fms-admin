@@ -4,7 +4,10 @@ import CatalogPendingList, { Thumb } from 'views/catalogPendingList';
 import {
   listCategories,
   approveCategory,
-  approveCategoriesBulk
+  approveCategoriesBulk,
+  purgeCategory,
+  purgeCategoriesBulk,
+  purgeAllPendingCategories
 } from 'api/catalog';
 
 export default function CatalogPendingCategoriesView() {
@@ -15,6 +18,9 @@ export default function CatalogPendingCategoriesView() {
       loadRows={listCategories}
       approveOne={approveCategory}
       approveBulk={approveCategoriesBulk}
+      purgeOne={purgeCategory}
+      purgeBulk={purgeCategoriesBulk}
+      purgeAll={purgeAllPendingCategories}
       editPath={(row) => `/categories/edit/${row.id}`}
       columns={[
         {

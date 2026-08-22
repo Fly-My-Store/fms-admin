@@ -264,17 +264,34 @@ export default function VariantUpsert() {
 
   const breadcrumb = useMemo(() => {
     const name = form?.sku || id || 'new-variant';
+    const productId = product_id_from_query || form.product_id || variant?.product_id || '';
+    const productName =
+      product_name_from_query || variant?.product?.name || (productId ? 'product' : '');
+    const links = [
+      { title: 'home', to: '/dashboard' },
+      { title: 'product-variants', to: '/product-variants' }
+    ];
+    if (productId) {
+      links.push({
+        title: productName,
+        to: `/products/${productId}`,
+        i18n: false
+      });
+    }
+    links.push({ title: name, i18n: false });
     return {
       heading: id ? 'update-variant' : 'create-variant',
-      links: [
-        { title: 'home', to: '/dashboard' },
-        { title: 'products', to: '/products' },
-        { title: `${product_id_from_query}-${product_name_from_query}`, to: `/products/${product_id_from_query}`, i18n: false },
-        { title: 'product-variants', to: `/products/${product_id_from_query}?tab=variants` },
-        { title: name, i18n: false }
-      ]
+      links
     };
-  }, [form?.sku, id]);
+  }, [
+    form?.sku,
+    form.product_id,
+    id,
+    product_id_from_query,
+    product_name_from_query,
+    variant?.product_id,
+    variant?.product?.name
+  ]);
 
   return (
     <>
