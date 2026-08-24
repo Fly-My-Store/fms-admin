@@ -794,6 +794,7 @@ export default function CatalogQuickCreateView() {
   const buildRow = () => ({
     sku: form.sku.trim(),
     variant_label: form.variant_label.trim(),
+    product_id: existingProduct?.id || productSel?.id || presetProductId || '',
     product_name: form.product_name.trim(),
     product_description: isNewProduct ? form.product_description.trim() : '',
     brand_name: isNewProduct ? form.brand_name.trim() : '',
