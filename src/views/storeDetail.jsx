@@ -143,7 +143,7 @@ export default function StoreDetailView() {
                 >
                   <Tab label="Orders" value="orders" />
                   <Tab label="Variants" value="variants" />
-                  <Tab label="Bulk upload" value="bulk-upload" />
+                  {/* <Tab label="Bulk upload" value="bulk-upload" /> */}
                   <Tab label="Seller" value="seller" />
                   <Tab label="Location" value="location" />
                   <Tab label="Verification" value="verification" />
