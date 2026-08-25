@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Alert,
   Avatar,
+  Button,
   Chip,
   Stack,
   Typography
@@ -17,6 +18,7 @@ import MainCard from 'components/MainCard';
 import RiderLocationMap from 'sections/riders/RiderLocationMap';
 import RiderDeliveriesCard from 'sections/riders/RiderDeliveriesCard';
 import RiderPayoutsCard from 'sections/riders/RiderPayoutsCard';
+import RiderKycDocumentsPanel from 'sections/riders/RiderKycDocumentsPanel';
 import { actions as logistics } from 'store/logistics/slice';
 import { TABLE_STATUS, RECORD_STATUS } from 'utils/constants';
 
@@ -92,6 +94,7 @@ const KV = ({ label, value }) => (
 
 export default function RiderDetailView() {
   const { id } = useParams();
+  const router = useRouter();
   const dispatch = useDispatch();
   const [deliveriesRefreshKey, setDeliveriesRefreshKey] = useState(0);
   const { ridersDetail } = useSelector((s) => s.logistics || {});
@@ -150,6 +153,9 @@ export default function RiderDetailView() {
                   <AccountStatusChip value={data?.user?.status} />
                   <KycChip value={data?.kyc_status} />
                   <AvailabilityChip value={data?.availability_status} />
+                  <Button size="small" variant="outlined" onClick={() => router.push(`/riders/edit/${id}`)}>
+                    Edit rider
+                  </Button>
                 </Stack>
               </Stack>
             </MainCard>
@@ -189,12 +195,23 @@ export default function RiderDetailView() {
             <MainCard title="Status">
               <Stack spacing={1}>
                 <KV label="Account status" value={accountStatusLabel(data?.user?.status)} />
-                <KV label="KYC status" value={data?.kyc_status} />
-                <KV label="KYC reason" value={data?.kyc_reason} />
                 <KV label="Availability" value={data?.availability_status} />
                 <KV label="Record status" value={recordStatusLabel(data?.record_status)} />
                 <KV label="Updated" value={formatDate(data?.updated_at)} />
               </Stack>
+            </MainCard>
+          </Grid>
+
+          <Grid size={12}>
+            <MainCard title="Verification">
+              <RiderKycDocumentsPanel
+                documents={data?.documents || {}}
+                title=""
+                kyc={{
+                  status: data?.kyc_status,
+                  reason: data?.kyc_reason
+                }}
+              />
             </MainCard>
           </Grid>
 

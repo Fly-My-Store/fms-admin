@@ -78,7 +78,7 @@ export default function OrderInvoiceCard({ order, onSuccess }) {
         <Stack spacing={1}>
           <Typography variant="subtitle2">Platform fees invoice</Typography>
           <Typography variant="body2" color="text.secondary">
-            Delivery, platform, service, and payment fees (not goods).
+            Platform + delivery (rider) fees in one PDF. Goods are on the store invoice.
           </Typography>
           <Button
             variant="outlined"

@@ -5,9 +5,6 @@ import PropTypes from 'prop-types';
 import {
   Alert,
   Box,
-  Card,
-  CardContent,
-  CardMedia,
   Chip,
   CircularProgress,
   Pagination,
@@ -38,34 +35,36 @@ function VariantCard({ item }) {
   const status = item?.status || '—';
 
   return (
-    <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box
+      sx={{
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%'
+      }}
+    >
       {thumb ? (
-        <CardMedia component="img" height={120} image={thumb} alt={name} sx={{ objectFit: 'cover' }} />
+        <Box component="img" src={thumb} alt={name} sx={{ height: 120, objectFit: 'cover', width: '100%' }} />
       ) : (
-        <Box
-          sx={{
-            height: 120,
-            bgcolor: 'grey.100',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
+        <Box sx={{ height: 120, bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Typography variant="caption" color="text.secondary">
             No image
           </Typography>
         </Box>
       )}
-      <CardContent sx={{ flex: 1, pt: 1.5, '&:last-child': { pb: 1.5 } }}>
+      <Stack spacing={0.5} sx={{ p: 1.5, flex: 1 }}>
         <Typography variant="subtitle2" noWrap title={name}>
           {name}
         </Typography>
-        {sku && (
-          <Typography variant="caption" color="text.secondary" display="block" noWrap title={sku}>
+        {sku ? (
+          <Typography variant="caption" color="text.secondary" noWrap title={sku}>
             {sku}
           </Typography>
-        )}
-        <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mt: 1, gap: 0.5 }}>
+        ) : null}
+        <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ gap: 0.5 }}>
           <Chip size="small" label={status} variant="outlined" />
           <Chip
             size="small"
@@ -74,14 +73,12 @@ function VariantCard({ item }) {
             variant="light"
           />
         </Stack>
-        <Typography variant="body2" sx={{ mt: 1 }}>
-          {formatINR(item?.price_cents)}
-        </Typography>
+        <Typography variant="body2">{formatINR(item?.price_cents)}</Typography>
         <Typography variant="caption" color="text.secondary">
           Stock: {item?.available_quantity ?? item?.stock_quantity ?? 0}
         </Typography>
-      </CardContent>
-    </Card>
+      </Stack>
+    </Box>
   );
 }
 
@@ -89,7 +86,7 @@ VariantCard.propTypes = {
   item: PropTypes.object.isRequired
 };
 
-export default function StoreVariantsGrid({ storeId }) {
+export default function StoreVariantsGrid({ storeId, isDemo = false }) {
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -128,7 +125,15 @@ export default function StoreVariantsGrid({ storeId }) {
   if (!storeId) return null;
 
   return (
-    <MainCard title="Store variants" subheader={`${totalCount} listing${totalCount === 1 ? '' : 's'}`}>
+    <MainCard
+      title="Store variants"
+      subheader={`${totalCount} listing${totalCount === 1 ? '' : 's'}`}
+    >
+      {isDemo && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Bulk listing import is only available for live stores.
+        </Alert>
+      )}
       {loading && (
         <Stack alignItems="center" py={3}>
           <CircularProgress size={24} />
@@ -143,7 +148,7 @@ export default function StoreVariantsGrid({ storeId }) {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' },
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)' },
               gap: 2
             }}
           >
@@ -169,5 +174,6 @@ export default function StoreVariantsGrid({ storeId }) {
 }
 
 StoreVariantsGrid.propTypes = {
-  storeId: PropTypes.string
+  storeId: PropTypes.string,
+  isDemo: PropTypes.bool
 };

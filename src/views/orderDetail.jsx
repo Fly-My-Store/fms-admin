@@ -26,6 +26,7 @@ import OrderRefundCard from 'sections/orders/OrderRefundCard';
 import OrderRiderCard from 'sections/orders/OrderRiderCard';
 import OrderInvoiceCard from 'sections/orders/OrderInvoiceCard';
 import OrderTrackingPanel from 'sections/orders/OrderTrackingPanel';
+import { formatOrderLabel, formatOrderNumberOnly } from 'utils/orderLabel';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
@@ -88,10 +89,10 @@ export default function OrderDetailView() {
       links: [
         { title: 'home', to: '/dashboard' },
         { title: 'orders', to: '/orders' },
-        { title: shortId(id), i18n: false }
+        { title: order ? formatOrderNumberOnly(order) : shortId(id), i18n: false }
       ]
     }),
-    [id]
+    [id, order]
   );
 
   const handleActionDone = (message, variant = 'success') => {
@@ -133,9 +134,9 @@ export default function OrderDetailView() {
             <MainCard border={false} boxShadow>
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}>
                 <Stack spacing={0.5}>
-                  <Typography variant="h5">Order {shortId(order.id)}</Typography>
+                  <Typography variant="h5">{formatOrderLabel(order, {prefix: 'Order '})}</Typography>
                   <Typography variant="caption" color="text.secondary" fontFamily="monospace">
-                    {order.id}
+                    {order.order_number != null ? `#${order.order_number} · ${order.id}` : order.id}
                   </Typography>
                 </Stack>
                 <Stack direction="row" spacing={1} flexWrap="wrap">

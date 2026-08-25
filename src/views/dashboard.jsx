@@ -30,6 +30,7 @@ import {
 import Grid from '@mui/material/Grid2';
 import MainCard from 'components/MainCard';
 import { getDashboardStats } from 'api/dashboard';
+import { formatOrderNumberOnly } from 'utils/orderLabel';
 
 const REFRESH_MS = 60_000;
 
@@ -43,8 +44,6 @@ const formatDate = (iso) => {
   if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
 };
-
-const shortId = (id) => (id ? String(id).slice(0, 8) : '—');
 
 function StatCard({ title, value, subtitle, icon, href, color = 'primary.main' }) {
   const content = (
@@ -295,7 +294,7 @@ export default function DashboardView() {
                 >
                   <TableCell>
                     <Typography variant="body2" fontFamily="monospace">
-                      {shortId(order.id)}
+                      {formatOrderNumberOnly(order)}
                     </Typography>
                   </TableCell>
                   <TableCell>{order.customer?.name || order.customer?.phone || '—'}</TableCell>

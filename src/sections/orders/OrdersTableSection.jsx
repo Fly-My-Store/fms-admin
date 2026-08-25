@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import BasicReactTable from 'components/tables/basicTable';
+import { formatOrderNumberOnly } from 'utils/orderLabel';
 
 const formatINR = (cents) => {
   const n = Number(cents);
@@ -15,8 +16,6 @@ const formatDate = (iso) => {
   if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
 };
-
-const shortId = (id) => (id ? String(id).slice(0, 8) : '—');
 
 const statusChip = (value) => {
   if (!value) return <Chip size="small" label="—" variant="light" />;
@@ -56,7 +55,7 @@ export default function OrdersTableSection({
           accessorKey: 'id',
           cell: ({ row }) => (
             <Typography variant="body2" fontFamily="monospace" title={row.original.id}>
-              {shortId(row.original.id)}
+              {formatOrderNumberOnly(row.original)}
             </Typography>
           )
         },

@@ -7,10 +7,10 @@ import { useParams, useRouter } from 'next/navigation';
 
 import {
   Alert,
+  Box,
   Button,
-  Divider,
+  Chip,
   FormControlLabel,
-  InputLabel,
   MenuItem,
   Stack,
   Switch,
@@ -18,9 +18,11 @@ import {
   Typography,
   LinearProgress
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 
 import MainCard from 'components/MainCard';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
+import RiderKycDocumentsPanel from 'sections/riders/RiderKycDocumentsPanel';
 
 import { actions as logistics } from 'store/logistics/slice';
 import { createRider, updateRider } from 'api/logistics';
@@ -54,7 +56,7 @@ const EMPTY = {
   capacity_kg: '',
   working_hours: '',
   payout_account: '',
-  documents: '',
+  documents: {},
   screen_guard_eligible: false,
   status: ACCOUNT_STATUS.INACTIVE,
   is_tester: false,
@@ -83,11 +85,11 @@ export default function RiderUpsertView() {
   const isEdit = Boolean(id);
 
   const breadcrumb = {
-    heading: isEdit ? 'Edit Rider' : 'Add Rider',
+    heading: isEdit ? 'edit-rider' : 'create-rider',
     links: [
       { title: 'home', to: '/dashboard' },
       { title: 'riders', to: '/riders' },
-      { title: isEdit ? 'edit' : 'add', i18n: false }
+      { title: isEdit ? 'edit-rider' : 'create-rider' }
     ]
   };
 
@@ -122,7 +124,7 @@ export default function RiderUpsertView() {
       capacity_kg: rider.capacity_kg != null ? String(rider.capacity_kg) : '',
       working_hours: rider.working_hours ? JSON.stringify(rider.working_hours, null, 2) : '',
       payout_account: rider.payout_account ? JSON.stringify(rider.payout_account, null, 2) : '',
-      documents: rider.documents ? JSON.stringify(rider.documents, null, 2) : '',
+      documents: rider.documents && typeof rider.documents === 'object' ? rider.documents : {},
       screen_guard_eligible: Boolean(rider.screen_guard_eligible),
       status: user.status ?? ACCOUNT_STATUS.INACTIVE,
       is_tester: Boolean(user.is_tester),
@@ -159,7 +161,7 @@ export default function RiderUpsertView() {
       e.kyc_reason = 'Reason is required for this KYC status';
     }
 
-    ['working_hours', 'payout_account', 'documents'].forEach((field) => {
+    ['working_hours', 'payout_account'].forEach((field) => {
       const raw = form[field];
       if (!raw) return;
       try {
@@ -202,7 +204,7 @@ export default function RiderUpsertView() {
         screen_guard_eligible: Boolean(form.screen_guard_eligible)
       };
 
-      ['working_hours', 'payout_account', 'documents'].forEach((field) => {
+      ['working_hours', 'payout_account'].forEach((field) => {
         const raw = form[field];
         if (!raw) return;
         try {
@@ -235,261 +237,290 @@ export default function RiderUpsertView() {
   return (
     <>
       <Breadcrumbs custom heading={breadcrumb.heading} links={breadcrumb.links} />
-      <MainCard border={false} boxShadow>
-        {detail.loading && <LinearProgress />}
-        <Stack spacing={2}>
-          {detail.error && <Alert severity="error">{detail.error}</Alert>}
+      {detail.loading && <LinearProgress sx={{ mb: 1 }} />}
+      {detail.error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {detail.error}
+        </Alert>
+      )}
 
-          <Typography variant="h6">User</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Name *</InputLabel>
-              <TextField
-                size="small"
-                value={form.name}
-                onChange={(e) => handleField('name', e.target.value)}
-                error={!!errors.name}
-                helperText={errors.name || ''}
-              />
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <MainCard title="Account" subheader="Rider login profile and contact">
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Name"
+                  required
+                  fullWidth
+                  value={form.name}
+                  onChange={(e) => handleField('name', e.target.value)}
+                  error={!!errors.name}
+                  helperText={errors.name || ''}
+                />
+                <TextField
+                  size="small"
+                  label="Email"
+                  type="email"
+                  fullWidth
+                  value={form.email}
+                  onChange={(e) => handleField('email', e.target.value)}
+                  error={!!errors.email}
+                  helperText={errors.email || ''}
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Country code"
+                  fullWidth
+                  sx={{ maxWidth: { sm: 140 } }}
+                  value={form.country_code}
+                  onChange={(e) => handleField('country_code', e.target.value)}
+                />
+                <TextField
+                  size="small"
+                  label="Phone"
+                  required
+                  fullWidth
+                  value={form.phone}
+                  onChange={(e) => handleField('phone', e.target.value)}
+                  error={!!errors.phone}
+                  helperText={errors.phone || ''}
+                />
+                <TextField
+                  select
+                  size="small"
+                  label="Account status"
+                  fullWidth
+                  value={form.status}
+                  onChange={(e) => handleField('status', Number(e.target.value))}
+                >
+                  {USER_STATUS_OPTIONS.map((o) => (
+                    <MenuItem key={o.value} value={o.value}>
+                      {o.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
+              {isEdit && form.user_id ? (
+                <Typography variant="caption" color="text.secondary" fontFamily="monospace">
+                  User ID: {form.user_id}
+                </Typography>
+              ) : null}
             </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Email</InputLabel>
-              <TextField
-                size="small"
-                type="email"
-                value={form.email}
-                onChange={(e) => handleField('email', e.target.value)}
-                error={!!errors.email}
-                helperText={errors.email || ''}
-              />
-            </Stack>
-          </Stack>
+          </MainCard>
+        </Grid>
 
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Country Code</InputLabel>
-              <TextField
-                size="small"
-                value={form.country_code}
-                onChange={(e) => handleField('country_code', e.target.value)}
-              />
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <MainCard title="Vehicle" subheader="Registration and identity numbers">
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  select
+                  size="small"
+                  label="Vehicle type"
+                  required
+                  fullWidth
+                  value={form.vehicle_type}
+                  onChange={(e) => handleField('vehicle_type', e.target.value)}
+                  error={!!errors.vehicle_type}
+                  helperText={errors.vehicle_type || ''}
+                >
+                  {VEHICLE_TYPES.map((v) => (
+                    <MenuItem key={v} value={v}>
+                      {v}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  size="small"
+                  label="Vehicle number"
+                  fullWidth
+                  value={form.vehicle_number}
+                  onChange={(e) => handleField('vehicle_number', e.target.value)}
+                  error={!!errors.vehicle_number}
+                  helperText={errors.vehicle_number || ''}
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="DL number"
+                  fullWidth
+                  value={form.dl_number}
+                  onChange={(e) => handleField('dl_number', e.target.value)}
+                  error={!!errors.dl_number}
+                  helperText={errors.dl_number || ''}
+                />
+                <TextField
+                  size="small"
+                  label="Aadhaar last 4"
+                  fullWidth
+                  sx={{ maxWidth: { sm: 160 } }}
+                  inputProps={{ maxLength: 4 }}
+                  value={form.aadhar_last4}
+                  onChange={(e) => handleField('aadhar_last4', e.target.value)}
+                  error={!!errors.aadhar_last4}
+                  helperText={errors.aadhar_last4 || ''}
+                />
+              </Stack>
             </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Phone *</InputLabel>
-              <TextField
-                size="small"
-                value={form.phone}
-                onChange={(e) => handleField('phone', e.target.value)}
-                error={!!errors.phone}
-                helperText={errors.phone || ''}
-              />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Account Status</InputLabel>
-              <TextField
-                select
-                size="small"
-                value={form.status}
-                onChange={(e) => handleField('status', Number(e.target.value))}
-              >
-                {USER_STATUS_OPTIONS.map((o) => (
-                  <MenuItem key={o.value} value={o.value}>
-                    {o.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-          </Stack>
+          </MainCard>
+        </Grid>
 
-          {isEdit && form.user_id ? (
-            <Typography variant="caption" color="text.secondary">
-              User ID: {form.user_id}
-            </Typography>
-          ) : null}
-
-          <Divider />
-
-          <Typography variant="h6">Vehicle</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Vehicle Type *</InputLabel>
-              <TextField
-                select
-                size="small"
-                value={form.vehicle_type}
-                onChange={(e) => handleField('vehicle_type', e.target.value)}
-                error={!!errors.vehicle_type}
-                helperText={errors.vehicle_type || ''}
-              >
-                {VEHICLE_TYPES.map((v) => (
-                  <MenuItem key={v} value={v}>
-                    {v}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Vehicle Number</InputLabel>
-              <TextField
-                size="small"
-                value={form.vehicle_number}
-                onChange={(e) => handleField('vehicle_number', e.target.value)}
-                error={!!errors.vehicle_number}
-                helperText={errors.vehicle_number || ''}
-              />
-            </Stack>
-          </Stack>
-
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>DL Number</InputLabel>
-              <TextField
-                size="small"
-                value={form.dl_number}
-                onChange={(e) => handleField('dl_number', e.target.value)}
-                error={!!errors.dl_number}
-                helperText={errors.dl_number || ''}
-              />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel>Aadhar Last 4</InputLabel>
-              <TextField
-                size="small"
-                inputProps={{ maxLength: 4 }}
-                value={form.aadhar_last4}
-                onChange={(e) => handleField('aadhar_last4', e.target.value)}
-                error={!!errors.aadhar_last4}
-                helperText={errors.aadhar_last4 || ''}
-              />
-            </Stack>
-          </Stack>
-
-          <Divider />
-
-          <Typography variant="h6">KYC</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>KYC Status *</InputLabel>
-              <TextField
-                select
-                size="small"
-                value={form.kyc_status}
-                onChange={(e) => handleField('kyc_status', e.target.value)}
-                error={!!errors.kyc_status}
-                helperText={errors.kyc_status || ''}
-              >
-                {KYC_STATUSES.map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {s}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 2 }}>
-              <InputLabel>KYC Reason</InputLabel>
-              <TextField
-                size="small"
-                multiline
-                minRows={2}
-                value={form.kyc_reason}
-                onChange={(e) => handleField('kyc_reason', e.target.value)}
-                error={!!errors.kyc_reason}
-                helperText={errors.kyc_reason || ''}
-              />
-            </Stack>
-          </Stack>
-
-          <Divider />
-
-          <Typography variant="h6">Service & Availability</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Availability *</InputLabel>
-              <TextField
-                select
-                size="small"
-                value={form.availability_status}
-                onChange={(e) => handleField('availability_status', e.target.value)}
-                error={!!errors.availability_status}
-                helperText={errors.availability_status || ''}
-              >
-                {AVAILABILITY_STATUSES.map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {s}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Service Radius (km) *</InputLabel>
-              <TextField
-                size="small"
-                type="number"
-                value={form.service_radius_km}
-                onChange={(e) => handleField('service_radius_km', e.target.value)}
-                error={!!errors.service_radius_km}
-                helperText={errors.service_radius_km || ''}
-              />
-            </Stack>
-            <Stack sx={{ gap: 1, flex: 1 }}>
-              <InputLabel required>Capacity (kg) *</InputLabel>
-              <TextField
-                size="small"
-                type="number"
-                value={form.capacity_kg}
-                onChange={(e) => handleField('capacity_kg', e.target.value)}
-                error={!!errors.capacity_kg}
-                helperText={errors.capacity_kg || ''}
-              />
-            </Stack>
-          </Stack>
-
-          <FormControlLabel
-            control={
-              <Switch
-                checked={Boolean(form.screen_guard_eligible)}
-                onChange={(e) => handleField('screen_guard_eligible', e.target.checked)}
-              />
-            }
-            label="Screen guard delivery eligible"
-          />
-
-          {isEdit && !actorIsTester && (
-            <>
-              <Divider />
-              <Typography variant="h6">Tester</Typography>
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <MainCard title="Service" subheader="Availability and delivery capacity">
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  select
+                  size="small"
+                  label="Availability"
+                  required
+                  fullWidth
+                  value={form.availability_status}
+                  onChange={(e) => handleField('availability_status', e.target.value)}
+                  error={!!errors.availability_status}
+                  helperText={errors.availability_status || ''}
+                >
+                  {AVAILABILITY_STATUSES.map((s) => (
+                    <MenuItem key={s} value={s}>
+                      {s}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  size="small"
+                  label="Service radius (km)"
+                  required
+                  type="number"
+                  fullWidth
+                  value={form.service_radius_km}
+                  onChange={(e) => handleField('service_radius_km', e.target.value)}
+                  error={!!errors.service_radius_km}
+                  helperText={errors.service_radius_km || ''}
+                />
+                <TextField
+                  size="small"
+                  label="Capacity (kg)"
+                  required
+                  type="number"
+                  fullWidth
+                  value={form.capacity_kg}
+                  onChange={(e) => handleField('capacity_kg', e.target.value)}
+                  error={!!errors.capacity_kg}
+                  helperText={errors.capacity_kg || ''}
+                />
+              </Stack>
               <FormControlLabel
                 control={
                   <Switch
-                    checked={Boolean(form.is_tester)}
-                    onChange={(e) => handleField('is_tester', e.target.checked)}
+                    checked={Boolean(form.screen_guard_eligible)}
+                    onChange={(e) => handleField('screen_guard_eligible', e.target.checked)}
                   />
                 }
-                label="Mark as tester rider"
+                label="Screen guard delivery eligible"
               />
-              {form.is_tester && (
-                <Stack sx={{ gap: 1, maxWidth: 360 }}>
-                  <InputLabel>Tester OTP (optional)</InputLabel>
+            </Stack>
+          </MainCard>
+        </Grid>
+
+        {isEdit && !actorIsTester ? (
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <MainCard title="Tester" subheader="Optional QA / sandbox rider flags">
+              <Stack spacing={2}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(form.is_tester)}
+                      onChange={(e) => handleField('is_tester', e.target.checked)}
+                    />
+                  }
+                  label="Mark as tester rider"
+                />
+                {form.is_tester ? (
                   <TextField
                     size="small"
+                    label="Tester OTP (optional)"
+                    fullWidth
+                    sx={{ maxWidth: 280 }}
                     value={form.tester_otp}
                     onChange={(e) => handleField('tester_otp', e.target.value)}
-                    placeholder="Leave blank to keep current / default"
+                    helperText="Leave blank to keep current / default"
                   />
-                </Stack>
-              )}
-            </>
-          )}
-          <Divider />
+                ) : null}
+              </Stack>
+            </MainCard>
+          </Grid>
+        ) : null}
 
-          <Stack direction="row" justifyContent="flex-end" spacing={2}>
-            <Button onClick={() => router.push('/riders')}>Cancel</Button>
-            <Button variant="contained" onClick={handleSubmit}>
-              {isEdit ? 'Update Rider' : 'Create Rider'}
-            </Button>
-          </Stack>
+        <Grid size={12}>
+          <MainCard
+            title="Verification"
+            subheader="Review documents and set KYC status"
+            secondary={(
+              <Chip
+                size="small"
+                label={`KYC: ${form.kyc_status || '—'}`}
+                color={
+                  form.kyc_status === 'APPROVED'
+                    ? 'success'
+                    : form.kyc_status === 'REJECTED'
+                      ? 'error'
+                      : 'default'
+                }
+                variant="outlined"
+              />
+            )}
+          >
+            <RiderKycDocumentsPanel
+              documents={form.documents}
+              editable
+              title=""
+              kycStatuses={KYC_STATUSES}
+              errors={errors}
+              kyc={{
+                status: form.kyc_status,
+                reason: form.kyc_reason,
+                onStatusChange: (v) => handleField('kyc_status', v),
+                onReasonChange: (v) => handleField('kyc_reason', v)
+              }}
+            />
+          </MainCard>
+        </Grid>
+      </Grid>
+
+      <Box
+        sx={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 10,
+          mt: 2,
+          py: 2,
+          px: 2,
+          mx: -2,
+          bgcolor: 'background.paper',
+          borderTop: 1,
+          borderColor: 'divider',
+          boxShadow: (theme) => theme.shadows[4]
+        }}
+      >
+        <Stack direction="row" spacing={2} justifyContent="flex-end" alignItems="center">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mr: 'auto', display: { xs: 'none', sm: 'block' } }}
+          >
+            {isEdit ? 'Update rider profile and KYC status' : 'Create rider account and profile'}
+          </Typography>
+          <Button onClick={() => router.push('/riders')}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmit}>
+            {isEdit ? 'Update rider' : 'Create rider'}
+          </Button>
         </Stack>
-      </MainCard>
+      </Box>
     </>
   );
 }

@@ -27,10 +27,18 @@ export const walletShareCents = (row) =>
 
 export const isCreditedToWallet = (row) => walletShareCents(row) > 0;
 
+function orderDisplayLabel(order, fallbackId) {
+  if (order?.order_number != null && order.order_number !== '') {
+    return String(Number(order.order_number));
+  }
+  return shortOrderId(order?.id || fallbackId);
+}
+
 export function normalizeDeliveryRow(row) {
+  const order = nestedOrder(row);
   return {
     ...row,
-    order_label: nestedOrder(row)?.id ? shortOrderId(nestedOrder(row).id) : shortOrderId(row.order_id),
+    order_label: orderDisplayLabel(order, row.order_id),
     store_name: nestedStore(row)?.name || '—',
     rider_name: nestedRider(row)?.name || '—'
   };

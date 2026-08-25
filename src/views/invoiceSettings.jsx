@@ -24,7 +24,8 @@ import { uploadSingle } from 'api/upload';
 import {
   createInvoiceSettingVersion,
   getActiveInvoiceSetting,
-  listInvoiceSettings
+  listInvoiceSettings,
+  updateInvoiceSequences
 } from 'api/invoiceSettings';
 
 const emptyForm = {
@@ -53,12 +54,23 @@ const Field = ({ label, ...props }) => (
   <TextField label={label} fullWidth size="small" {...props} />
 );
 
+function seqPreview(sequences, key) {
+  const row = (sequences || []).find((s) => s.key === key);
+  return row?.next_preview || '';
+}
+
 export default function InvoiceSettingsView() {
   const [form, setForm] = useState(emptyForm);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingSeq, setSavingSeq] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [seqForm, setSeqForm] = useState({
+    platform: 'PLAT400001',
+    rider: 'DRIDER0000001',
+    order: '1'
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,6 +104,12 @@ export default function InvoiceSettingsView() {
           cgst_percent: String(active.cgst_percent ?? 9),
           sgst_percent: String(active.sgst_percent ?? 9)
         });
+        const sequences = active.sequences || [];
+        setSeqForm({
+          platform: seqPreview(sequences, 'platform') || 'PLAT400001',
+          rider: seqPreview(sequences, 'rider') || 'DRIDER0000001',
+          order: seqPreview(sequences, 'order') || '1'
+        });
       }
     } catch (e) {
       enqueueSnackbar(e?.response?.data?.message || 'Failed to load invoice settings', { variant: 'error' });
@@ -105,6 +123,7 @@ export default function InvoiceSettingsView() {
   }, [load]);
 
   const set = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
+  const setSeq = (key) => (e) => setSeqForm((p) => ({ ...p, [key]: e.target.value }));
 
   const onUploadLogo = async (e) => {
     const file = e.target.files?.[0];
@@ -156,6 +175,30 @@ export default function InvoiceSettingsView() {
     }
   };
 
+  const onSaveSequences = async () => {
+    setSavingSeq(true);
+    try {
+      const res = await updateInvoiceSequences({
+        platform: seqForm.platform?.trim() || undefined,
+        rider: seqForm.rider?.trim() || undefined,
+        order: seqForm.order?.trim() || undefined
+      });
+      const rows = res?.data || res || [];
+      if (Array.isArray(rows)) {
+        setSeqForm({
+          platform: seqPreview(rows, 'platform') || seqForm.platform,
+          rider: seqPreview(rows, 'rider') || seqForm.rider,
+          order: seqPreview(rows, 'order') || seqForm.order
+        });
+      }
+      enqueueSnackbar('Next invoice / order numbers updated', { variant: 'success' });
+    } catch (err) {
+      enqueueSnackbar(err?.response?.data?.message || 'Sequence save failed', { variant: 'error' });
+    } finally {
+      setSavingSeq(false);
+    }
+  };
+
   const breadcrumb = {
     heading: 'invoice-settings',
     links: [
@@ -166,9 +209,10 @@ export default function InvoiceSettingsView() {
 
   return (
     <>
+      <Breadcrumbs custom heading={breadcrumb.heading} links={breadcrumb.links} />
       <Alert severity="info" sx={{ mb: 2 }}>
-        Saving creates a <strong>new version</strong> and deactivates the previous active settings. Fee invoices always use the
-        active version.
+        Saving legal settings creates a <strong>new version</strong> and deactivates the previous active settings. Fee invoices
+        always use the active version. Next invoice / order numbers are saved separately and do not create a version.
       </Alert>
 
       <Grid container spacing={2}>
@@ -221,6 +265,35 @@ export default function InvoiceSettingsView() {
                 </Button>
               </Stack>
             )}
+          </MainCard>
+
+          <MainCard title="Next numbers (in-place)" border={false} boxShadow sx={{ mt: 2 }}>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              These are the next values that will be issued. Values at or below an already issued number are rejected.
+            </Alert>
+            <Stack spacing={2}>
+              <Field
+                label="Next platform invoice"
+                value={seqForm.platform}
+                onChange={setSeq('platform')}
+                helperText="Must be after the highest already issued (e.g. PLAT400002)"
+              />
+              <Field
+                label="Next rider invoice"
+                value={seqForm.rider}
+                onChange={setSeq('rider')}
+                helperText="Must be after the highest already issued (e.g. DRIDER0000002)"
+              />
+              <Field
+                label="Next order number"
+                value={seqForm.order}
+                onChange={setSeq('order')}
+                helperText="Must be greater than the highest already issued order #"
+              />
+              <Button variant="outlined" onClick={onSaveSequences} disabled={savingSeq || loading}>
+                {savingSeq ? 'Saving…' : 'Save next numbers'}
+              </Button>
+            </Stack>
           </MainCard>
         </Grid>
 
