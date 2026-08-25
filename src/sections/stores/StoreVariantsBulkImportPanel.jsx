@@ -96,10 +96,10 @@ export default function StoreVariantsBulkImportPanel({ storeId, isDemo, onDone }
   return (
     <Stack spacing={2}>
       <Alert severity="info">
-        CSV columns: <strong>sku</strong>, <strong>price</strong>, <strong>mrp</strong> (optional),{' '}
-        <strong>stock_quantity</strong> (optional, default 0). Mapped to the live catalog by SKU. New listings are{' '}
-        <strong>ACTIVE</strong> and <strong>IN_STOCK</strong>. Failed SKUs appear in the result above and can be
-        downloaded as an errors-only CSV.
+        CSV columns: <strong>sku</strong>, <strong>price</strong>, <strong>mrp</strong> (optional). Mapped to the
+        live catalog by SKU. New listings are always <strong>ACTIVE</strong>, <strong>IN_STOCK</strong>, with{' '}
+        <strong>stock quantity 50</strong>. Failed SKUs appear in the result above and can be downloaded as an
+        errors-only CSV.
       </Alert>
 
       <Button variant="outlined" size="small" onClick={handleExample} sx={{ alignSelf: 'flex-start' }}>
