@@ -51,30 +51,39 @@ export function normalizeValidationErrors(data) {
     return { message: null, errors: {} };
   }
 
+  let errors = {};
   if (data.errors && typeof data.errors === 'object' && !Array.isArray(data.errors)) {
-    return {
-      message: data.message || 'Validation failed',
-      errors: data.errors,
-    };
-  }
-
-  if (Array.isArray(data.details)) {
-    const errors = {};
+    errors = { ...data.errors };
+  } else if (Array.isArray(data.details)) {
     data.details.forEach((detail) => {
       const key = Array.isArray(detail?.path) ? detail.path.join('.') : 'form';
       if (!errors[key]) {
         errors[key] = detail.message || 'Invalid value';
       }
     });
-    return {
-      message: data.message === 'ValidationError' ? 'Validation failed' : (data.message || 'Validation failed'),
-      errors,
-    };
   }
 
+  // Humanize generic Sequelize / Joi fallbacks
+  Object.keys(errors).forEach((key) => {
+    const msg = String(errors[key] || '').trim();
+    if (!msg || /^validation error$/i.test(msg) || /^validation failed$/i.test(msg)) {
+      errors[key] = `${fieldLabel(key)} is invalid`;
+    } else {
+      errors[key] = msg.replace(/^"([^"]+)"\s*/, '');
+    }
+  });
+
+  const first = Object.values(errors)[0];
+  const rawMessage = data.message || null;
+  const isGeneric =
+    !rawMessage ||
+    /^validation failed$/i.test(rawMessage) ||
+    /^validation error$/i.test(rawMessage) ||
+    rawMessage === 'ValidationError';
+
   return {
-    message: data.message || null,
-    errors: {},
+    message: isGeneric ? first || 'Please fix the highlighted fields' : rawMessage,
+    errors,
   };
 }
 

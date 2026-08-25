@@ -599,7 +599,7 @@ export default function StoreUpsert() {
       const { message, errors: apiErrors } = normalizeValidationErrors(response);
       if (Object.keys(apiErrors).length) {
         setErrors(apiErrors);
-        enqueueSnackbar(buildErrorSummaryMessage(apiErrors) || message || 'Validation failed', { variant: 'error' });
+        enqueueSnackbar(buildErrorSummaryMessage(apiErrors) || message || 'Please fix the highlighted fields', { variant: 'error' });
       } else {
         const msg = message || err?.message || 'Something went wrong.';
         enqueueSnackbar(msg, { variant: 'error' });
