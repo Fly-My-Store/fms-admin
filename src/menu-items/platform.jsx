@@ -261,6 +261,7 @@ const platformMenuGroups = [
     title: 'content-geo',
     children: [
       { id: 'banners', title: 'banners', type: 'item', url: '/banners', icon: icons.PictureOutlined, perm: 'banner', action: 'read' },
+      { id: 'promotions', title: 'promotions', type: 'item', url: '/promotions', icon: icons.TagsOutlined },
       { id: 'faqs', title: 'faqs', type: 'item', url: '/faqs', icon: icons.ProfileOutlined },
       {
         id: 'addresses',
