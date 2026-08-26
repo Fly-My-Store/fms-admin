@@ -125,14 +125,14 @@ export default function PromotionTargetRow({ value, onChange, onRemove, disabled
         : 'Search categories…';
 
   return (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
       <TextField
         select
         size="small"
         label="Type"
         value={targetType}
         onChange={(e) => handleTypeChange(e.target.value)}
-        sx={{ minWidth: 180 }}
+        sx={{ width: { xs: '100%', sm: 160 }, flexShrink: 0 }}
         disabled={disabled}
       >
         {TARGET_TYPES.map((opt) => (
@@ -143,7 +143,7 @@ export default function PromotionTargetRow({ value, onChange, onRemove, disabled
       </TextField>
 
       <Autocomplete
-        sx={{ flex: 1, minWidth: 220 }}
+        sx={{ flex: 1, minWidth: 0 }}
         size="small"
         options={withSelectedOption(ac.options, selected)}
         value={selected}
@@ -160,7 +160,6 @@ export default function PromotionTargetRow({ value, onChange, onRemove, disabled
             {...params}
             label="Target"
             placeholder={placeholder}
-            helperText="Type to search — scroll list for more"
             InputProps={{
               ...params.InputProps,
               endAdornment: (
@@ -176,7 +175,7 @@ export default function PromotionTargetRow({ value, onChange, onRemove, disabled
         disabled={disabled}
       />
 
-      <IconButton color="error" onClick={onRemove} disabled={disabled} aria-label="Remove target">
+      <IconButton color="error" onClick={onRemove} disabled={disabled} aria-label="Remove target" sx={{ mt: { sm: 0.5 } }}>
         <DeleteOutlined />
       </IconButton>
     </Stack>

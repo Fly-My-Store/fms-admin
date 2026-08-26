@@ -1,198 +1,182 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography
+  TextField
 } from '@mui/material';
 import { enqueueSnackbar } from 'notistack';
-import MainCard from 'components/MainCard';
-import { approvePromotion, listPromotions, rejectPromotion } from 'api/promotions';
-import {
-  getPromotionFundingLabel,
-  getPromotionStatusChipColor,
-  getPromotionStatusLabel,
-  getPromotionVisibilityLabel
-} from 'utils/promotionLabels';
+import PromotionsTableSection from 'sections/promotions/PromotionsTableSection';
+import useAxiosPaginatedList from 'hooks/useAxiosPaginatedList';
+import useUrlFilters from 'hooks/useUrlFilters';
+import { approvePromotion, rejectPromotion } from 'api/promotions';
+import { PROMOTION_FUNDING_LABELS, PROMOTION_STATUS_OPTIONS } from 'utils/promotionLabels';
 
-function formatDiscount(row) {
-  if (row.discount_type === 'FLAT') return `₹${(Number(row.discount_value) / 100).toFixed(2)}`;
-  if (row.discount_type === 'FREE_DELIVERY') return 'Free delivery';
-  return `${row.discount_value}%`;
-}
+const FILTER_DEFAULTS = {
+  q: '',
+  status: '',
+  funding: '',
+  page: 1,
+  limit: 20
+};
+
+const STATUS_FILTER_OPTIONS = [{ value: '', label: 'All' }, ...PROMOTION_STATUS_OPTIONS];
+
+const FUNDING_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  ...Object.entries(PROMOTION_FUNDING_LABELS).map(([value, label]) => ({ value, label }))
+];
 
 export default function PromotionsView() {
   const router = useRouter();
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [pendingOnly, setPendingOnly] = useState(false);
-  const [q, setQ] = useState('');
+  const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
+    defaults: FILTER_DEFAULTS
+  });
+  const [searchQuery, setSearchQuery] = useState(draft.q || '');
   const [rejectId, setRejectId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await listPromotions({
-        page: 1,
-        limit: 50,
-        ...(q ? { q } : {}),
-        ...(pendingOnly ? { pending_only: true } : {})
-      });
-      setRows(res?.data || []);
-    } catch (e) {
-      enqueueSnackbar(e?.response?.data?.message || e.message || 'Failed to load', { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  }, [q, pendingOnly]);
+  const listParams = useMemo(
+    () => ({
+      ...(applied.q ? { q: applied.q } : {}),
+      ...(applied.status ? { status: applied.status } : {}),
+      ...(applied.funding ? { funding: applied.funding } : {})
+    }),
+    [applied.q, applied.status, applied.funding]
+  );
+
+  const { rows, totalPages, totalCount, load, setPageIndex, setPageSize } = useAxiosPaginatedList(
+    'admin/promotions',
+    { params: listParams, errorMessage: 'Failed to load promotions' }
+  );
 
   useEffect(() => {
-    load();
-  }, [load]);
+    setSearchQuery(applied.q || '');
+    setPageIndex((Number(applied.page) || 1) - 1);
+    setPageSize(Number(applied.limit) || 20);
+  }, [urlKey, applied.q, applied.page, applied.limit, setPageIndex, setPageSize]);
+
+  const handleSearch = () => {
+    applySearch({
+      q: searchQuery.trim(),
+      status: draft.status,
+      funding: draft.funding
+    });
+  };
+
+  const handleApprove = async (row) => {
+    try {
+      await approvePromotion(row.id);
+      enqueueSnackbar('Promotion approved', { variant: 'success' });
+      load();
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || 'Approve failed', { variant: 'error' });
+    }
+  };
+
+  const topActionsLeft = () => (
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
+      <TextField
+        size="small"
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+        placeholder="Code or title…"
+        sx={{ minWidth: 220 }}
+      />
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={draft.status}
+        onChange={(e) => setDraft({ status: e.target.value })}
+        sx={{ minWidth: 160 }}
+      >
+        {STATUS_FILTER_OPTIONS.map((o) => (
+          <MenuItem key={o.value || 'all'} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        label="Funding"
+        value={draft.funding}
+        onChange={(e) => setDraft({ funding: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {FUNDING_FILTER_OPTIONS.map((o) => (
+          <MenuItem key={o.value || 'all'} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <Button variant="outlined" size="small" onClick={handleSearch}>
+        Search
+      </Button>
+    </Stack>
+  );
 
   return (
-    <MainCard title="Promotions">
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
-          <TextField size="small" label="Search" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Button variant={pendingOnly ? 'contained' : 'outlined'} onClick={() => setPendingOnly((v) => !v)}>
-            Pending seller
-          </Button>
-          <Button variant="outlined" onClick={load} disabled={loading}>
-            Refresh
-          </Button>
-          <Button variant="contained" onClick={() => router.push('/promotions/create')}>
-            Create
-          </Button>
-        </Stack>
+    <>
+      <PromotionsTableSection
+        rows={rows}
+        handleAddButton={() => router.push('/promotions/create')}
+        handleViewButton={(row) => row?.id && router.push(`/promotions/${row.id}`)}
+        handleEditButton={(row) => row?.id && router.push(`/promotions/edit/${row.id}`)}
+        onApprove={handleApprove}
+        onReject={(row) => setRejectId(row.id)}
+        pageIndex={(Number(applied.page) || 1) - 1}
+        pageSize={Number(applied.limit) || 20}
+        totalPageCount={totalPages}
+        totalCount={totalCount}
+        onPaginationChange={handlePaginationChange}
+        topActionsLeft={topActionsLeft}
+      />
 
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Title</TableCell>
-                <TableCell>Discount</TableCell>
-                <TableCell>Funding</TableCell>
-                <TableCell>Visibility</TableCell>
-                <TableCell>Store</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.id} hover>
-                  <TableCell>
-                    <Typography
-                      variant="body2"
-                      sx={{ cursor: 'pointer', color: 'primary.main' }}
-                      onClick={() => router.push(`/promotions/${row.id}`)}
-                    >
-                      {row.code}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{row.title}</TableCell>
-                  <TableCell>{formatDiscount(row)}</TableCell>
-                  <TableCell>{getPromotionFundingLabel(row.funding)}</TableCell>
-                  <TableCell>{getPromotionVisibilityLabel(row.visibility)}</TableCell>
-                  <TableCell>{row.store?.name || (row.store_id ? row.store_id.slice(0, 8) : 'App-wide')}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={getPromotionStatusLabel(row.status)}
-                      color={getPromotionStatusChipColor(row.status)}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
-                      <Button size="small" onClick={() => router.push(`/promotions/${row.id}`)}>
-                        View
-                      </Button>
-                      {row.status === 'PENDING_APPROVAL' ? (
-                        <>
-                          <Button
-                            size="small"
-                            onClick={() =>
-                              approvePromotion(row.id)
-                                .then(load)
-                                .catch((e) =>
-                                  enqueueSnackbar(e?.response?.data?.message || 'Approve failed', { variant: 'error' })
-                                )
-                            }
-                          >
-                            Approve
-                          </Button>
-                          <Button size="small" color="warning" onClick={() => setRejectId(row.id)}>
-                            Reject
-                          </Button>
-                        </>
-                      ) : null}
-                      <Button size="small" onClick={() => router.push(`/promotions/edit/${row.id}`)}>
-                        Edit
-                      </Button>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!rows.length && !loading ? (
-                <TableRow>
-                  <TableCell colSpan={8}>
-                    <Typography color="text.secondary">No promotions yet.</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-        </Box>
-
-        <Dialog open={Boolean(rejectId)} onClose={() => setRejectId(null)} fullWidth maxWidth="sm">
-          <DialogTitle>Reject promotion</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="Reason"
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              fullWidth
-              multiline
-              minRows={3}
-              sx={{ mt: 1 }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setRejectId(null)}>Cancel</Button>
-            <Button
-              color="warning"
-              variant="contained"
-              onClick={async () => {
-                try {
-                  await rejectPromotion(rejectId, { reason: rejectReason });
-                  setRejectId(null);
-                  setRejectReason('');
-                  load();
-                } catch (e) {
-                  enqueueSnackbar(e?.response?.data?.message || 'Reject failed', { variant: 'error' });
-                }
-              }}
-            >
-              Reject
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </MainCard>
+      <Dialog open={Boolean(rejectId)} onClose={() => setRejectId(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Reject promotion</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Reason"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            fullWidth
+            multiline
+            minRows={3}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectId(null)}>Cancel</Button>
+          <Button
+            color="warning"
+            variant="contained"
+            onClick={async () => {
+              try {
+                await rejectPromotion(rejectId, { reason: rejectReason });
+                setRejectId(null);
+                setRejectReason('');
+                enqueueSnackbar('Promotion rejected', { variant: 'success' });
+                load();
+              } catch (e) {
+                enqueueSnackbar(e?.response?.data?.message || 'Reject failed', { variant: 'error' });
+              }
+            }}
+          >
+            Reject
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

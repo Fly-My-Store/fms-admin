@@ -6,13 +6,12 @@ import {
   Autocomplete,
   Button,
   CircularProgress,
-  Divider,
-  InputLabel,
   MenuItem,
   Stack,
   TextField,
   Typography
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { PlusOutlined } from '@ant-design/icons';
 import { enqueueSnackbar } from 'notistack';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
@@ -22,6 +21,12 @@ import { createPromotion, getPromotion, updatePromotion } from 'api/promotions';
 import { getStore, listStores } from 'api/sellersStores';
 import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
 import { PROMOTION_STATUS_OPTIONS } from 'utils/promotionLabels';
+import { normalizeValidationErrors } from 'utils/formErrors';
+import {
+  firstAdminPromotionError,
+  mapAdminPromotionApiErrors,
+  validateAdminPromotionForm
+} from 'utils/promotionValidation';
 
 const EMPTY = {
   title: '',
@@ -120,20 +125,35 @@ export default function PromotionUpsert() {
   const isEdit = Boolean(id);
 
   const [form, setForm] = useState(EMPTY);
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [storeSel, setStoreSel] = useState(null);
   const storeAc = usePagedAutocomplete(listStores);
 
-  const setField = (name, value) => setForm((p) => ({ ...p, [name]: value }));
+  const clearError = (name) => {
+    setErrors((prev) => {
+      if (!prev?.[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  };
+
+  const setField = (name, value) => {
+    clearError(name);
+    setForm((p) => ({ ...p, [name]: value }));
+  };
 
   const hydrate = useCallback(async () => {
     if (!id) {
       setForm(EMPTY);
       setStoreSel(null);
+      setErrors({});
       return;
     }
     setLoading(true);
+    setErrors({});
     try {
       const res = await getPromotion(id);
       const row = res?.data || res;
@@ -191,21 +211,19 @@ export default function PromotionUpsert() {
   const discountValueLabel =
     form.discount_type === 'PERCENT' ? 'Percent value' : form.discount_type === 'FLAT' ? 'Flat amount (₹)' : 'Value';
 
+  const formErrorMessage = useMemo(() => {
+    if (!errors || !Object.keys(errors).length) return '';
+    return firstAdminPromotionError(errors, '');
+  }, [errors]);
+
   const onSave = async () => {
-    if (!form.title.trim()) {
-      enqueueSnackbar('Title is required', { variant: 'warning' });
-      return;
-    }
-    const payload = buildPayload(form);
-    if (form.discount_type !== 'FREE_DELIVERY' && !(payload.discount_value > 0) && form.discount_type === 'PERCENT') {
-      enqueueSnackbar('Discount value must be > 0', { variant: 'warning' });
-      return;
-    }
-    if (form.discount_type === 'FLAT' && !(payload.discount_value > 0)) {
-      enqueueSnackbar('Flat amount must be > 0', { variant: 'warning' });
+    const result = validateAdminPromotionForm(form, { mode: isEdit ? 'edit' : 'create' });
+    if (!result.ok) {
+      setErrors(result.errors || {});
       return;
     }
 
+    const payload = buildPayload(form);
     setSaving(true);
     try {
       if (isEdit) {
@@ -219,13 +237,23 @@ export default function PromotionUpsert() {
         router.push(newId ? `/promotions/${newId}` : '/promotions');
       }
     } catch (e) {
-      enqueueSnackbar(e?.response?.data?.message || e.message || 'Save failed', { variant: 'error' });
+      const response = e?.response?.data;
+      const { message, errors: apiErrors } = normalizeValidationErrors(response || {});
+      const mapped = mapAdminPromotionApiErrors(apiErrors);
+      if (Object.keys(mapped).length) {
+        setErrors(mapped);
+      } else if (message) {
+        setErrors({ form: message });
+      } else {
+        setErrors({ form: e?.message || 'Save failed' });
+      }
     } finally {
       setSaving(false);
     }
   };
 
   const addTarget = () => {
+    clearError('targets');
     setForm((p) => ({
       ...p,
       targets: [
@@ -236,6 +264,7 @@ export default function PromotionUpsert() {
   };
 
   const updateTarget = (index, next) => {
+    clearError('targets');
     setForm((p) => {
       const targets = [...(p.targets || [])];
       targets[index] = next;
@@ -244,6 +273,7 @@ export default function PromotionUpsert() {
   };
 
   const removeTarget = (index) => {
+    clearError('targets');
     setForm((p) => ({
       ...p,
       targets: (p.targets || []).filter((_, i) => i !== index)
@@ -265,54 +295,62 @@ export default function PromotionUpsert() {
   return (
     <>
       <Breadcrumbs custom heading={breadcrumb.heading} links={breadcrumb.links} />
-      <MainCard border={false} boxShadow>
-        <Stack spacing={3}>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack flex={1} spacing={2}>
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Title</InputLabel>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <MainCard title="Basics" >
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   size="small"
+                  label="Title"
+                  required
                   fullWidth
                   value={form.title}
                   onChange={(e) => setField('title', e.target.value)}
                   disabled={loading}
+                  error={!!errors.title}
+                  sx={{ flex: 1 }}
                 />
-              </Stack>
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Code (optional — auto if empty)</InputLabel>
                 <TextField
                   size="small"
+                  label="Code"
                   fullWidth
                   value={form.code}
                   onChange={(e) => setField('code', e.target.value.toUpperCase())}
                   disabled={loading}
+                  error={!!errors.code}
+                  sx={{ flex: 1 }}
                 />
               </Stack>
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Description</InputLabel>
-                <TextField
-                  size="small"
-                  fullWidth
-                  multiline
-                  minRows={3}
-                  value={form.description}
-                  onChange={(e) => setField('description', e.target.value)}
-                  disabled={loading}
-                />
-              </Stack>
+              <TextField
+                size="small"
+                label="Description"
+                fullWidth
+                multiline
+                minRows={3}
+                value={form.description}
+                onChange={(e) => setField('description', e.target.value)}
+                disabled={loading}
+                error={!!errors.description}
+              />
             </Stack>
+          </MainCard>
+        </Grid>
 
-            <Stack flex={1} spacing={2}>
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Status</InputLabel>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <MainCard title="Status & scope" >
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   select
                   size="small"
+                  label="Status"
                   fullWidth
                   value={form.status}
                   onChange={(e) => setField('status', e.target.value)}
                   disabled={loading}
+                  error={!!errors.status}
+                  sx={{ flex: 1 }}
                 >
                   {PROMOTION_STATUS_OPTIONS.filter((opt) =>
                     isEdit ? true : !['PENDING_APPROVAL', 'REJECTED', 'EXPIRED'].includes(opt.value)
@@ -322,52 +360,94 @@ export default function PromotionUpsert() {
                     </MenuItem>
                   ))}
                 </TextField>
-              </Stack>
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Funding</InputLabel>
                 <TextField
                   select
                   size="small"
+                  label="Funding"
                   fullWidth
                   value={form.funding}
                   onChange={(e) => setField('funding', e.target.value)}
                   disabled={loading}
-                  helperText="Who absorbs the discount"
+                  error={!!errors.funding}
+                  sx={{ flex: 1 }}
                 >
                   <MenuItem value="PLATFORM">Platform</MenuItem>
                   <MenuItem value="SELLER">Seller</MenuItem>
                 </TextField>
               </Stack>
-              <Stack sx={{ gap: 1 }}>
-                <InputLabel>Visibility</InputLabel>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  value={form.visibility}
-                  onChange={(e) => setField('visibility', e.target.value)}
-                  disabled={loading}
-                >
-                  <MenuItem value="PUBLIC">Public (listed at checkout)</MenuItem>
-                  <MenuItem value="PRIVATE">Private (code only)</MenuItem>
-                </TextField>
-              </Stack>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 4, md: 3.6 }}>
+                  <TextField
+                    select
+                    size="small"
+                    label="Visibility"
+                    fullWidth
+                    value={form.visibility}
+                    onChange={(e) => setField('visibility', e.target.value)}
+                    disabled={loading}
+                    error={!!errors.visibility}
+                  >
+                    <MenuItem value="PUBLIC">Public (listed at checkout)</MenuItem>
+                    <MenuItem value="PRIVATE">Private (code only)</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 8, md: 8.4 }}>
+                  <Autocomplete
+                    size="small"
+                    fullWidth
+                    options={withSelectedOption(storeAc.options, storeSel)}
+                    value={storeSel}
+                    loading={storeAc.loading}
+                    getOptionLabel={storeOptionLabel}
+                    isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                    onChange={(_, v) => {
+                      setStoreSel(v);
+                      setField('store_id', v?.id || '');
+                    }}
+                    onInputChange={(_, v, reason) => {
+                      if (reason === 'reset') return;
+                      storeAc.setQuery(v);
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Store"
+                        placeholder="Search stores…"
+                        error={!!errors.store_id}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {storeAc.loading ? <CircularProgress color="inherit" size={16} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          )
+                        }}
+                      />
+                    )}
+                    ListboxProps={{ onScroll: storeAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
+                    disabled={loading}
+                  />
+                </Grid>
+              </Grid>
             </Stack>
-          </Stack>
+          </MainCard>
+        </Grid>
 
-          <Divider />
-
-          <Typography variant="subtitle1">Discount</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack flex={1} sx={{ gap: 1 }}>
-              <InputLabel>Discount type</InputLabel>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <MainCard title="Discount" >
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 select
                 size="small"
+                label="Discount type"
                 fullWidth
                 value={form.discount_type}
                 onChange={(e) => {
                   const next = e.target.value;
+                  clearError('discount_type');
+                  clearError('discount_value');
+                  clearError('max_discount_rupees');
                   setForm((p) => ({
                     ...p,
                     discount_type: next,
@@ -375,189 +455,159 @@ export default function PromotionUpsert() {
                   }));
                 }}
                 disabled={loading}
+                error={!!errors.discount_type}
+                sx={{ flex: 1 }}
               >
                 <MenuItem value="PERCENT">Percent</MenuItem>
                 <MenuItem value="FLAT">Flat (₹)</MenuItem>
                 <MenuItem value="FREE_DELIVERY">Free delivery (+ km)</MenuItem>
               </TextField>
-            </Stack>
-            <Stack flex={1} sx={{ gap: 1 }}>
-              <InputLabel>{discountValueLabel}</InputLabel>
               <TextField
                 size="small"
+                label={discountValueLabel}
                 fullWidth
                 type="number"
                 value={form.discount_value}
                 onChange={(e) => setField('discount_value', e.target.value)}
                 disabled={loading || form.discount_type === 'FREE_DELIVERY'}
+                error={!!errors.discount_value}
                 inputProps={{ min: 0, step: form.discount_type === 'FLAT' ? 0.01 : 1 }}
+                sx={{ flex: 1 }}
               />
-            </Stack>
-            <Stack flex={1} sx={{ gap: 1 }}>
-              <InputLabel>Max discount cap (₹, percent only)</InputLabel>
               <TextField
                 size="small"
+                label="Max discount cap (₹)"
                 fullWidth
                 type="number"
                 value={form.max_discount_rupees}
                 onChange={(e) => setField('max_discount_rupees', e.target.value)}
                 disabled={loading || form.discount_type !== 'PERCENT'}
                 placeholder="No cap"
+                error={!!errors.max_discount_rupees}
                 inputProps={{ min: 0, step: 0.01 }}
+                sx={{ flex: 1 }}
               />
             </Stack>
-          </Stack>
+          </MainCard>
+        </Grid>
 
-          <Divider />
+        <Grid size={{ xs: 12, md: 6 }}>
+          <MainCard title="Eligibility & limits" >
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Min cart (₹)"
+                  fullWidth
+                  type="number"
+                  value={form.min_cart_rupees}
+                  onChange={(e) => setField('min_cart_rupees', e.target.value)}
+                  disabled={loading}
+                  error={!!errors.min_cart_rupees}
+                  inputProps={{ min: 0, step: 0.01 }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  label="Max total uses"
+                  fullWidth
+                  type="number"
+                  value={form.max_total_uses}
+                  onChange={(e) => setField('max_total_uses', e.target.value)}
+                  disabled={loading}
+                  placeholder="Unlimited"
+                  error={!!errors.max_total_uses}
+                  inputProps={{ min: 1, step: 1 }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  label="Max uses / user"
+                  fullWidth
+                  type="number"
+                  value={form.max_uses_per_user}
+                  onChange={(e) => setField('max_uses_per_user', e.target.value)}
+                  disabled={loading}
+                  placeholder="Unlimited"
+                  error={!!errors.max_uses_per_user}
+                  inputProps={{ min: 1, step: 1 }}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="Starts at"
+                  fullWidth
+                  type="datetime-local"
+                  value={form.starts_at}
+                  onChange={(e) => setField('starts_at', e.target.value)}
+                  disabled={loading}
+                  error={!!errors.starts_at}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  label="Ends at"
+                  fullWidth
+                  type="datetime-local"
+                  value={form.ends_at}
+                  onChange={(e) => setField('ends_at', e.target.value)}
+                  disabled={loading}
+                  error={!!errors.ends_at}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+            </Stack>
+          </MainCard>
+        </Grid>
 
-          <Typography variant="subtitle1">Eligibility & limits</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack flex={1} sx={{ gap: 1 }}>
-              <InputLabel>Store (optional)</InputLabel>
-              <Autocomplete
-                size="small"
-                options={withSelectedOption(storeAc.options, storeSel)}
-                value={storeSel}
-                loading={storeAc.loading}
-                getOptionLabel={storeOptionLabel}
-                isOptionEqualToValue={(a, b) => a?.id === b?.id}
-                onChange={(_, v) => {
-                  setStoreSel(v);
-                  setField('store_id', v?.id || '');
-                }}
-                onInputChange={(_, v, reason) => {
-                  if (reason === 'reset') return;
-                  storeAc.setQuery(v);
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Search stores…"
-                    helperText="Leave empty for app-wide. Type to search — scroll for more."
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {storeAc.loading ? <CircularProgress color="inherit" size={16} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      )
-                    }}
-                  />
-                )}
-                ListboxProps={{ onScroll: storeAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
-                disabled={loading}
-              />
+        <Grid size={{ xs: 12, md: 6 }}>
+          <MainCard
+            title="Targets"
+            secondary={
+              <Button size="small" startIcon={<PlusOutlined />} onClick={addTarget} disabled={loading}>
+                Add target
+              </Button>
+            }
+          >
+            <Stack spacing={1.5}>
+              {(form.targets || []).map((t, index) => (
+                <PromotionTargetRow
+                  key={index}
+                  value={t}
+                  onChange={(next) => updateTarget(index, next)}
+                  onRemove={() => removeTarget(index)}
+                  disabled={loading}
+                />
+              ))}
+              {!form.targets?.length ? (
+                <Typography variant="body2" color="text.secondary">
+                  No targets — applies to all eligible items in scope.
+                </Typography>
+              ) : null}
             </Stack>
-            <Stack flex={1} sx={{ gap: 1 }}>
-              <InputLabel>Min cart (₹)</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                type="number"
-                value={form.min_cart_rupees}
-                onChange={(e) => setField('min_cart_rupees', e.target.value)}
-                disabled={loading}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Stack>
-          </Stack>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <Stack flex={1} sx={{ gap: 1 }}>
-              <InputLabel>Max total uses</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                type="number"
-                value={form.max_total_uses}
-                onChange={(e) => setField('max_total_uses', e.target.value)}
-                disabled={loading}
-                placeholder="Unlimited"
-                inputProps={{ min: 1, step: 1 }}
-              />
-            </Stack>
-            <Stack flex={1} sx={{ gap: 1 }}>
-              <InputLabel>Max uses per user</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                type="number"
-                value={form.max_uses_per_user}
-                onChange={(e) => setField('max_uses_per_user', e.target.value)}
-                disabled={loading}
-                placeholder="Unlimited"
-                inputProps={{ min: 1, step: 1 }}
-              />
-            </Stack>
-            <Stack flex={1} sx={{ gap: 1 }}>
-              <InputLabel>Starts at</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                type="datetime-local"
-                value={form.starts_at}
-                onChange={(e) => setField('starts_at', e.target.value)}
-                disabled={loading}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Stack>
-            <Stack flex={1} sx={{ gap: 1 }}>
-              <InputLabel>Ends at</InputLabel>
-              <TextField
-                size="small"
-                fullWidth
-                type="datetime-local"
-                value={form.ends_at}
-                onChange={(e) => setField('ends_at', e.target.value)}
-                disabled={loading}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Stack>
-          </Stack>
+          </MainCard>
+        </Grid>
 
-          <Divider />
-
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Stack spacing={0.5}>
-              <Typography variant="subtitle1">Targets (optional)</Typography>
-              <Typography variant="caption" color="text.secondary">
-                Empty = whole cart / store. Search and select categories, products, or variants.
-              </Typography>
-            </Stack>
-            <Button size="small" startIcon={<PlusOutlined />} onClick={addTarget} disabled={loading}>
-              Add target
-            </Button>
-          </Stack>
-
-          <Stack spacing={1.5}>
-            {(form.targets || []).map((t, index) => (
-              <PromotionTargetRow
-                key={index}
-                value={t}
-                onChange={(next) => updateTarget(index, next)}
-                onRemove={() => removeTarget(index)}
-                disabled={loading}
-              />
-            ))}
-            {!form.targets?.length ? (
-              <Typography variant="body2" color="text.secondary">
-                No targets — applies to all eligible items in scope.
+        <Grid size={12}>
+          <Stack direction="row" spacing={2} alignItems="center" justifyContent="flex-end">
+            {formErrorMessage ? (
+              <Typography variant="body2" color="error" sx={{ maxWidth: 420, textAlign: 'right' }}>
+                {formErrorMessage}
               </Typography>
             ) : null}
-          </Stack>
-
-          <Divider />
-
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
             <Button onClick={() => router.push(isEdit ? `/promotions/${id}` : '/promotions')} disabled={saving}>
               Cancel
             </Button>
-            <Button variant="contained" onClick={onSave} disabled={saving || loading || !form.title.trim()}>
+            <Button variant="contained" onClick={onSave} disabled={saving || loading}>
               {isEdit ? 'Update' : 'Create'}
             </Button>
           </Stack>
-        </Stack>
-      </MainCard>
+        </Grid>
+      </Grid>
     </>
   );
 }
