@@ -68,15 +68,12 @@ function VariantCard({ item }) {
           <Chip size="small" label={status} variant="outlined" />
           <Chip
             size="small"
-            color={stockStatus === 'IN_STOCK' ? 'success' : stockStatus === 'PREORDER' ? 'warning' : 'default'}
-            label={stockStatus}
+            color={stockStatus === 'IN_STOCK' || stockStatus === 'PREORDER' ? 'success' : 'default'}
+            label={stockStatus === 'OUT_OF_STOCK' ? 'Out of stock' : stockStatus === 'IN_STOCK' ? 'In stock' : stockStatus}
             variant="light"
           />
         </Stack>
         <Typography variant="body2">{formatINR(item?.price_cents)}</Typography>
-        <Typography variant="caption" color="text.secondary">
-          Stock: {item?.available_quantity ?? item?.stock_quantity ?? 0}
-        </Typography>
       </Stack>
     </Box>
   );
