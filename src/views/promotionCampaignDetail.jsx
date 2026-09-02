@@ -158,6 +158,10 @@ export default function PromotionCampaignDetail() {
                   label="Max total uses"
                   value={row.max_total_uses != null ? row.max_total_uses : '∞'}
                 />
+                <Field
+                  label="Max uses per customer"
+                  value={row.max_uses_per_user != null ? row.max_uses_per_user : '∞'}
+                />
               </Stack>
               <Stack flex={1} spacing={2}>
                 <Field label="Budget spent" value={formatINRFromCents(spent)} />

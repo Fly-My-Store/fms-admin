@@ -34,6 +34,7 @@ const EMPTY = {
   status: 'DRAFT',
   budget_rupees: '',
   max_total_uses: '',
+  max_uses_per_user: '1',
   starts_at: '',
   ends_at: ''
 };
@@ -125,6 +126,8 @@ export default function PromotionCampaignUpsert() {
         status: row.status || 'DRAFT',
         budget_rupees: centsToRupeesInput(row.budget_cents),
         max_total_uses: row.max_total_uses != null ? String(row.max_total_uses) : '',
+        max_uses_per_user:
+          row.max_uses_per_user != null ? String(row.max_uses_per_user) : '',
         starts_at: toDatetimeLocal(row.starts_at),
         ends_at: toDatetimeLocal(row.ends_at)
       });
@@ -167,6 +170,7 @@ export default function PromotionCampaignUpsert() {
     store_id: null,
     budget_cents: rupeesToCents(form.budget_rupees),
     max_total_uses: form.max_total_uses ? Number(form.max_total_uses) : null,
+    max_uses_per_user: form.max_uses_per_user ? Number(form.max_uses_per_user) : null,
     starts_at: fromDatetimeLocal(form.starts_at),
     ends_at: fromDatetimeLocal(form.ends_at)
   });
@@ -306,6 +310,16 @@ export default function PromotionCampaignUpsert() {
                   helperText="Cap across all member codes"
                 />
               </Stack>
+              <TextField
+                size="small"
+                label="Max uses per customer"
+                fullWidth
+                type="number"
+                inputProps={{ min: 1 }}
+                value={form.max_uses_per_user}
+                onChange={(e) => setField('max_uses_per_user', e.target.value)}
+                helperText="Per customer across any code in this campaign (e.g. 1 = one coupon only)"
+              />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   size="small"
