@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Button,
@@ -18,7 +19,7 @@ import {
 import { enqueueSnackbar } from 'notistack';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
-import { approvePromotion, getPromotion, rejectPromotion } from 'api/promotions';
+import { approvePromotion, getPromotion, listPromotionRedemptions, rejectPromotion } from 'api/promotions';
 import {
   getPromotionFundingLabel,
   getPromotionStatusChipColor,
@@ -42,17 +43,22 @@ function formatDiscount(row) {
 }
 
 function Field({ label, value, mono = false }) {
+  const isPrimitive = value === null || value === undefined || typeof value === 'string' || typeof value === 'number';
   return (
     <Stack spacing={0.5} sx={{ minWidth: 0 }}>
       <Typography variant="caption" color="text.secondary">
         {label}
       </Typography>
-      <Typography
-        variant="body2"
-        sx={{ fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : undefined, wordBreak: 'break-word' }}
-      >
-        {safe(value)}
-      </Typography>
+      {isPrimitive ? (
+        <Typography
+          variant="body2"
+          sx={{ fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : undefined, wordBreak: 'break-word' }}
+        >
+          {safe(value)}
+        </Typography>
+      ) : (
+        value
+      )}
     </Stack>
   );
 }
@@ -62,6 +68,28 @@ export default function PromotionDetail() {
   const router = useRouter();
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [redemptionRows, setRedemptionRows] = useState([]);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [redemptionsLoading, setRedemptionsLoading] = useState(false);
+
+  const loadRedemptions = useCallback(async (page = 0) => {
+      if (!id) return;
+      setRedemptionsLoading(true);
+      try {
+        const res = await listPromotionRedemptions(id, { page: page + 1, limit: 20 });
+        setRedemptionRows(res?.data || []);
+        setTotalPages(res?.meta?.totalPages ?? 1);
+        setTotalCount(res?.meta?.total ?? 0);
+      } catch (e) {
+        enqueueSnackbar(e?.response?.data?.message || 'Failed to load redemptions', { variant: 'error' });
+      } finally {
+        setRedemptionsLoading(false);
+      }
+    },
+    [id]
+  );
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -79,6 +107,14 @@ export default function PromotionDetail() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (id) loadRedemptions(pageIndex);
+  }, [id, pageIndex, loadRedemptions]);
+
+  const usage = row?.usage || {};
+  const ordersToShow = redemptionRows.length ? redemptionRows : usage.redemptions || [];
+  const ordersTotal = totalCount || usage.total_applied || 0;
 
   const breadcrumb = useMemo(
     () => ({
@@ -161,6 +197,24 @@ export default function PromotionDetail() {
                 <Field label="Title" value={row.title} />
                 <Field label="Description" value={row.description} />
                 <Field label="Store" value={row.store?.name || (row.store_id ? row.store_id : 'App-wide')} />
+                <Field label="Channel" value={row.channel} />
+                <Field
+                  label="Campaign"
+                  value={
+                    row.campaign?.id ? (
+                      <Typography
+                        component={Link}
+                        href={`/promotion-campaigns/${row.campaign.id}`}
+                        variant="body2"
+                        sx={{ color: 'primary.main', textDecoration: 'none' }}
+                      >
+                        {row.campaign.name}
+                      </Typography>
+                    ) : (
+                      '—'
+                    )
+                  }
+                />
               </Stack>
               <Stack flex={1} spacing={2}>
                 <Field label="Discount" value={formatDiscount(row)} />
@@ -178,6 +232,89 @@ export default function PromotionDetail() {
                 <Field label="ID" value={row.id} mono />
               </Stack>
             </Stack>
+
+            <Divider />
+
+            <Typography variant="subtitle1">Usage</Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
+              <Field label="Total uses" value={usage.total_applied ?? 0} />
+              <Field label="Unique customers" value={usage.unique_users ?? 0} />
+              <Field label="Total discount given" value={formatINRFromCents(usage.total_discount_cents)} />
+            </Stack>
+
+            <Divider />
+
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="subtitle1">Orders</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {ordersTotal} redemption{ordersTotal === 1 ? '' : 's'}
+              </Typography>
+            </Stack>
+            {redemptionsLoading && !ordersToShow.length ? (
+              <Stack alignItems="center" sx={{ py: 2 }}>
+                <CircularProgress size={22} />
+              </Stack>
+            ) : ordersToShow.length ? (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Order</TableCell>
+                    <TableCell>Customer</TableCell>
+                    <TableCell align="right">Discount</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {ordersToShow.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        {r.created_at ? new Date(r.created_at).toLocaleString() : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {r.order?.id ? (
+                          <Typography
+                            component={Link}
+                            href={`/orders/${r.order.id}`}
+                            variant="body2"
+                            sx={{ color: 'primary.main', textDecoration: 'none' }}
+                          >
+                            {r.order.order_number || r.order.id.slice(0, 8)}
+                          </Typography>
+                        ) : (
+                          r.order_id?.slice?.(0, 8) || '—'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {r.user?.name || r.user?.phone || r.user_id?.slice?.(0, 8) || '—'}
+                      </TableCell>
+                      <TableCell align="right">{formatINRFromCents(r.discount_cents)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No redemptions yet.
+              </Typography>
+            )}
+            {totalPages > 1 ? (
+              <Stack direction="row" spacing={1} justifyContent="flex-end">
+                <Button
+                  size="small"
+                  disabled={pageIndex <= 0 || redemptionsLoading}
+                  onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  size="small"
+                  disabled={pageIndex >= totalPages - 1 || redemptionsLoading}
+                  onClick={() => setPageIndex((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </Stack>
+            ) : null}
 
             <Divider />
 

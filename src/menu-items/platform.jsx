@@ -29,7 +29,8 @@ import {
   MobileOutlined,
   FileTextOutlined,
   CloudUploadOutlined,
-  AuditOutlined
+  AuditOutlined,
+  FundOutlined
 } from '@ant-design/icons';
 
 // ==============================|| ICON MAPPING ||============================== //
@@ -63,7 +64,8 @@ const icons = {
   MobileOutlined,
   FileTextOutlined,
   CloudUploadOutlined,
-  AuditOutlined
+  AuditOutlined,
+  FundOutlined
 };
 
 // ==============================|| MENU ITEMS - FLY MY STORE (PLATFORM) ||============================== //
@@ -261,6 +263,7 @@ const platformMenuGroups = [
     title: 'content-geo',
     children: [
       { id: 'banners', title: 'banners', type: 'item', url: '/banners', icon: icons.PictureOutlined, perm: 'banner', action: 'read' },
+      { id: 'promotion-campaigns', title: 'campaigns', type: 'item', url: '/promotion-campaigns', icon: icons.FundOutlined },
       { id: 'promotions', title: 'promotions', type: 'item', url: '/promotions', icon: icons.TagsOutlined },
       { id: 'faqs', title: 'faqs', type: 'item', url: '/faqs', icon: icons.ProfileOutlined },
       {
