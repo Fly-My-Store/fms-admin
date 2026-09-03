@@ -179,8 +179,8 @@ export default function PromotionUpsert() {
           ? row.targets.map((t) => ({
               target_type: t.target_type,
               target_id: t.target_id,
-              entity: null,
-              label: ''
+              entity: t.label ? { id: t.target_id, name: t.label } : null,
+              label: t.label || ''
             }))
           : []
       });

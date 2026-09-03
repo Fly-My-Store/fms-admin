@@ -11,16 +11,19 @@ import {
 } from '@mui/material';
 import { DeleteOutlined } from '@ant-design/icons';
 import {
+  getBrand,
   getCategory,
   getProduct,
   getVariant,
   listAllVariants,
+  listBrands,
   listCategories,
   listProducts
 } from 'api/catalog';
 import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
 
 const TARGET_TYPES = [
+  { value: 'BRAND', label: 'Brand' },
   { value: 'CATEGORY', label: 'Category' },
   { value: 'PRODUCT', label: 'Product' },
   { value: 'PRODUCT_VARIANT', label: 'Product variant' }
@@ -49,6 +52,7 @@ export function targetEntityLabel(targetType, entity) {
 async function fetchTargetEntity(targetType, targetId) {
   if (!targetType || !targetId) return null;
   try {
+    if (targetType === 'BRAND') return unwrapEntity(await getBrand(targetId));
     if (targetType === 'CATEGORY') return unwrapEntity(await getCategory(targetId));
     if (targetType === 'PRODUCT') return unwrapEntity(await getProduct(targetId));
     if (targetType === 'PRODUCT_VARIANT') return unwrapEntity(await getVariant(targetId));
@@ -59,6 +63,7 @@ async function fetchTargetEntity(targetType, targetId) {
 }
 
 function listFnForType(targetType) {
+  if (targetType === 'BRAND') return listBrands;
   if (targetType === 'PRODUCT') return listProducts;
   if (targetType === 'PRODUCT_VARIANT') return listAllVariants;
   return listCategories;
@@ -122,7 +127,9 @@ export default function PromotionTargetRow({ value, onChange, onRemove, disabled
       ? 'Search variants…'
       : targetType === 'PRODUCT'
         ? 'Search products…'
-        : 'Search categories…';
+        : targetType === 'BRAND'
+          ? 'Search brands…'
+          : 'Search categories…';
 
   return (
     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
@@ -132,7 +139,7 @@ export default function PromotionTargetRow({ value, onChange, onRemove, disabled
         label="Type"
         value={targetType}
         onChange={(e) => handleTypeChange(e.target.value)}
-        sx={{ width: { xs: '100%', sm: 160 }, flexShrink: 0 }}
+        sx={{ width: { xs: '100%', sm: 180 }, flexShrink: 0 }}
         disabled={disabled}
       >
         {TARGET_TYPES.map((opt) => (

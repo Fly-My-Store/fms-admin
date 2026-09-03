@@ -33,6 +33,7 @@ export const PROMOTION_DISCOUNT_TYPE_LABELS = {
 };
 
 export const PROMOTION_TARGET_TYPE_LABELS = {
+  BRAND: 'Brand',
   CATEGORY: 'Category',
   PRODUCT: 'Product',
   PRODUCT_VARIANT: 'Product variant'

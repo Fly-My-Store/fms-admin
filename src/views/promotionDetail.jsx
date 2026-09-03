@@ -324,7 +324,7 @@ export default function PromotionDetail() {
                 <TableHead>
                   <TableRow>
                     <TableCell>Type</TableCell>
-                    <TableCell>Target ID</TableCell>
+                    <TableCell>Target</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -332,9 +332,16 @@ export default function PromotionDetail() {
                     <TableRow key={`${t.target_type}-${t.target_id}`}>
                       <TableCell>{getPromotionTargetTypeLabel(t.target_type)}</TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>
-                          {t.target_id}
-                        </Typography>
+                        <Typography variant="body2">{t.label || t.target_id}</Typography>
+                        {t.label ? (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontFamily: 'ui-monospace, Menlo, monospace' }}
+                          >
+                            {t.target_id}
+                          </Typography>
+                        ) : null}
                       </TableCell>
                     </TableRow>
                   ))}

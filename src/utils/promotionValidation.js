@@ -196,7 +196,7 @@ export function validateAdminPromotionForm(form, { mode = 'create' } = {}) {
       return hasType && !id;
     });
     if (incomplete) {
-      errors.targets = 'Each target needs a selected category, product, or variant';
+      errors.targets = 'Each target needs a selected brand, category, product, or variant';
     } else {
       const badId = targets.find((t) => {
         const id = String(t?.target_id || '').trim();
