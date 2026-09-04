@@ -8,6 +8,7 @@ import useUrlFilters from 'hooks/useUrlFilters';
 import UserTableSection from 'sections/users/UserTableSection';
 import UserFormDialog from 'sections/users/UserFormDialog';
 import { ACCOUNT_STATUS } from 'utils/constants';
+import { listRoles } from 'api/iam';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -26,6 +27,7 @@ const TESTER_FILTER_OPTIONS = [
 const FILTER_DEFAULTS = {
   q: '',
   status: 'all',
+  role_id: '',
   is_tester: 'false',
   page: 1,
   limit: 20
@@ -35,6 +37,7 @@ export default function UsersView() {
   const actorIsTester = useSelector((s) => Boolean(s.auth?.user?.is_tester));
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [roles, setRoles] = useState([]);
   const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
     defaults: FILTER_DEFAULTS
   });
@@ -44,13 +47,28 @@ export default function UsersView() {
     const params = {
       type: 'ADMIN',
       ...(applied.q ? { q: applied.q } : {}),
-      ...(applied.status && applied.status !== 'all' ? { status: applied.status } : {})
+      ...(applied.status && applied.status !== 'all' ? { status: applied.status } : {}),
+      ...(applied.role_id ? { role_id: applied.role_id } : {})
     };
     if (!actorIsTester) {
       if (applied.is_tester && applied.is_tester !== 'all') params.is_tester = applied.is_tester;
     }
     return params;
-  }, [applied.q, applied.status, applied.is_tester, actorIsTester]);
+  }, [applied.q, applied.status, applied.role_id, applied.is_tester, actorIsTester]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listRoles({ domain: 'ADMIN', limit: 100 })
+      .then((resp) => {
+        if (!cancelled) setRoles(resp?.data || []);
+      })
+      .catch(() => {
+        if (!cancelled) setRoles([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const { rows, totalPages, totalCount, loading, load, setPageIndex, setPageSize } = useAxiosPaginatedList(
     'admin/iam/users',
@@ -67,6 +85,7 @@ export default function UsersView() {
     applySearch({
       q: searchQuery.trim(),
       status: draft.status,
+      role_id: draft.role_id,
       is_tester: draft.is_tester
     });
   };
@@ -93,6 +112,21 @@ export default function UsersView() {
         {STATUS_OPTIONS.map((o) => (
           <MenuItem key={o.value} value={o.value}>
             {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        label="Role"
+        value={draft.role_id}
+        onChange={(e) => setDraft({ role_id: e.target.value })}
+        sx={{ minWidth: 180 }}
+      >
+        <MenuItem value="">All</MenuItem>
+        {roles.map((role) => (
+          <MenuItem key={role.id} value={role.id}>
+            {role.name}
           </MenuItem>
         ))}
       </TextField>

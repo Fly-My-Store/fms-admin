@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import Chip from '@mui/material/Chip';
 import BasicReactTable from 'components/tables/basicTable';
-import { TABLE_STATUS } from 'utils/constants';
 
 export default function RolesTableSection({
   rows,
@@ -21,28 +20,16 @@ export default function RolesTableSection({
   const columns = useMemo(
     () => [
       { header: 'Name', accessorKey: 'name' },
-      { header: 'Description', accessorKey: 'description' },
-
+      { header: 'Code', accessorKey: 'code' },
       {
-        header: 'Status',
-        accessorKey: 'status',
+        header: 'Domain',
+        accessorKey: 'domain',
         cell: (cell) => {
           const value = cell.getValue();
-          switch (value) {
-            case TABLE_STATUS.ACTIVE:
-              return <Chip color="success" label="Active" size="small" variant="light" />;
-            case TABLE_STATUS.INACTIVE:
-              return <Chip color="warning" label="Inactive" size="small" variant="light" />;
-            case TABLE_STATUS.SUSPENDED:
-              return <Chip color="error" label="Suspended" size="small" variant="light" />;
-            case TABLE_STATUS.DELETED:
-              return <Chip color="default" label="Deleted" size="small" variant="light" />;
-            default:
-              return <Chip color="default" label="Unknown" size="small" variant="light" />;
-          }
+          return <Chip color={value === 'ADMIN' ? 'primary' : 'secondary'} label={value || '—'} size="small" variant="light" />;
         }
-      }
-
+      },
+      { header: 'Description', accessorKey: 'description' }
     ],
     []
   );

@@ -37,7 +37,7 @@ export default function UserProfile({ tab }) {
   }, [tab, router]);
 
   const breadcrumb = {
-    heading: 'My profile',
+    heading: 'my-profile',
     links: [
       { title: 'home', to: '/dashboard' },
       { title: TAB_HEADINGS[activeTab] || 'Profile', i18n: false }

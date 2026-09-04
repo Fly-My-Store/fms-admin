@@ -1,124 +1,60 @@
-import PropTypes from 'prop-types';
-import { useRef, useState } from 'react';
-// next
-import { useRouter } from 'next/navigation';
+'use client';
 
-// material-ui
-import { useTheme } from '@mui/material/styles';
-import ButtonBase from '@mui/material/ButtonBase';
-import CardContent from '@mui/material/CardContent';
+import { useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Grid from '@mui/material/Grid2';
 import Paper from '@mui/material/Paper';
 import Popper from '@mui/material/Popper';
 import Stack from '@mui/material/Stack';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-
-// project imports
-import ProfileTab from './ProfileTab';
-import SettingTab from './SettingTab';
 import Avatar from 'components/@extended/Avatar';
-import MainCard from 'components/MainCard';
-import Transitions from 'components/@extended/Transitions';
 import IconButton from 'components/@extended/IconButton';
-
+import { headerIconSx } from '../headerIconSx';
+import Transitions from 'components/@extended/Transitions';
+import UserOutlined from '@ant-design/icons/UserOutlined';
 import useUser from 'hooks/useUser';
 
-// assets
-import LogoutOutlined from '@ant-design/icons/LogoutOutlined';
-import SettingOutlined from '@ant-design/icons/SettingOutlined';
-import UserOutlined from '@ant-design/icons/UserOutlined';
-import { ROUTES, STORAGE_KEYS } from 'utils/constants';
-import { logout } from 'store/auth/authSlice';
-import { useDispatch } from 'react-redux';
-
-// tab panel wrapper
-function TabPanel({ children, value, index, ...other }) {
-  return (
-    <div role="tabpanel" hidden={value !== index} id={`profile-tabpanel-${index}`} aria-labelledby={`profile-tab-${index}`} {...other}>
-      {value === index && children}
-    </div>
-  );
-}
-
-function a11yProps(index) {
-  return {
-    id: `profile-tab-${index}`,
-    'aria-controls': `profile-tabpanel-${index}`
-  };
-}
-
-// ==============================|| HEADER CONTENT - PROFILE ||============================== //
-
 export default function Profile() {
-  const theme = useTheme();
   const user = useUser();
   const router = useRouter();
-  const dispatch = useDispatch();
-
-
-  const handleLogout = () => {
-    dispatch(logout());
-    localStorage.removeItem(STORAGE_KEYS.USER);
-    localStorage.removeItem(STORAGE_KEYS.TOKEN);
-    router.push(ROUTES.LOGIN);
-  };
-
+  const pathname = usePathname();
+  const active = pathname === '/profile' || pathname?.startsWith('/profile/');
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
-  const handleToggle = () => {
-    setOpen((prevOpen) => !prevOpen);
-  };
+
+  if (!user?.isLoggedIn) return null;
 
   const handleClose = (event) => {
-    if (anchorRef.current && anchorRef.current.contains(event.target)) {
-      return;
-    }
+    if (anchorRef.current && anchorRef.current.contains(event.target)) return;
     setOpen(false);
   };
 
-  const [value, setValue] = useState(0);
-
-  const handleChange = (event, newValue) => {
-    setValue(newValue);
-  };
-
-  const toProfile = () => {
+  const goToProfile = () => {
     setOpen(false);
-    router.push(`/profile/personal`);
+    router.push('/profile/personal');
   };
 
+  const initial = (user.name || user.email || 'A').charAt(0).toUpperCase();
 
   return (
     <Box sx={{ flexShrink: 0, ml: 0.75 }}>
-      <ButtonBase
-        sx={(theme) => ({
-          p: 0.25,
-          bgcolor: open ? 'grey.100' : 'transparent',
-          borderRadius: 1,
-          '&:hover': { bgcolor: 'secondary.lighter' },
-          '&:focus-visible': { outline: `2px solid ${theme.palette.secondary.dark}`, outlineOffset: 2 },
-          ...theme.applyStyles('dark', { bgcolor: open ? 'background.default' : 'transparent', '&:hover': { bgcolor: 'secondary.light' } })
-        })}
-        aria-label="open profile"
-        ref={anchorRef}
-        aria-controls={open ? 'profile-grow' : undefined}
-        aria-haspopup="true"
-        onClick={handleToggle}
-      >
-        {user && (
-          <Stack direction="row" sx={{ gap: 1.25, alignItems: 'center', p: 0.5 }}>
-            <Avatar alt="profile user" src={user.avatar} size="sm" />
-            <Typography variant="subtitle1" sx={{ textTransform: 'capitalize' }}>
-              {user?.name}
-            </Typography>
-          </Stack>
-        )}
-      </ButtonBase>
+      <Tooltip title="Account">
+        <IconButton
+          ref={anchorRef}
+          color="secondary"
+          variant="light"
+          aria-label="Account"
+          aria-haspopup="true"
+          aria-expanded={open ? 'true' : undefined}
+          onClick={() => setOpen((v) => !v)}
+          sx={headerIconSx(open || active)}
+        >
+          {user.avatar ? <Avatar alt={user.name} src={user.avatar} size="xs" /> : <UserOutlined />}
+        </IconButton>
+      </Tooltip>
       <Popper
         placement="bottom-end"
         open={open}
@@ -126,94 +62,40 @@ export default function Profile() {
         role={undefined}
         transition
         disablePortal
-        popperOptions={{
-          modifiers: [
-            {
-              name: 'offset',
-              options: {
-                offset: [0, 9]
-              }
-            }
-          ]
-        }}
+        popperOptions={{ modifiers: [{ name: 'offset', options: { offset: [0, 9] } }] }}
       >
         {({ TransitionProps }) => (
           <Transitions type="grow" position="top-right" in={open} {...TransitionProps}>
-            <Paper sx={(theme) => ({ boxShadow: theme.customShadows.z1, width: 290, minWidth: 240, maxWidth: { xs: 250, md: 290 } })}>
+            <Paper sx={(theme) => ({ boxShadow: theme.customShadows.z1, width: 280 })}>
               <ClickAwayListener onClickAway={handleClose}>
-                <MainCard elevation={0} border={false} content={false}>
-                  <CardContent sx={{ px: 2.5, pt: 3 }}>
-                    <Grid container justifyContent="space-between" alignItems="center">
-                      <Grid>
-                        {user && (
-                          <Stack onClick={toProfile} direction="row" sx={{ gap: 1.25, alignItems: 'center', cursor: 'pointer' }}>
-                            <Avatar
-                              alt={user.name}
-                              src={user.avatar || undefined}
-                              sx={{ width: 32, height: 32, border: '1px dashed', fontSize: '1rem' }}
-                            >
-                              {!user.avatar && user.name?.charAt(0).toUpperCase()}
-                            </Avatar>
-                            <Stack>
-                              <Typography variant="h6">{user?.name}</Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {user?.role}
-                              </Typography>
-                            </Stack>
-                          </Stack>
-                        )}
-                      </Grid>
-                      <Grid>
-                        <Tooltip title="Logout">
-                          <IconButton size="large" sx={{ color: 'text.primary' }} onClick={handleLogout}>
-                            <LogoutOutlined />
-                          </IconButton>
-                        </Tooltip>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-
-                  {/* <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tabs variant="fullWidth" value={value} onChange={handleChange} aria-label="profile tabs">
-                      <Tab
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'row',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          textTransform: 'capitalize',
-                          gap: 1.25,
-                          '& .MuiTab-icon': {
-                            marginBottom: 0
-                          }
-                        }}
-                        icon={<UserOutlined />}
-                        label="Profile"
-                        {...a11yProps(0)}
-                      />
-                      <Tab
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'row',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          textTransform: 'capitalize',
-                          gap: 1.25,
-                          '& .MuiTab-icon': { marginBottom: 0 }
-                        }}
-                        icon={<SettingOutlined />}
-                        label="Setting"
-                        {...a11yProps(1)}
-                      />
-                    </Tabs>
-                  </Box>
-                  <TabPanel value={value} index={0} dir={theme.direction}>
-                    <ProfileTab handleLogout={handleLogout} />
-                  </TabPanel>
-                  <TabPanel value={value} index={1} dir={theme.direction}>
-                    <SettingTab />
-                  </TabPanel> */}
-                </MainCard>
+                <Box sx={{ p: 2 }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Avatar alt={user.name} src={user.avatar || undefined} sx={{ width: 40, height: 40 }}>
+                      {!user.avatar && initial}
+                    </Avatar>
+                    <Stack sx={{ minWidth: 0 }}>
+                      <Typography variant="subtitle1" noWrap sx={{ textTransform: 'capitalize' }}>
+                        {user.name || 'Admin'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" noWrap sx={{ textTransform: 'capitalize' }}>
+                        {user.role || user.type}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                  {user.email ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }} noWrap>
+                      {user.email}
+                    </Typography>
+                  ) : null}
+                  {user.phone ? (
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                      {user.phone}
+                    </Typography>
+                  ) : null}
+                  <Button fullWidth variant="outlined" color="secondary" sx={{ mt: 2 }} onClick={goToProfile}>
+                    View profile
+                  </Button>
+                </Box>
               </ClickAwayListener>
             </Paper>
           </Transitions>
@@ -222,5 +104,3 @@ export default function Profile() {
     </Box>
   );
 }
-
-TabPanel.propTypes = { children: PropTypes.node, value: PropTypes.number, index: PropTypes.number, other: PropTypes.any };

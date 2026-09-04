@@ -10,10 +10,11 @@ import {
   purgeAllPendingBrands
 } from 'api/catalog';
 
-export default function CatalogPendingBrandsView() {
+export default function CatalogPendingBrandsView({ embedded = false }) {
   return (
     <CatalogPendingList
       title="Pending Brands"
+      embedded={embedded}
       searchPlaceholder="Name or slug…"
       loadRows={listBrands}
       approveOne={approveBrand}

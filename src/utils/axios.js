@@ -1,6 +1,6 @@
 // services/axios.ts (or your current path)
 import axios from 'axios';
-import { ROUTES, STORAGE_KEYS } from './constants';
+import { isPublicPath, ROUTES, STORAGE_KEYS } from './constants';
 
 // ⬇️ bring the store + logout action
 import { store } from '../store'; // <-- adjust import to your store file
@@ -46,8 +46,7 @@ const hardLogout = () => {
     // 3) Redirect away from protected routes (keep public pages like /downloads)
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
-      const isPublicPath = path === ROUTES.APP_DOWNLOADS || path.startsWith(`${ROUTES.APP_DOWNLOADS}/`);
-      if (!isPublicPath && !path.includes(ROUTES.LOGIN)) {
+      if (!isPublicPath(path) && !path.includes(ROUTES.LOGIN)) {
         window.location.replace(ROUTES.LOGIN);
       }
     }

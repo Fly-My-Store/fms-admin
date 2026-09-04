@@ -1,5 +1,8 @@
 import { get, post, patch, del } from '../utils/api';
 
+export const getMe = () => get('admin/iam/me');
+export const updateMe = (data) => patch('admin/iam/me', data);
+
 export const listUsers = (params) => get('admin/iam/users', params);
 export const getUser = (id) => get(`admin/iam/users/${id}`);
 export const createUser = (data) => post('admin/iam/users', data);
@@ -18,4 +21,5 @@ export const createPermission = (data) => post('admin/iam/permissions', data);
 export const updatePermission = (id, data) => patch(`admin/iam/permissions/${id}`, data);
 export const removePermission = (id) => del(`admin/iam/permissions/${id}`);
 
-export const setRolePermissions = (roleId, permission_ids) => post(`admin/iam/roles/${roleId}/permissions`, { permission_ids });
+export const setRolePermissions = (roleId, permissions) =>
+  post(`admin/iam/roles/${roleId}/permissions/bulk`, { permissions });

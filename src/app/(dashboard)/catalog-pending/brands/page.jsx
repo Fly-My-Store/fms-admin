@@ -1,5 +1,5 @@
-import View from 'views/catalogPendingBrands';
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <View />;
+  redirect('/catalog-pending?tab=brands');
 }

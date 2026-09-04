@@ -1,9 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import Chip from '@mui/material/Chip';
 import BasicReactTable from 'components/tables/basicTable';
-import { TABLE_STATUS } from 'utils/constants';
 
 export default function PermissionsTableSection({
   rows,
@@ -21,10 +19,8 @@ export default function PermissionsTableSection({
   const columns = useMemo(
     () => [
       { header: 'Name', accessorKey: 'name' },
-      { header: 'Create', accessorKey: 'create' },
-      { header: 'Read', accessorKey: 'read' },
-      { header: 'Modify', accessorKey: 'modify' },
-      { header: 'Delete', accessorKey: 'delete' },
+      { header: 'Code', accessorKey: 'code' },
+      { header: 'Description', accessorKey: 'description' }
     ],
     []
   );

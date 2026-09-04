@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 
 // project imports
 import IconButton from 'components/@extended/IconButton';
+import { headerIconSx } from './headerIconSx';
 
 // assets
 import FullscreenOutlined from '@ant-design/icons/FullscreenOutlined';
@@ -39,11 +40,7 @@ export default function FullScreen() {
         <IconButton
           color="secondary"
           variant="light"
-          sx={(theme) => ({
-            color: 'text.primary',
-            bgcolor: open ? 'grey.100' : 'transparent',
-            ...theme.applyStyles('dark', { bgcolor: open ? 'background.default' : 'transparent' })
-          })}
+          sx={headerIconSx(open)}
           aria-label="fullscreen toggler"
           onClick={handleToggle}
         >

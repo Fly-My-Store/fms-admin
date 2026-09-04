@@ -1,5 +1,5 @@
-import View from 'views/catalogPendingCategories';
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <View />;
+  redirect('/catalog-pending?tab=categories');
 }

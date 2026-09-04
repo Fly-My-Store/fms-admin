@@ -20,6 +20,7 @@ import HorizontalBar from './Drawer/HorizontalBar';
 import Loader from 'components/Loader';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import AuthGuard from 'utils/route-guard/AuthGuard';
+import { DataGuideProvider } from './DataGuideDrawer';
 
 import { MenuOrientation } from 'config';
 import useConfig from 'hooks/useConfig';
@@ -49,28 +50,30 @@ export default function DashboardLayout({ children }) {
 
   return (
     <AuthGuard>
-      <Stack direction="row" width={1}>
-        <Header />
-        {!isHorizontal ? <Drawer /> : <HorizontalBar />}
+      <DataGuideProvider>
+        <Stack direction="row" width={1}>
+          <Header />
+          {!isHorizontal ? <Drawer /> : <HorizontalBar />}
 
-        <Box component="main" sx={{ width: 'calc(100% - 260px)', flexGrow: 1, py: { xs: 1, sm: 2 } }}>
-          <Toolbar sx={{ mt: isHorizontal ? 8 : 'inherit' }} />
-          <Container
-            maxWidth={container ? 'xl' : false}
-            sx={{
-              ...(container && { px: { xs: 0, sm: 2 } }),
-              position: 'relative',
-              minHeight: 'calc(100vh - 110px)',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            {pathname !== '/apps/profiles/account/my-account' && <Breadcrumbs divider={false}/>}
-            {children}
-            {/* <Footer /> */}
-          </Container>
-        </Box>
-      </Stack>
+          <Box component="main" sx={{ width: 'calc(100% - 260px)', flexGrow: 1, py: { xs: 1, sm: 2 } }}>
+            <Toolbar sx={{ mt: isHorizontal ? 8 : 'inherit' }} />
+            <Container
+              maxWidth={container ? 'xl' : false}
+              sx={{
+                ...(container && { px: { xs: 0, sm: 2 } }),
+                position: 'relative',
+                minHeight: 'calc(100vh - 110px)',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              {pathname !== '/apps/profiles/account/my-account' && <Breadcrumbs divider={false} />}
+              {children}
+              {/* <Footer /> */}
+            </Container>
+          </Box>
+        </Stack>
+      </DataGuideProvider>
     </AuthGuard>
   );
 }

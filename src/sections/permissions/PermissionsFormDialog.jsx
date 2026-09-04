@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useDispatch } from 'react-redux';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -13,17 +12,19 @@ import Stack from '@mui/material/Stack';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
-import { actions as iam } from 'store/iam/slice';
+import { enqueueSnackbar } from 'notistack';
+import { createPermission, updatePermission } from 'api/iam';
+import { getErrorMessage } from 'utils/errors';
 
-export default function PermissionsFormDialog({ open, onClose, initialData = null }) {
-  const dispatch = useDispatch();
-  const [form, setForm] = useState({ name: '', create: '', read: '', modify: '', delete: '' });
+export default function PermissionsFormDialog({ open, onClose, initialData = null, onSaved }) {
+  const [form, setForm] = useState({ name: '', description: '' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (initialData) {
-      setForm({ ...{ name: '', create: '', read: '', modify: '', delete: '' }, ...initialData });
+      setForm({ name: initialData.name || '', description: initialData.description || '' });
     } else {
-      setForm({ name: '', create: '', read: '', modify: '', delete: '' });
+      setForm({ name: '', description: '' });
     }
   }, [initialData, open]);
 
@@ -32,13 +33,27 @@ export default function PermissionsFormDialog({ open, onClose, initialData = nul
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    if (initialData?.id) {
-      dispatch(iam.permissionsUpdateRequest({ params: { id: initialData.id, data: form } }));
-    } else {
-      dispatch(iam.permissionsCreateRequest({ params: form }));
+  const handleSubmit = async () => {
+    if (!form.name.trim()) {
+      enqueueSnackbar('Name is required', { variant: 'warning' });
+      return;
     }
-    onClose();
+    setSaving(true);
+    try {
+      if (initialData?.id) {
+        await updatePermission(initialData.id, { description: form.description });
+        enqueueSnackbar('Permission updated', { variant: 'success' });
+      } else {
+        await createPermission({ name: form.name.trim(), description: form.description });
+        enqueueSnackbar('Permission created', { variant: 'success' });
+      }
+      onSaved?.();
+      onClose();
+    } catch (e) {
+      enqueueSnackbar(getErrorMessage(e, 'Save failed'), { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -50,43 +65,41 @@ export default function PermissionsFormDialog({ open, onClose, initialData = nul
         </IconButton>
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={2} mt={1} minWidth='400px'>
-
-          <Stack sx={{gap: 1}}>
+        <Stack spacing={2} mt={1} minWidth="400px">
+          <Stack sx={{ gap: 1 }}>
             <InputLabel>Name</InputLabel>
-            <TextField id="name" name="name" type="text" value={form.name || ''} onChange={handleChange} placeholder="Name" fullWidth />
+            <TextField
+              id="name"
+              name="name"
+              type="text"
+              value={form.name || ''}
+              onChange={handleChange}
+              placeholder="e.g. order, deliveryJob"
+              fullWidth
+              disabled={Boolean(initialData?.id)}
+              helperText="Must match the admin menu resource key (camelCase)."
+            />
           </Stack>
-
-
-          <Stack sx={{gap: 1}}>
-            <InputLabel>Create</InputLabel>
-            <TextField id="create" name="create" type="text" value={form.create || ''} onChange={handleChange} placeholder="Create" fullWidth />
+          <Stack sx={{ gap: 1 }}>
+            <InputLabel>Description</InputLabel>
+            <TextField
+              id="description"
+              name="description"
+              type="text"
+              value={form.description || ''}
+              onChange={handleChange}
+              placeholder="What this resource covers"
+              fullWidth
+            />
           </Stack>
-
-
-          <Stack sx={{gap: 1}}>
-            <InputLabel>Read</InputLabel>
-            <TextField id="read" name="read" type="text" value={form.read || ''} onChange={handleChange} placeholder="Read" fullWidth />
-          </Stack>
-
-
-          <Stack sx={{gap: 1}}>
-            <InputLabel>Modify</InputLabel>
-            <TextField id="modify" name="modify" type="text" value={form.modify || ''} onChange={handleChange} placeholder="Modify" fullWidth />
-          </Stack>
-
-
-          <Stack sx={{gap: 1}}>
-            <InputLabel>Delete</InputLabel>
-            <TextField id="delete" name="delete" type="text" value={form.delete || ''} onChange={handleChange} placeholder="Delete" fullWidth />
-          </Stack>
-
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleSubmit}>
-          {initialData ? 'Update' : 'Submit'}
+        <Button onClick={onClose} disabled={saving}>
+          Cancel
+        </Button>
+        <Button variant="contained" onClick={handleSubmit} disabled={saving}>
+          {saving ? 'Saving…' : initialData ? 'Update' : 'Submit'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -96,5 +109,6 @@ export default function PermissionsFormDialog({ open, onClose, initialData = nul
 PermissionsFormDialog.propTypes = {
   open: PropTypes.bool,
   onClose: PropTypes.func,
-  initialData: PropTypes.object
+  initialData: PropTypes.object,
+  onSaved: PropTypes.func
 };

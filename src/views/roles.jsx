@@ -131,7 +131,12 @@ export function RolesView() {
         topActionsLeft={topActionsLeft}
         showPagination
       />
-      <RolesFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
+      <RolesFormDialog
+        open={open}
+        onClose={handleDialogToggle}
+        initialData={selected}
+        onSaved={() => dispatch(iam.rolesListRequest({ params: buildParams(applied) }))}
+      />
     </>
   );
 }

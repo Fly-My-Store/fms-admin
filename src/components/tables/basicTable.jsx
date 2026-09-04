@@ -105,18 +105,12 @@ export default function BasicTable({
     onRowClick,
     permissionName,
 }) {
-    const { canRead, canCreate, canModify, canDelete, isLoaded } = useCan();
+    const { canRead, canCreate, canModify, canDelete } = useCan();
 
-    // Resolve gates
-    // const allowView = permissionName ? canRead(permissionName) : false;
-    // const allowAdd = permissionName ? canCreate(permissionName) : false;
-    // const allowEdit = permissionName ? canModify(permissionName) : false;
-    // const allowDelete = permissionName ? canDelete(permissionName) : false;
-
-    const allowView = true;
-    const allowAdd = true;
-    const allowEdit = true;
-    const allowDelete = true;
+    const allowView = permissionName ? canRead(permissionName) : true;
+    const allowAdd = permissionName ? canCreate(permissionName) : true;
+    const allowEdit = permissionName ? canModify(permissionName) : true;
+    const allowDelete = permissionName ? canDelete(permissionName) : true;
 
     const cols = useMemo(() => {
         const hasActions =

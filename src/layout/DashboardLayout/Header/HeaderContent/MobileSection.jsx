@@ -13,6 +13,7 @@ import Search from './Search';
 import Profile from './Profile';
 import Localization from './Localization';
 import IconButton from 'components/@extended/IconButton';
+import { headerIconSx } from './headerIconSx';
 import Transitions from 'components/@extended/Transitions';
 
 // assets
@@ -49,11 +50,7 @@ export default function MobileSection() {
     <>
       <Box sx={{ flexShrink: 0, ml: 0.75 }}>
         <IconButton
-          sx={(theme) => ({
-            color: 'text.primary',
-            bgcolor: open ? 'grey.300' : 'grey.100',
-            ...theme.applyStyles('dark', { bgcolor: open ? 'grey.200' : 'background.default' })
-          })}
+          sx={headerIconSx(open)}
           aria-label="open more menu"
           ref={anchorRef}
           aria-controls={open ? 'menu-list-grow' : undefined}

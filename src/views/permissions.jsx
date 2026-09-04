@@ -105,7 +105,12 @@ export function PermissionsView() {
         onPaginationChange={handlePaginationChange}
         topActionsLeft={topActionsLeft}
       />
-      <PermissionsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} />
+      <PermissionsFormDialog
+        open={open}
+        onClose={handleDialogToggle}
+        initialData={selected}
+        onSaved={() => dispatch(iam.permissionsListRequest({ params: buildParams(applied) }))}
+      />
     </>
   );
 }

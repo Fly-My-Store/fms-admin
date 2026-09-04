@@ -86,7 +86,10 @@ export default function StoreDetailView() {
   const handleTabChange = (_, value) => {
     setTab(value);
     setVisited((prev) => new Set(prev).add(value));
-    router.replace(`/stores/${id}?tab=${value}`, { scroll: false });
+    const sp = new URLSearchParams(searchParams?.toString() || '');
+    sp.set('tab', value);
+    const qs = sp.toString();
+    router.replace(qs ? `/stores/${id}?${qs}` : `/stores/${id}`, { scroll: false });
   };
 
   const breadcrumb = useMemo(() => {

@@ -64,11 +64,13 @@ export default function CatalogPendingList({
   purgeAll,
   editPath,
   columns,
-  searchPlaceholder = 'Search…'
+  searchPlaceholder = 'Search…',
+  embedded = false
 }) {
   const router = useRouter();
   const { draft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
-    defaults: FILTER_DEFAULTS
+    defaults: FILTER_DEFAULTS,
+    preserveKeys: ['tab']
   });
   const [searchQuery, setSearchQuery] = useState(draft.q || '');
   const [rows, setRows] = useState([]);
@@ -234,10 +236,9 @@ export default function CatalogPendingList({
     </Stack>
   );
 
-  return (
-    <>
-      <MainCard title={title} secondary={headerActions}>
+  const body = (
         <Stack spacing={2}>
+          {embedded ? headerActions : null}
           <Paper variant="outlined" sx={{ overflow: 'auto' }}>
             <Table size="small">
               <TableHead>
@@ -308,7 +309,17 @@ export default function CatalogPendingList({
             onPaginationChange={handlePaginationChange}
           />
         </Stack>
-      </MainCard>
+  );
+
+  return (
+    <>
+      {embedded ? (
+        body
+      ) : (
+        <MainCard title={title} secondary={headerActions}>
+          {body}
+        </MainCard>
+      )}
 
       <Dialog open={Boolean(confirm)} onClose={() => !purging && setConfirm(null)}>
         <DialogTitle>Permanently delete?</DialogTitle>
@@ -338,7 +349,8 @@ CatalogPendingList.propTypes = {
   purgeAll: PropTypes.func,
   editPath: PropTypes.func.isRequired,
   columns: PropTypes.array.isRequired,
-  searchPlaceholder: PropTypes.string
+  searchPlaceholder: PropTypes.string,
+  embedded: PropTypes.bool
 };
 
 export function Thumb({ url, alt }) {

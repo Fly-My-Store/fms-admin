@@ -11,10 +11,11 @@ import {
   purgeAllPendingProducts
 } from 'api/catalog';
 
-export default function CatalogPendingProductsView() {
+export default function CatalogPendingProductsView({ embedded = false }) {
   return (
     <CatalogPendingList
       title="Pending Products"
+      embedded={embedded}
       searchPlaceholder="Name or slug…"
       loadRows={listProducts}
       approveOne={approveProduct}

@@ -22,7 +22,7 @@ const MainCard = forwardRef(function MainCard(
     children,
     subheader,
     content = true,
-    contentSX = {},
+    contentSX,
     darkTitle,
     divider = true,
     elevation,

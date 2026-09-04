@@ -5,15 +5,19 @@ const norm = (s) =>
     .trim()
     .toLowerCase();
 
+export function isSuperAdminUser(user) {
+  if (!user) return false;
+  if (user.is_super_admin) return true;
+  return String(user.role?.code || '').toUpperCase() === 'SUPER_ADMIN';
+}
+
 export function useCan() {
   const { user, permissionsByName, isLoaded } = useSelector((s) => s.auth || {});
 
-  const isAdminBypass = String(user?.type || '').toUpperCase() === 'ADMIN' && Object.keys(permissionsByName || {}).length === 0;
-
   const can = (permissionName, action) => {
-    if (!isLoaded) return false; // avoid flicker until auth loaded
-    if (isAdminBypass) return true; // ADMIN subtype bypass
-    const row = permissionsByName[norm(permissionName)];
+    if (!isLoaded) return false;
+    if (isSuperAdminUser(user)) return true;
+    const row = permissionsByName?.[norm(permissionName)];
     return !!row?.[action];
   };
 

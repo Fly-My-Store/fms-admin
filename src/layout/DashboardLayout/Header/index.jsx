@@ -8,13 +8,14 @@ import Toolbar from '@mui/material/Toolbar';
 // project imports
 import AppBarStyled from './AppBarStyled';
 import HeaderContent from './HeaderContent';
+import SidebarToggle from './HeaderContent/SidebarToggle';
 import IconButton from 'components/@extended/IconButton';
+import { headerIconSx } from './HeaderContent/headerIconSx';
 
 import useConfig from 'hooks/useConfig';
 import { handlerDrawerOpen, useGetMenuMaster } from 'api/menu';
 import { MenuOrientation, DRAWER_WIDTH, MINI_DRAWER_WIDTH } from 'config';
 
-// assets
 import MenuFoldOutlined from '@ant-design/icons/MenuFoldOutlined';
 import MenuUnfoldOutlined from '@ant-design/icons/MenuUnfoldOutlined';
 import { useSelector } from 'react-redux';
@@ -42,23 +43,20 @@ export default function Header() {
         backgroundColor: isDemoAdmin ? 'success.light' : 'transparent',
       }}
     >
-      {!isHorizontal ? (
+      {downLG ? (
         <IconButton
-          aria-label="open drawer"
+          aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
           onClick={() => handlerDrawerOpen(!drawerOpen)}
           edge="start"
           color="secondary"
           variant="light"
-          sx={(theme) => ({
-            color: 'text.primary',
-            bgcolor: drawerOpen ? 'transparent' : 'grey.100',
-            ...theme.applyStyles('dark', { bgcolor: drawerOpen ? 'transparent' : 'background.default' }),
-            ml: { xs: 0, lg: -2 }
-          })}
+          sx={[headerIconSx(drawerOpen), { mr: 0.5 }]}
         >
-          {!drawerOpen ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          {drawerOpen ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
         </IconButton>
-      ) : null}
+      ) : (
+        <SidebarToggle />
+      )}
       {headerContent}
     </Toolbar>
   );

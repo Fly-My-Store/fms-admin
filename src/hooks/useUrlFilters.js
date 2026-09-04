@@ -12,8 +12,12 @@ function parseValue(raw, fallback) {
   return String(raw);
 }
 
-function buildQuery(values, defaults, keys) {
+function buildQuery(values, defaults, keys, preserved = {}) {
   const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(preserved)) {
+    if (v == null || v === '') continue;
+    sp.set(k, String(v));
+  }
   for (const key of keys) {
     const v = values[key];
     if (v == null || v === '') continue;
@@ -28,7 +32,7 @@ function buildQuery(values, defaults, keys) {
  * Edit `draft` freely (no fetch). Call `applySearch()` to commit + write URL.
  * Pagination helpers update applied filters + URL.
  */
-export default function useUrlFilters({ defaults, keys: keysProp } = {}) {
+export default function useUrlFilters({ defaults, keys: keysProp, preserveKeys = [] } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -36,6 +40,8 @@ export default function useUrlFilters({ defaults, keys: keysProp } = {}) {
   const defaultsRef = useRef(defaults);
   defaultsRef.current = defaults;
   const skipNextUrlSync = useRef(false);
+  const preserveKeysRef = useRef(preserveKeys);
+  preserveKeysRef.current = preserveKeys;
 
   const readFromUrl = useCallback(() => {
     const d = defaultsRef.current || {};
@@ -55,11 +61,17 @@ export default function useUrlFilters({ defaults, keys: keysProp } = {}) {
   const writeUrl = useCallback(
     (values) => {
       skipNextUrlSync.current = true;
-      const qs = buildQuery(values, defaultsRef.current || {}, keys);
+      const preserved = {};
+      for (const k of preserveKeysRef.current || []) {
+        if (Object.prototype.hasOwnProperty.call(values, k)) continue;
+        const raw = searchParams?.get(k);
+        if (raw != null && raw !== '') preserved[k] = raw;
+      }
+      const qs = buildQuery(values, defaultsRef.current || {}, keys, preserved);
       const href = qs ? `${pathname}?${qs}` : pathname;
       router.replace(href, { scroll: false });
     },
-    [keys, pathname, router]
+    [keys, pathname, router, searchParams]
   );
 
   const urlKey = searchParams?.toString() || '';

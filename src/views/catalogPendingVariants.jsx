@@ -11,10 +11,11 @@ import {
   purgeAllPendingVariants
 } from 'api/catalog';
 
-export default function CatalogPendingVariantsView() {
+export default function CatalogPendingVariantsView({ embedded = false }) {
   return (
     <CatalogPendingList
       title="Pending Variants"
+      embedded={embedded}
       searchPlaceholder="SKU or barcode…"
       loadRows={listAllVariants}
       approveOne={approveVariant}

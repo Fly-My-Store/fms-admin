@@ -17,6 +17,19 @@ export async function bulkImportStoreVariants(storeId, formData, onUploadProgres
   return r.data;
 }
 
+export async function bulkUpdateStoreVariants(storeId, formData, onUploadProgress) {
+  const r = await axiosServices.post(
+    `admin/listings-inventory/stores/${storeId}/variants/bulk-update`,
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress,
+      timeout: 10 * 60 * 1000
+    }
+  );
+  return r.data;
+}
+
 export async function downloadStoreListingImportExample(storeId) {
   const r = await axiosServices.get(
     `admin/listings-inventory/stores/${storeId}/variants/bulk-import/example.csv`,

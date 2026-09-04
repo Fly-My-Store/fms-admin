@@ -7,10 +7,11 @@ function ownerProduct(row) {
   return row.product || row.variant?.product;
 }
 
-export default function CatalogPendingImagesView() {
+export default function CatalogPendingImagesView({ embedded = false }) {
   return (
     <CatalogPendingList
       title="Pending Images"
+      embedded={embedded}
       searchPlaceholder="Image URL, product, or SKU…"
       loadRows={listAllImages}
       approveOne={approveImage}

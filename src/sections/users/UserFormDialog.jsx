@@ -13,10 +13,11 @@ import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
+import MenuItem from '@mui/material/MenuItem';
 import { CloseOutlined } from '@ant-design/icons';
 import { enqueueSnackbar } from 'notistack';
 import { useSelector } from 'react-redux';
-import { createUser, updateUser } from 'api/iam';
+import { createUser, listRoles, updateUser } from 'api/iam';
 
 export default function UserFormDialog({ open, onClose, initialData = null, onSaved }) {
   const actorIsTester = useSelector((s) => Boolean(s.auth?.user?.is_tester));
@@ -26,10 +27,27 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
     phone: '',
     password: '',
     status: 1,
+    role_id: '',
     is_tester: false,
     tester_otp: ''
   });
   const [saving, setSaving] = useState(false);
+  const [roles, setRoles] = useState([]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancelled = false;
+    listRoles({ domain: 'ADMIN', limit: 100 })
+      .then((resp) => {
+        if (!cancelled) setRoles(resp?.data || []);
+      })
+      .catch(() => {
+        if (!cancelled) setRoles([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (initialData) {
@@ -39,6 +57,7 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         phone: initialData.phone || '',
         password: '',
         status: initialData.status ?? 1,
+        role_id: initialData.role_id || initialData.role?.id || '',
         is_tester: Boolean(initialData.is_tester),
         tester_otp: ''
       });
@@ -49,6 +68,7 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         phone: '',
         password: '',
         status: 1,
+        role_id: '',
         is_tester: actorIsTester,
         tester_otp: ''
       });
@@ -69,6 +89,7 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         phone: form.phone.trim() || undefined,
         status: Number(form.status),
         type: 'ADMIN',
+        role_id: form.role_id || undefined,
         is_tester: Boolean(form.is_tester)
       };
       if (form.password) payload.password = form.password;
@@ -80,6 +101,10 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
       } else {
         if (!payload.name || !payload.email || !form.password) {
           enqueueSnackbar('Name, email, and password are required', { variant: 'warning' });
+          return;
+        }
+        if (!form.role_id) {
+          enqueueSnackbar('Role is required', { variant: 'warning' });
           return;
         }
         await createUser(payload);
@@ -115,6 +140,24 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Phone</InputLabel>
             <TextField id="phone" name="phone" value={form.phone} onChange={handleChange} placeholder="Phone" fullWidth />
+          </Stack>
+          <Stack sx={{ gap: 1 }}>
+            <InputLabel>Role</InputLabel>
+            <TextField
+              select
+              id="role_id"
+              name="role_id"
+              value={form.role_id || ''}
+              onChange={handleChange}
+              fullWidth
+            >
+              <MenuItem value="">Select a role</MenuItem>
+              {roles.map((role) => (
+                <MenuItem key={role.id} value={role.id}>
+                  {role.name} ({role.code})
+                </MenuItem>
+              ))}
+            </TextField>
           </Stack>
           <Stack sx={{ gap: 1 }}>
             <InputLabel>{initialData ? 'New password (optional)' : 'Password'}</InputLabel>

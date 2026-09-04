@@ -10,10 +10,11 @@ import {
   purgeAllPendingCategories
 } from 'api/catalog';
 
-export default function CatalogPendingCategoriesView() {
+export default function CatalogPendingCategoriesView({ embedded = false }) {
   return (
     <CatalogPendingList
       title="Pending Categories"
+      embedded={embedded}
       searchPlaceholder="Name or slug…"
       loadRows={listCategories}
       approveOne={approveCategory}

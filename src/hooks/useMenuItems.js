@@ -2,6 +2,7 @@
 
 import { useSelector } from 'react-redux';
 import platformMenuGroups from 'menu-items/platform';
+import { isSuperAdminUser } from 'hooks/useCan';
 
 const norm = (s) =>
   String(s || '')
@@ -12,6 +13,9 @@ function filterTree(node, can) {
   if (!node) return null;
 
   if (node.type === 'item') {
+    if (Array.isArray(node.anyOf) && node.anyOf.length) {
+      return node.anyOf.some((p) => can(p.perm, p.action || 'read')) ? node : null;
+    }
     if (!node.perm) return node;
     const action = node.action || 'read';
     return can(node.perm, action) ? node : null;
@@ -35,11 +39,7 @@ export default function useMenuItems() {
 
   if (!isLoaded) return { items: [] };
 
-  const isAdmin = String(user?.type || '').toUpperCase() === 'ADMIN';
-  const hasPermissions = Object.keys(permissionsByName || {}).length > 0;
-
-  // Admin app: full menu when login has not yet returned role permissions
-  if (isAdmin && !hasPermissions) {
+  if (isSuperAdminUser(user)) {
     return { items: platformMenuGroups };
   }
 

@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux';
 
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
 
 // project imports
 import Search from './Search';
@@ -12,7 +11,10 @@ import Profile from './Profile';
 import Localization from './Localization';
 import Notification from './Notification';
 import FullScreen from './FullScreen';
-import MobileSection from './MobileSection';
+import DataGuide from './DataGuide';
+import MiniDrawerSwitch from './MiniDrawerSwitch';
+import ThemeModeToggle from './ThemeModeToggle';
+import Logout from './Logout';
 
 import useConfig from 'hooks/useConfig';
 import { MenuOrientation } from 'config';
@@ -32,20 +34,26 @@ export default function HeaderContent() {
   return (
     <>
       {menuOrientation === MenuOrientation.HORIZONTAL && !downLG && <DrawerHeader open={true} />}
-      {false && <Search />}
-      {false && !downLG && localization}
-      {downLG && <Box sx={{ width: '100%', ml: 1 }} />}
-
-      {false && <Notification />}
-      {false && <Message />} 
       {isDemoAdmin ? (
         <Typography variant="body" color="white" sx={{ width: '100%', textAlign: 'center' }}>
           Demo admin mode — changes apply to demo data only.
         </Typography>
-      ):<Box sx={{ width: '100%'}} />}
-      {!downLG && <FullScreen />}
-      {!downLG && <Profile />}
-      {downLG && <MobileSection />}
+      ) : (
+        <Box sx={{ width: '100%' }} />
+      )}
+      {false && <Search />}
+      {false && !downLG && localization}
+      {downLG && <Box sx={{ width: '100%', ml: 1 }} />}
+
+      <DataGuide />
+      <FullScreen />
+      <MiniDrawerSwitch />
+      <ThemeModeToggle />
+      {false && <Notification />}
+      {false && <Message />}
+      <Profile />
+      <Logout />
+
     </>
   );
 }

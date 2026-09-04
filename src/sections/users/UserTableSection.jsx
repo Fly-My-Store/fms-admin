@@ -33,6 +33,11 @@ export default function UserTableSection({
         accessorKey: 'phone'
       },
       {
+        header: 'Role',
+        accessorKey: 'role',
+        cell: (cell) => cell.row.original?.role?.name || '—'
+      },
+      {
         header: 'Status',
         accessorKey: 'status',
         cell: (cell) => {

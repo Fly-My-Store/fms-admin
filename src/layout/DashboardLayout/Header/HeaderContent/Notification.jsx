@@ -19,6 +19,7 @@ import Box from '@mui/material/Box';
 // project imports
 import MainCard from 'components/MainCard';
 import IconButton from 'components/@extended/IconButton';
+import { headerIconSx } from './headerIconSx';
 import Transitions from 'components/@extended/Transitions';
 
 // assets
@@ -69,11 +70,7 @@ export default function Notification() {
       <IconButton
         color="secondary"
         variant="light"
-        sx={(theme) => ({
-          color: 'text.primary',
-          bgcolor: open ? 'grey.100' : 'transparent',
-          ...theme.applyStyles('dark', { bgcolor: open ? 'background.default' : 'transparent' })
-        })}
+        sx={headerIconSx(open)}
         aria-label="open profile"
         ref={anchorRef}
         aria-controls={open ? 'profile-grow' : undefined}

@@ -22,8 +22,16 @@ export const ROUTES = {
   ERROR_500: '/500',
   COMING_SOON: '/coming-soon',
   UNDER_CONSTRUCTION: '/pages/under-construction',
-  APP_DOWNLOADS: '/downloads'
+  APP_DOWNLOADS: '/downloads',
+  APP_RELEASES: '/app-releases'
 };
+
+export function isPublicPath(path) {
+  const p = String(path || '').split('?')[0];
+  if (p === ROUTES.APP_DOWNLOADS || p.startsWith(`${ROUTES.APP_DOWNLOADS}/`)) return true;
+  if (p === ROUTES.APP_RELEASES) return true;
+  return false;
+}
 
 export const TABLE_STATUS = {
   ACTIVE: 1,

@@ -14,6 +14,7 @@ import Box from '@mui/material/Box';
 
 // project imports
 import IconButton from 'components/@extended/IconButton';
+import { headerIconSx } from './headerIconSx';
 import Transitions from 'components/@extended/Transitions';
 
 import useConfig from 'hooks/useConfig';
@@ -51,11 +52,7 @@ export default function Localization() {
       <IconButton
         color="secondary"
         variant="light"
-        sx={(theme) => ({
-          color: 'text.primary',
-          bgcolor: open ? 'grey.100' : 'transparent',
-          ...theme.applyStyles('dark', { bgcolor: open ? 'background.default' : 'transparent' })
-        })}
+        sx={headerIconSx(open)}
         aria-label="open localization"
         ref={anchorRef}
         aria-controls={open ? 'localization-grow' : undefined}

@@ -15,7 +15,7 @@ import {
 import MainCard from 'components/MainCard';
 import Avatar from 'components/@extended/Avatar';
 import useUser from 'hooks/useUser';
-import { getUser, updateUser } from 'api/iam';
+import { getMe, updateMe } from 'api/iam';
 import { updateAuthUser } from 'store/auth/authSlice';
 
 export default function ProfilePersonalTab() {
@@ -42,8 +42,9 @@ export default function ProfilePersonalTab() {
       setLoading(true);
       setError(null);
       try {
-        const resp = await getUser(authUser.id);
-        const user = resp?.data || resp;
+        const resp = await getMe();
+        const payload = resp?.data || resp;
+        const user = payload?.user || payload;
         if (!cancelled) {
           setForm({
             name: user?.name || authUser.name || '',
@@ -82,7 +83,7 @@ export default function ProfilePersonalTab() {
 
     setSaving(true);
     try {
-      const resp = await updateUser(authUser.id, {
+      const resp = await updateMe({
         name: form.name.trim(),
         phone: form.phone.trim() || undefined
       });
