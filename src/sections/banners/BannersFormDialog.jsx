@@ -226,7 +226,10 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
               size="small"
               disabled={saving}
             />
-            <FormHelperText>Where the customer goes when they tap the banner.</FormHelperText>
+            <FormHelperText>
+              Prefer a generated URL from Marketing → Share links (https://flymystore.com/x/…).
+              Legacy values like fms://category/slug still work in the customer app.
+            </FormHelperText>
           </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

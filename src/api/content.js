@@ -17,3 +17,7 @@ export const getFaq = (id) => get(`admin/content/faqs/${id}`);
 export const createFaq = (data) => post('admin/content/faqs', data);
 export const updateFaq = (id, data) => patch(`admin/content/faqs/${id}`, data);
 export const deleteFaq = (id) => del(`admin/content/faqs/${id}`);
+
+export const listShareLinks = (params) => get('admin/content/share-links', params);
+export const createShareLink = (data) => post('admin/content/share-links', data);
+export const updateShareLink = (id, data) => patch(`admin/content/share-links/${id}`, data);
