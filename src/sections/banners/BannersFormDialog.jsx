@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { enqueueSnackbar } from 'notistack';
 import Dialog from '@mui/material/Dialog';
@@ -14,16 +14,26 @@ import Box from '@mui/material/Box';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormHelperText from '@mui/material/FormHelperText';
+import Autocomplete from '@mui/material/Autocomplete';
+import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
-import { createBanner, updateBanner } from 'api/content';
+import { createBanner, createShareLink, updateBanner } from 'api/content';
+import { getVariant, listAllVariants, listCategories } from 'api/catalog';
+import { getStore, listStores } from 'api/sellersStores';
 import { uploadSingle } from 'api/upload';
+import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
 import { RECORD_STATUS } from 'utils/constants';
+import {
+  BANNER_DESTINATIONS,
+  buildBannerDeeplink,
+  entityOptionLabel,
+  parseBannerDeeplink
+} from 'utils/bannerDeeplink';
 
 const EMPTY = {
   title: '',
   image_url: '',
-  deeplink: '',
   active_from: '',
   active_to: '',
   record_status: RECORD_STATUS.ACTIVE
@@ -33,6 +43,10 @@ const STATUS_OPTIONS = [
   { value: RECORD_STATUS.ACTIVE, label: 'Active' },
   { value: RECORD_STATUS.INACTIVE, label: 'Inactive' }
 ];
+
+function unwrap(res) {
+  return res?.data || res || null;
+}
 
 const toLocalInput = (iso) => {
   if (!iso) return '';
@@ -48,6 +62,28 @@ const toIsoOrNull = (local) => {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 };
 
+async function findCategoryBySlug(slug) {
+  if (!slug) return null;
+  try {
+    const res = await listCategories({ page: 1, limit: 20, q: slug });
+    const rows = res?.data || res?.rows || [];
+    return rows.find((r) => r.slug === slug) || rows[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+async function findStoreBySlug(slug) {
+  if (!slug) return null;
+  try {
+    const res = await listStores({ page: 1, limit: 20, q: slug });
+    const rows = res?.data || res?.rows || [];
+    return rows.find((r) => r.slug === slug) || rows[0] || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function BannersFormDialog({ open, onClose, initialData = null, onSaved }) {
   const [form, setForm] = useState(EMPTY);
   const [imagePreview, setImagePreview] = useState('');
@@ -55,27 +91,111 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
   const [uploadProgress, setUploadProgress] = useState(0);
   const [saving, setSaving] = useState(false);
 
+  const [destination, setDestination] = useState('none');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [category, setCategory] = useState(null);
+  const [store, setStore] = useState(null);
+  const [variant, setVariant] = useState(null);
+  const [customUrl, setCustomUrl] = useState('');
+  const [previewLink, setPreviewLink] = useState('');
+
+  const categoryAc = usePagedAutocomplete(listCategories);
+  const storeAc = usePagedAutocomplete(listStores);
+  const variantAc = usePagedAutocomplete(listAllVariants);
+
+  const resetDestination = useCallback(() => {
+    setDestination('none');
+    setSearchQuery('');
+    setCategory(null);
+    setStore(null);
+    setVariant(null);
+    setCustomUrl('');
+    setPreviewLink('');
+  }, []);
+
+  const hydrateFromDeeplink = useCallback(async (deeplink) => {
+    const parsed = parseBannerDeeplink(deeplink);
+    setDestination(parsed.destination || 'none');
+    setSearchQuery(parsed.searchQuery || '');
+    setCustomUrl(parsed.customUrl || (parsed.destination === 'custom' ? deeplink : '') || '');
+    setCategory(null);
+    setStore(null);
+    setVariant(null);
+    setPreviewLink(String(deeplink || '').trim());
+
+    if (parsed.destination === 'category' && parsed.categorySlug) {
+      const row = await findCategoryBySlug(parsed.categorySlug);
+      if (row) setCategory(row);
+    }
+    if (parsed.destination === 'store' && parsed.storeSlug) {
+      const row = await findStoreBySlug(parsed.storeSlug);
+      if (row) setStore(row);
+    }
+    if (parsed.destination === 'variant' && parsed.variantId) {
+      try {
+        const row = unwrap(await getVariant(parsed.variantId));
+        if (row) setVariant(row);
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     if (initialData) {
       setForm({
         title: initialData.title || '',
         image_url: initialData.image_url || '',
-        deeplink: initialData.deeplink || initialData.target_url || initialData.link_url || '',
         active_from: toLocalInput(initialData.active_from),
         active_to: toLocalInput(initialData.active_to),
         record_status: Number(initialData.record_status) || RECORD_STATUS.ACTIVE
       });
       setImagePreview(initialData.image_url || '');
+      hydrateFromDeeplink(initialData.deeplink || initialData.target_url || initialData.link_url || '');
     } else {
       setForm(EMPTY);
       setImagePreview('');
+      resetDestination();
     }
-  }, [initialData, open]);
+  }, [initialData, open, hydrateFromDeeplink, resetDestination]);
+
+  const generatedLink = useMemo(() => {
+    if (destination === 'variant_store') {
+      // Built on save via share-link API
+      return previewLink || '';
+    }
+    return (
+      buildBannerDeeplink({
+        destination,
+        searchQuery,
+        category,
+        store,
+        variant,
+        customUrl
+      }) || ''
+    );
+  }, [destination, searchQuery, category, store, variant, customUrl, previewLink]);
+
+  useEffect(() => {
+    if (destination !== 'variant_store') {
+      setPreviewLink(generatedLink);
+    }
+  }, [destination, generatedLink]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDestinationChange = (next) => {
+    setDestination(next);
+    setSearchQuery('');
+    setCategory(null);
+    setStore(null);
+    setVariant(null);
+    setCustomUrl('');
+    setPreviewLink('');
   };
 
   const handleImageSelect = async (e) => {
@@ -86,14 +206,18 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
     try {
       setUploading(true);
       setUploadProgress(0);
-      const res = await uploadSingle(file, (pe) => {
-        if (pe?.total) {
-          setUploadProgress(Math.round((pe.loaded * 100) / pe.total));
+      const res = await uploadSingle(
+        file,
+        (pe) => {
+          if (pe?.total) {
+            setUploadProgress(Math.round((pe.loaded * 100) / pe.total));
+          }
+        },
+        {
+          purpose: 'banner',
+          store_id: store?.id || undefined
         }
-      }, {
-        purpose: 'banner',
-        store_id: form.store_id || undefined,
-      });
+      );
       const url = res?.url || res?.data?.url;
       if (!url) throw new Error('Upload failed: no URL returned');
       setForm((prev) => ({ ...prev, image_url: url }));
@@ -113,23 +237,81 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
     setImagePreview('');
   };
 
+  const resolveDeeplinkForSave = async () => {
+    if (destination === 'none') return null;
+
+    if (destination === 'variant_store') {
+      if (!variant?.id) {
+        enqueueSnackbar('Pick a variant', { variant: 'warning' });
+        return undefined;
+      }
+      if (!store?.id) {
+        enqueueSnackbar('Pick a store', { variant: 'warning' });
+        return undefined;
+      }
+      const res = await createShareLink({
+        type: 'variant',
+        variant_id: variant.id,
+        store_id: store.id,
+        label: form.title?.trim() || `banner-${variant.id.slice(0, 8)}`
+      });
+      const data = unwrap(res);
+      const url = data?.url;
+      if (!url) throw new Error('Could not create store-scoped link');
+      return url;
+    }
+
+    if (destination === 'search' && String(searchQuery || '').trim().length < 2) {
+      enqueueSnackbar('Enter a search query (at least 2 characters)', { variant: 'warning' });
+      return undefined;
+    }
+    if (destination === 'category' && !category?.slug && !category?.id) {
+      enqueueSnackbar('Pick a category', { variant: 'warning' });
+      return undefined;
+    }
+    if (destination === 'store' && !store?.slug && !store?.id) {
+      enqueueSnackbar('Pick a store', { variant: 'warning' });
+      return undefined;
+    }
+    if (destination === 'variant' && !variant?.id) {
+      enqueueSnackbar('Pick a variant', { variant: 'warning' });
+      return undefined;
+    }
+    if (destination === 'custom' && !String(customUrl || '').trim()) {
+      enqueueSnackbar('Paste a URL or deeplink', { variant: 'warning' });
+      return undefined;
+    }
+
+    return buildBannerDeeplink({
+      destination,
+      searchQuery,
+      category,
+      store,
+      variant,
+      customUrl
+    });
+  };
+
   const handleSubmit = async () => {
     if (!form.image_url?.trim()) {
       enqueueSnackbar('Banner image is required', { variant: 'warning' });
       return;
     }
 
-    const payload = {
-      title: form.title?.trim() || null,
-      image_url: form.image_url.trim(),
-      deeplink: form.deeplink?.trim() || null,
-      active_from: toIsoOrNull(form.active_from),
-      active_to: toIsoOrNull(form.active_to),
-      record_status: Number(form.record_status) || RECORD_STATUS.ACTIVE
-    };
-
     try {
       setSaving(true);
+      const deeplink = await resolveDeeplinkForSave();
+      if (deeplink === undefined) return;
+
+      const payload = {
+        title: form.title?.trim() || null,
+        image_url: form.image_url.trim(),
+        deeplink,
+        active_from: toIsoOrNull(form.active_from),
+        active_to: toIsoOrNull(form.active_to),
+        record_status: Number(form.record_status) || RECORD_STATUS.ACTIVE
+      };
+
       if (initialData?.id) {
         await updateBanner(initialData.id, payload);
         enqueueSnackbar('Banner updated', { variant: 'success' });
@@ -147,11 +329,26 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
     }
   };
 
+  const categoryOptions =
+    category?.id && !(categoryAc.options || []).some((o) => o.id === category.id)
+      ? [category, ...(categoryAc.options || [])]
+      : categoryAc.options || [];
+  const storeOptions =
+    store?.id && !(storeAc.options || []).some((o) => o.id === store.id)
+      ? [store, ...(storeAc.options || [])]
+      : storeAc.options || [];
+  const variantOptions =
+    variant?.id && !(variantAc.options || []).some((o) => o.id === variant.id)
+      ? [variant, ...(variantAc.options || [])]
+      : variantAc.options || [];
+
+  const busy = saving || uploading;
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={busy ? undefined : onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {initialData ? 'Edit Banner' : 'Add Banner'}
-        <IconButton onClick={onClose} aria-label="close">
+        <IconButton onClick={onClose} aria-label="close" disabled={busy}>
           <CloseOutlined />
         </IconButton>
       </DialogTitle>
@@ -188,12 +385,12 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
                 )}
               </Box>
               <Stack spacing={0.5}>
-                <Button component="label" variant="outlined" size="small" disabled={uploading || saving}>
+                <Button component="label" variant="outlined" size="small" disabled={busy}>
                   {uploading ? `Uploading… ${uploadProgress || 0}%` : 'Upload image'}
                   <input type="file" accept="image/*" hidden onChange={handleImageSelect} />
                 </Button>
                 {imagePreview || form.image_url ? (
-                  <Button size="small" onClick={handleImageRemove} disabled={uploading || saving}>
+                  <Button size="small" onClick={handleImageRemove} disabled={busy}>
                     Remove
                   </Button>
                 ) : null}
@@ -211,26 +408,131 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
               placeholder="Optional headline"
               fullWidth
               size="small"
-              disabled={saving}
+              disabled={busy}
             />
           </Stack>
 
           <Stack spacing={1}>
-            <InputLabel>Deeplink</InputLabel>
+            <InputLabel>Opens</InputLabel>
             <TextField
-              name="deeplink"
-              value={form.deeplink}
-              onChange={handleChange}
-              placeholder="e.g. /products/some-slug or app://screen"
-              fullWidth
+              select
               size="small"
-              disabled={saving}
-            />
+              value={destination}
+              onChange={(e) => handleDestinationChange(e.target.value)}
+              fullWidth
+              disabled={busy}
+            >
+              {BANNER_DESTINATIONS.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </TextField>
             <FormHelperText>
-              Prefer a generated URL from Marketing → Share links (https://flymystore.com/x/…).
-              Legacy values like fms://category/slug still work in the customer app.
+              Product banners always open the <strong>variant</strong> page (not a product list).
             </FormHelperText>
           </Stack>
+
+          {destination === 'search' ? (
+            <Stack spacing={1}>
+              <InputLabel>Search query</InputLabel>
+              <TextField
+                size="small"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="iphone case"
+                fullWidth
+                disabled={busy}
+              />
+            </Stack>
+          ) : null}
+
+          {destination === 'category' ? (
+            <Stack spacing={0.5}>
+              <InputLabel>Category</InputLabel>
+              <Autocomplete
+                options={categoryOptions}
+                value={category}
+                loading={categoryAc.loading}
+                disabled={busy}
+                getOptionLabel={(o) => entityOptionLabel('category', o)}
+                isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                onChange={(_e, next) => setCategory(next)}
+                onInputChange={(_e, q) => categoryAc.setQuery(q)}
+                ListboxProps={{ onScroll: categoryAc.handleScroll }}
+                renderInput={(params) => <TextField {...params} size="small" placeholder="Search categories…" />}
+              />
+            </Stack>
+          ) : null}
+
+          {destination === 'store' || destination === 'variant_store' ? (
+            <Stack spacing={0.5}>
+              <InputLabel>Store</InputLabel>
+              <Autocomplete
+                options={storeOptions}
+                value={store}
+                loading={storeAc.loading}
+                disabled={busy}
+                getOptionLabel={(o) => entityOptionLabel('store', o)}
+                isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                onChange={(_e, next) => setStore(next)}
+                onInputChange={(_e, q) => storeAc.setQuery(q)}
+                ListboxProps={{ onScroll: storeAc.handleScroll }}
+                renderInput={(params) => <TextField {...params} size="small" placeholder="Search stores…" />}
+              />
+            </Stack>
+          ) : null}
+
+          {destination === 'variant' || destination === 'variant_store' ? (
+            <Stack spacing={0.5}>
+              <InputLabel>Variant</InputLabel>
+              <Autocomplete
+                options={variantOptions}
+                value={variant}
+                loading={variantAc.loading}
+                disabled={busy}
+                getOptionLabel={(o) => entityOptionLabel('variant', o)}
+                isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                onChange={(_e, next) => setVariant(next)}
+                onInputChange={(_e, q) => variantAc.setQuery(q)}
+                ListboxProps={{ onScroll: variantAc.handleScroll }}
+                renderInput={(params) => <TextField {...params} size="small" placeholder="Search variants…" />}
+              />
+              {destination === 'variant_store' ? (
+                <FormHelperText>
+                  Creates a store-scoped share link so the app opens this variant at the selected store.
+                </FormHelperText>
+              ) : null}
+            </Stack>
+          ) : null}
+
+          {destination === 'custom' ? (
+            <Stack spacing={1}>
+              <InputLabel>Custom URL / deeplink</InputLabel>
+              <TextField
+                size="small"
+                value={customUrl}
+                onChange={(e) => setCustomUrl(e.target.value)}
+                placeholder="https://flymystore.com/x/… or fms://…"
+                fullWidth
+                disabled={busy}
+              />
+            </Stack>
+          ) : null}
+
+          {destination !== 'none' && (previewLink || generatedLink) ? (
+            <Stack spacing={0.5}>
+              <Typography variant="caption" color="text.secondary">
+                Generated link
+              </Typography>
+              <TextField
+                size="small"
+                value={destination === 'variant_store' ? previewLink || '(created on save)' : generatedLink}
+                fullWidth
+                InputProps={{ readOnly: true }}
+              />
+            </Stack>
+          ) : null}
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Stack spacing={1} flex={1}>
@@ -242,7 +544,7 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
                 onChange={handleChange}
                 fullWidth
                 size="small"
-                disabled={saving}
+                disabled={busy}
                 InputLabelProps={{ shrink: true }}
               />
             </Stack>
@@ -255,7 +557,7 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
                 onChange={handleChange}
                 fullWidth
                 size="small"
-                disabled={saving}
+                disabled={busy}
                 InputLabelProps={{ shrink: true }}
               />
             </Stack>
@@ -271,7 +573,7 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
               onChange={handleChange}
               fullWidth
               size="small"
-              disabled={saving}
+              disabled={busy}
             >
               {STATUS_OPTIONS.map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>
@@ -284,10 +586,10 @@ export default function BannersFormDialog({ open, onClose, initialData = null, o
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={saving || uploading}>
+        <Button onClick={onClose} disabled={busy}>
           Cancel
         </Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={saving || uploading}>
+        <Button variant="contained" onClick={handleSubmit} disabled={busy}>
           {saving ? 'Saving…' : initialData ? 'Update' : 'Create'}
         </Button>
       </DialogActions>
