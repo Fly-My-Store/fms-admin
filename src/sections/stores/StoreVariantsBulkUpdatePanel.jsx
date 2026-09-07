@@ -10,14 +10,18 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { InboxOutlined } from '@ant-design/icons';
-import { bulkUpdateStoreVariants } from 'api/listingsInventory';
+import {
+  enqueueCsvJobWithFile,
+  enqueueStoreCsvUpdate,
+  presignStoreCsvJob
+} from 'api/csvJobs';
 
 function isAllowedFile(file) {
   if (!file) return false;
   return String(file.name || '').toLowerCase().endsWith('.csv');
 }
 
-export default function StoreVariantsBulkUpdatePanel({ storeId, isDemo, onDone }) {
+export default function StoreVariantsBulkUpdatePanel({ storeId, isDemo, onQueued }) {
   const [file, setFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -57,25 +61,21 @@ export default function StoreVariantsBulkUpdatePanel({ storeId, isDemo, onDone }
     setUploading(true);
     setProgress(0);
     try {
-      const form = new FormData();
-      form.append('file', file);
-      const resp = await bulkUpdateStoreVariants(storeId, form, (evt) => {
-        if (!evt.total) return;
-        setProgress(Math.round((evt.loaded / evt.total) * 100));
+      await enqueueCsvJobWithFile({
+        file,
+        presign: (body) => presignStoreCsvJob(storeId, { ...body, kind: 'STORE_VARIANT_UPDATE' }),
+        enqueueJson: (body) => enqueueStoreCsvUpdate(storeId, body),
+        enqueueForm: (form, config) => enqueueStoreCsvUpdate(storeId, form, config),
+        onProgress: setProgress
       });
-      const data = resp?.data || resp;
-      const failed = data?.summary?.failed || 0;
-      const updated = data?.summary?.updated || 0;
-      enqueueSnackbar(
-        failed ? `Update finished: ${updated} updated, ${failed} failed` : `Update OK — ${updated} listing(s) changed`,
-        { variant: failed ? 'warning' : 'success' }
-      );
-      onDone?.(data);
+      enqueueSnackbar('Queued — you can close this page.', { variant: 'success' });
+      onQueued?.();
       handleClear();
     } catch (err) {
-      enqueueSnackbar(err?.response?.data?.message || err?.message || 'Update failed', { variant: 'error' });
+      enqueueSnackbar(err?.response?.data?.message || err?.message || 'Could not queue update', { variant: 'error' });
     } finally {
       setUploading(false);
+      setProgress(0);
     }
   };
 
@@ -88,7 +88,8 @@ export default function StoreVariantsBulkUpdatePanel({ storeId, isDemo, onDone }
       <Alert severity="info">
         Re-upload the downloaded CSV. Only <strong>price_rupee</strong>, <strong>mrp_rupee</strong>,{' '}
         <strong>max_per_order</strong>, <strong>stock_status</strong> (in / out), and <strong>max_order_qty</strong> are
-        updated. Match is by <strong>id</strong>. Max 100 rows.
+        updated. Match is by <strong>id</strong>. Failed rows appear on the jobs list as an errors CSV — you can leave
+        this page while it runs.
       </Alert>
 
       <Box
@@ -134,7 +135,7 @@ export default function StoreVariantsBulkUpdatePanel({ storeId, isDemo, onDone }
         <Box>
           <LinearProgress variant={progress ? 'determinate' : 'indeterminate'} value={progress} />
           <Typography variant="caption" color="text.secondary">
-            {progress ? `Uploading ${progress}%` : 'Processing…'}
+            {progress ? `Uploading ${progress}%` : 'Queuing…'}
           </Typography>
         </Box>
       )}
@@ -154,5 +155,5 @@ export default function StoreVariantsBulkUpdatePanel({ storeId, isDemo, onDone }
 StoreVariantsBulkUpdatePanel.propTypes = {
   storeId: PropTypes.string,
   isDemo: PropTypes.bool,
-  onDone: PropTypes.func
+  onQueued: PropTypes.func
 };

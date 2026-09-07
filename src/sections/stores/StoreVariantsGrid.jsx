@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { enqueueSnackbar } from 'notistack';
 import {
   Alert,
+  Autocomplete,
   Avatar,
   Box,
   Button,
@@ -29,11 +30,14 @@ import {
 } from '@mui/material';
 import MainCard from 'components/MainCard';
 import { TablePagination } from 'components/third-party/react-table';
+import { getCategory, listCategories } from 'api/catalog';
 import { listStoreVariants } from 'api/listingsInventory';
+import { enqueueStoreCsvExport, listStoreCsvJobs, abortStoreCsvJob, storeCsvJobDownloadPath } from 'api/csvJobs';
+import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
 import { formatINR } from 'utils/currency';
 import { downloadCsv, storeVariantsToCsv } from 'utils/storeVariantCsv';
 import StoreVariantsBulkUpdatePanel from 'sections/stores/StoreVariantsBulkUpdatePanel';
-import StoreVariantsImportResult from 'sections/stores/detail/StoreVariantsImportResult';
+import CsvJobsList from 'sections/csv/CsvJobsList';
 
 const DEFAULT_LIMIT = 10;
 
@@ -141,22 +145,49 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
   const q = searchParams?.get('q') || '';
   const stockStatus = searchParams?.get('stock') || '';
   const listingStatus = searchParams?.get('listing') || '';
+  const categoryId = searchParams?.get('category_id') || '';
   const page = parsePage(searchParams?.get('page'));
   const pageSize = parseLimit(searchParams?.get('limit'));
 
   const [qDraft, setQDraft] = useState(q);
+  const [stockDraft, setStockDraft] = useState(stockStatus);
+  const [listingDraft, setListingDraft] = useState(listingStatus);
+  const [categorySel, setCategorySel] = useState(null);
+  const categoryAc = usePagedAutocomplete(listCategories);
   const [items, setItems] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState([]);
-  const [updateResult, setUpdateResult] = useState(null);
-  const updateSectionRef = useRef(null);
+  const [jobsTick, setJobsTick] = useState(0);
 
   useEffect(() => {
     setQDraft(q);
-  }, [q]);
+    setStockDraft(stockStatus);
+    setListingDraft(listingStatus);
+  }, [q, stockStatus, listingStatus]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (categoryId) {
+          if (categorySel?.id === categoryId) return;
+          const res = await getCategory(categoryId);
+          if (!cancelled) setCategorySel(res?.data || res || null);
+        } else if (!cancelled) {
+          setCategorySel(null);
+        }
+      } catch {
+        if (!cancelled) setCategorySel(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate from URL only
+  }, [categoryId]);
 
   const patchUrl = useCallback(
     (patch) => {
@@ -176,7 +207,8 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
         limit: pageSize,
         ...(q ? { q } : {}),
         ...(stockStatus ? { stock_status: stockStatus } : {}),
-        ...(listingStatus ? { status: listingStatus } : {})
+        ...(listingStatus ? { status: listingStatus } : {}),
+        ...(categoryId ? { category_id: categoryId } : {})
       });
       const list = Array.isArray(resp?.data) ? resp.data : [];
       setItems(list);
@@ -192,7 +224,7 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
     } finally {
       setLoading(false);
     }
-  }, [listingStatus, page, pageSize, q, stockStatus, storeId]);
+  }, [categoryId, listingStatus, page, pageSize, q, stockStatus, storeId]);
 
   useEffect(() => {
     load();
@@ -211,31 +243,41 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
   };
 
   const handleSearch = () => {
-    patchUrl({ q: qDraft.trim(), page: 1 });
+    patchUrl({
+      q: qDraft.trim(),
+      category_id: categorySel?.id || '',
+      stock: stockDraft || '',
+      listing: listingDraft || '',
+      page: 1
+    });
   };
 
-  const handleDownload = () => {
+  const handleDownloadSelected = () => {
     const selectedSet = new Set(selected);
-    const rows = selected.length ? items.filter((it) => selectedSet.has(it.id)) : items;
+    const rows = items.filter((it) => selectedSet.has(it.id));
     if (!rows.length) {
       enqueueSnackbar('Nothing to download', { variant: 'warning' });
       return;
     }
-    downloadCsv(
-      selected.length ? 'store-variants-selected.csv' : 'store-variants.csv',
-      storeVariantsToCsv(rows)
-    );
+    downloadCsv('store-variants-selected.csv', storeVariantsToCsv(rows));
   };
 
-  const handleUpdateDone = (data) => {
-    setUpdateResult(data);
-    load();
+  const handleDownloadAll = async () => {
+    try {
+      await enqueueStoreCsvExport(storeId, {
+        q,
+        stock_status: stockStatus,
+        status: listingStatus,
+        category_id: categoryId
+      });
+      enqueueSnackbar('Queued — you can close this page.', { variant: 'success' });
+      setJobsTick((n) => n + 1);
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Could not queue export', { variant: 'error' });
+    }
   };
 
-  useEffect(() => {
-    if (!updateResult) return;
-    updateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [updateResult]);
+  const loadStoreJobs = useCallback(() => listStoreCsvJobs(storeId, { limit: 20 }), [storeId]);
 
   if (!storeId) return null;
 
@@ -250,12 +292,44 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
         placeholder="SKU, name, or id…"
         sx={{ minWidth: 180 }}
       />
+      <Autocomplete
+        sx={{ minWidth: 180 }}
+        size="small"
+        options={categoryAc.options}
+        value={categorySel}
+        loading={categoryAc.loading}
+        onChange={(_, v) => setCategorySel(v)}
+        onInputChange={(_, v, reason) => {
+          if (reason === 'reset') return;
+          categoryAc.setQuery(v);
+        }}
+        getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
+        getOptionKey={(opt) => opt?.id || String(opt?.name || '')}
+        isOptionEqualToValue={(a, b) => a?.id === b?.id}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Category"
+            placeholder="All categories"
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {categoryAc.loading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              )
+            }}
+          />
+        )}
+        ListboxProps={{ onScroll: categoryAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
+      />
       <TextField
         select
         size="small"
         label="Stock"
-        value={stockStatus}
-        onChange={(e) => patchUrl({ stock: e.target.value, page: 1 })}
+        value={stockDraft}
+        onChange={(e) => setStockDraft(e.target.value)}
         sx={{ minWidth: 110 }}
       >
         <MenuItem value="">All</MenuItem>
@@ -266,8 +340,8 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
         select
         size="small"
         label="Listing"
-        value={listingStatus}
-        onChange={(e) => patchUrl({ listing: e.target.value, page: 1 })}
+        value={listingDraft}
+        onChange={(e) => setListingDraft(e.target.value)}
         sx={{ minWidth: 120 }}
       >
         <MenuItem value="">All</MenuItem>
@@ -277,16 +351,20 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
       <Button variant="outlined" size="small" onClick={handleSearch}>
         Search
       </Button>
-      <Button variant="outlined" size="small" onClick={handleDownload} disabled={loading || items.length === 0}>
-        {selected.length ? `Download selected (${selected.length})` : 'Download'}
+      <Button variant="outlined" size="small" onClick={handleDownloadAll}>
+        Download
       </Button>
+      {selected.length > 0 ? (
+        <Button variant="text" size="small" onClick={handleDownloadSelected}>
+          Download selected ({selected.length})
+        </Button>
+      ) : null}
     </Stack>
   );
 
   return (
     <Stack spacing={2}>
       <MainCard
-        title="Store variants"
         secondary={filterBar}
       >
         {isDemo && (
@@ -303,7 +381,7 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
         {error && <Alert severity="error">{error}</Alert>}
         {!loading && !error && items.length === 0 && (
           <Alert severity="info">
-            {q || stockStatus || listingStatus
+            {q || stockStatus || listingStatus || categoryId
               ? 'No variants match these filters.'
               : 'No variants listed for this store yet.'}
           </Alert>
@@ -432,20 +510,27 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
         )}
       </MainCard>
 
-      <Box ref={updateSectionRef}>
+      <Box>
         <MainCard title="Update from CSV" subheader="Download listings above, edit, then re-upload the same file.">
-          <Stack spacing={2}>
-            {updateResult ? (
-              <StoreVariantsImportResult
-                embedded
-                result={updateResult}
-                onDismiss={() => setUpdateResult(null)}
-              />
-            ) : null}
-            <StoreVariantsBulkUpdatePanel storeId={storeId} isDemo={isDemo} onDone={handleUpdateDone} />
-          </Stack>
+          <StoreVariantsBulkUpdatePanel
+            storeId={storeId}
+            isDemo={isDemo}
+            onQueued={() => {
+              setJobsTick((n) => n + 1);
+              load();
+            }}
+          />
         </MainCard>
       </Box>
+
+      <CsvJobsList
+        title="CSV jobs"
+        loadJobs={loadStoreJobs}
+        downloadPath={(jobId, file) => storeCsvJobDownloadPath(storeId, jobId, file)}
+        abortJob={(jobId, body) => abortStoreCsvJob(storeId, jobId, body)}
+        refreshKey={jobsTick}
+        emptyText="Exports, listing updates, and bulk add jobs for this store show up here."
+      />
     </Stack>
   );
 }

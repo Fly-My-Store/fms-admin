@@ -192,7 +192,7 @@ export function AdminDataGuideContent() {
             ['SG riders', 'SG orders need a screen-guard-capable rider or assignment can fail.'],
             ['SG tree depth', 'Put device/type as direct children of screen-guard. Grandchildren are not treated as SG.'],
             ['Bulk import', 'CSV/ZIP creates Inactive brands/categories/products/variants. Approve in Pending catalog or they stay hidden.'],
-            ['Listing CSV update', 'Store → Variants download/reupload updates existing listings by id. It does not create SKUs. Max 100 rows.'],
+            ['Listing CSV update', 'Store → Variants download queues a full filtered export. Reupload updates by listing id (not SKU). Failed rows are an errors CSV on the jobs list.'],
             ['Missing menu item', 'Usually the role lacks Read on that resource — not a missing page. Super Admin sees everything.']
           ]}
         />
@@ -571,8 +571,8 @@ Store listing (price + stock) — seller app or admin CSV update`}
         <GuideTable
           headers={['Step', 'What']}
           rows={[
-            ['File', 'ZIP with catalog.csv + images/, or CSV alone if every image is an http(s) URL.'],
-            ['Result', 'New brands, categories, products, and variants are Inactive. Duplicate SKUs fail that row only.'],
+            ['File', 'ZIP with catalog.csv + images/, or CSV alone if every image is an http(s) URL. Queue the job — you can leave the page.'],
+            ['Result', 'New brands, categories, products, and variants are Inactive. Duplicate SKUs fail that row only. Download the result/errors CSV from the jobs list.'],
             ['Approve', 'Pending catalog hub — tabs: Brands, Categories, Products, Variants, Images.'],
             ['Tabs', '/catalog-pending?tab=brands (or categories / products / variants / images). Old /catalog-pending/brands URLs redirect.'],
             ['Access', 'You need Modify on the matching resource (brand / category / product) to see that tab.']
@@ -614,10 +614,11 @@ Store listing (price + stock) — seller app or admin CSV update`}
         <GuideTable
           headers={['Action', 'Rule']}
           rows={[
-            ['Filter / page', 'Search, stock (in/out), listing Active/Inactive. Download is the on-screen page (or selected rows).'],
-            ['Download', 'CSV of current page, or selected rows. Keep the id column — updates match by listing id, not SKU.'],
+            ['Filter / page', 'Search, stock (in/out), listing Active/Inactive. Grid paging is for browsing only.'],
+            ['Download', 'Queues a CSV of every listing matching the current filters (not just this page). Optional: download selected rows on this page only. Keep the id column — updates match by listing id, not SKU.'],
             ['Edit', 'You may change price_rupee, mrp_rupee, max_per_order, stock_status (in/out), max_order_qty. sku and product_name are labels only.'],
-            ['Reupload', 'Updates existing rows. Does not create listings. Max 100 rows. Demo stores: download only.'],
+            ['Reupload', 'Queues a background update. Does not create listings. No row cap. Demo stores: download only. Failed rows: Download errors on the CSV jobs list.'],
+            ['Bulk add listings', 'Store → Bulk upload. CSV sku, price, mrp creates store_variant rows (does not create catalog products). Same jobs list. Demo stores: no.'],
             ['Price', 'price_rupee is required and > 0. If mrp is set, price cannot exceed MRP. max_per_order 1–50.']
           ]}
         />
@@ -838,7 +839,7 @@ Store listing (price + stock) — seller app or admin CSV update`}
           items={[
             'After ZIP/CSV import: approve every pending tab that has rows',
             'Store listing exists for each live SKU',
-            'If using Variants CSV: id column intact, ≤ 100 rows, live store (not demo)'
+            'If using Variants CSV: id column intact, live store (not demo). Download/update are background jobs — check the CSV jobs list'
           ]}
         />
         <Typography variant="subtitle2" sx={{ mt: 1.5 }}>

@@ -10,14 +10,19 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { InboxOutlined } from '@ant-design/icons';
-import { bulkImportStoreVariants, downloadStoreListingImportExample } from 'api/listingsInventory';
+import { downloadStoreListingImportExample } from 'api/listingsInventory';
+import {
+  enqueueCsvJobWithFile,
+  enqueueStoreCsvImport,
+  presignStoreCsvJob
+} from 'api/csvJobs';
 
 function isAllowedFile(file) {
   if (!file) return false;
   return String(file.name || '').toLowerCase().endsWith('.csv');
 }
 
-export default function StoreVariantsBulkImportPanel({ storeId, isDemo, onDone }) {
+export default function StoreVariantsBulkImportPanel({ storeId, isDemo, onQueued }) {
   const [file, setFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -65,25 +70,21 @@ export default function StoreVariantsBulkImportPanel({ storeId, isDemo, onDone }
     setUploading(true);
     setProgress(0);
     try {
-      const form = new FormData();
-      form.append('file', file);
-      const resp = await bulkImportStoreVariants(storeId, form, (evt) => {
-        if (!evt.total) return;
-        setProgress(Math.round((evt.loaded / evt.total) * 100));
+      await enqueueCsvJobWithFile({
+        file,
+        presign: (body) => presignStoreCsvJob(storeId, { ...body, kind: 'STORE_VARIANT_IMPORT' }),
+        enqueueJson: (body) => enqueueStoreCsvImport(storeId, body),
+        enqueueForm: (form, config) => enqueueStoreCsvImport(storeId, form, config),
+        onProgress: setProgress
       });
-      const data = resp?.data || resp;
-      const failed = data?.summary?.failed || 0;
-      const created = data?.summary?.created || 0;
-      enqueueSnackbar(
-        failed ? `Import finished: ${created} listed, ${failed} failed` : `Import OK — ${created} listing(s) added`,
-        { variant: failed ? 'warning' : 'success' }
-      );
-      onDone?.(data);
+      enqueueSnackbar('Queued — you can close this page.', { variant: 'success' });
+      onQueued?.();
       handleClear();
     } catch (err) {
-      enqueueSnackbar(err?.response?.data?.message || err?.message || 'Import failed', { variant: 'error' });
+      enqueueSnackbar(err?.response?.data?.message || err?.message || 'Could not queue import', { variant: 'error' });
     } finally {
       setUploading(false);
+      setProgress(0);
     }
   };
 
@@ -98,8 +99,7 @@ export default function StoreVariantsBulkImportPanel({ storeId, isDemo, onDone }
       <Alert severity="info">
         CSV columns: <strong>sku</strong>, <strong>price</strong>, <strong>mrp</strong> (optional). Mapped to the
         live catalog by SKU. New listings are always <strong>ACTIVE</strong>, <strong>IN_STOCK</strong>, with{' '}
-        <strong>stock quantity 50</strong>. Failed SKUs appear in the result above and can be downloaded as an
-        errors-only CSV.
+        <strong>stock quantity 50</strong>. Failed SKUs download as an errors CSV from the jobs list.
       </Alert>
 
       <Button variant="outlined" size="small" onClick={handleExample} sx={{ alignSelf: 'flex-start' }}>
@@ -149,7 +149,7 @@ export default function StoreVariantsBulkImportPanel({ storeId, isDemo, onDone }
         <Box>
           <LinearProgress variant={progress ? 'determinate' : 'indeterminate'} value={progress} />
           <Typography variant="caption" color="text.secondary">
-            {progress ? `Uploading ${progress}%` : 'Processing…'}
+            {progress ? `Uploading ${progress}%` : 'Queuing…'}
           </Typography>
         </Box>
       )}
@@ -169,5 +169,5 @@ export default function StoreVariantsBulkImportPanel({ storeId, isDemo, onDone }
 StoreVariantsBulkImportPanel.propTypes = {
   storeId: PropTypes.string,
   isDemo: PropTypes.bool,
-  onDone: PropTypes.func
+  onQueued: PropTypes.func
 };

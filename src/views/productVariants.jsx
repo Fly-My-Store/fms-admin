@@ -235,6 +235,7 @@ export default function ProductVariantsView({ product_id, productName }) {
             value={productSel}
             loading={productAc.loading}
             getOptionLabel={(o) => o?.name || ''}
+            getOptionKey={(o) => o?.id || String(o?.name || '')}
             isOptionEqualToValue={(a, b) => a?.id === b?.id}
             onChange={(_, v) => {
               setProductSel(v);
@@ -273,6 +274,7 @@ export default function ProductVariantsView({ product_id, productName }) {
             loading={brandAc.loading}
             disabled={Boolean(productSel)}
             getOptionLabel={(o) => o?.name || ''}
+            getOptionKey={(o) => o?.id || String(o?.name || '')}
             isOptionEqualToValue={(a, b) => a?.id === b?.id}
             onChange={(_, v) => setBrandSel(v)}
             onInputChange={(_, v, reason) => {
@@ -304,6 +306,7 @@ export default function ProductVariantsView({ product_id, productName }) {
             loading={categoryAc.loading}
             disabled={Boolean(productSel)}
             getOptionLabel={(o) => o?.name || ''}
+            getOptionKey={(o) => o?.id || String(o?.name || '')}
             isOptionEqualToValue={(a, b) => a?.id === b?.id}
             onChange={(_, v) => setCategorySel(v)}
             onInputChange={(_, v, reason) => {

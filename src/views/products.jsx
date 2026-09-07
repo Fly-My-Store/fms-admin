@@ -148,6 +148,7 @@ export function ProductsView() {
           brandAc.setQuery(v);
         }}
         getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
+        getOptionKey={(opt) => opt?.id || String(opt?.name || '')}
         isOptionEqualToValue={(a, b) => a?.id === b?.id}
         renderInput={(params) => (
           <TextField
@@ -178,6 +179,7 @@ export function ProductsView() {
           categoryAc.setQuery(v);
         }}
         getOptionLabel={(opt) => (opt?.name ? String(opt.name) : '')}
+        getOptionKey={(opt) => opt?.id || String(opt?.name || '')}
         isOptionEqualToValue={(a, b) => a?.id === b?.id}
         renderInput={(params) => (
           <TextField
