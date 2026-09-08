@@ -34,6 +34,7 @@ export function getRefundTimelineNote(status) {
 export function hasCapturedPaymentWithoutRefund(order, refunds = []) {
   const payments = order?.payments || [];
   const captured = payments.some((p) => {
+    if (String(p?.gateway || '').toUpperCase() === 'COD') return false;
     const s = String(p?.status || '').toUpperCase();
     return s === 'CAPTURED' || s === 'REFUNDED' || s === 'AUTHORIZED';
   });

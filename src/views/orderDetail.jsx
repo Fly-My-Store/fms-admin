@@ -8,7 +8,6 @@ import Link from 'next/link';
 import {
   Alert,
   Chip,
-  Divider,
   Stack,
   Table,
   TableBody,
@@ -26,15 +25,28 @@ import OrderRefundCard from 'sections/orders/OrderRefundCard';
 import OrderRiderCard from 'sections/orders/OrderRiderCard';
 import OrderInvoiceCard from 'sections/orders/OrderInvoiceCard';
 import OrderTrackingPanel from 'sections/orders/OrderTrackingPanel';
+import OrderCustomerPerspective from 'sections/orders/OrderCustomerPerspective';
+import OrderSellerPerspective from 'sections/orders/OrderSellerPerspective';
+import OrderRiderPerspective from 'sections/orders/OrderRiderPerspective';
+import OrderTicketsCard from 'sections/orders/OrderTicketsCard';
+import OrderTimeline from 'sections/orders/OrderTimeline';
+import EntityLink from 'components/EntityLink';
 import { formatOrderLabel, formatOrderNumberOnly } from 'utils/orderLabel';
-
-const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
-
-const formatINR = (cents) => {
-  const n = Number(cents);
-  if (!Number.isFinite(n)) return '—';
-  return `₹${(n / 100).toFixed(2)}`;
-};
+import { formatINR } from 'utils/currency';
+import { getOrderItemName, getOrderItemVariantLabel } from 'utils/orderDisplay';
+import {
+  getOrderCustomerHref,
+  getOrderItemProductHref,
+  getOrderItemVariantHref,
+  getOrderPaymentsHref,
+  getOrderStoreHref
+} from 'utils/orderLinks';
+import {
+  getDeliveryStatusLabel,
+  getOrderPaymentStatusLabel,
+  getOrderStatusLabel,
+  statusChipColor
+} from 'utils/orderStatusLabels';
 
 const formatDate = (iso) => {
   if (!iso) return '—';
@@ -43,24 +55,17 @@ const formatDate = (iso) => {
 
 const shortId = (id) => (id ? String(id).slice(0, 8) : '—');
 
-const KV = ({ label, value }) => (
-  <Stack direction="row" spacing={1.5} alignItems="baseline">
-    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-      {label}
-    </Typography>
-    <Typography variant="body2">{safe(value)}</Typography>
-  </Stack>
-);
-
-function StatusChip({ value }) {
+function StatusChip({ value, label }) {
   if (!value) return null;
-  const color =
-    value === 'DELIVERED' || value === 'SUCCESS'
-      ? 'success'
-      : value === 'CANCELLED' || value === 'FAILED' || value === 'REFUNDED'
-        ? 'error'
-        : 'default';
-  return <Chip size="small" color={color} label={value} variant="light" />;
+  return (
+    <Chip
+      size="small"
+      color={statusChipColor(value)}
+      label={label || value}
+      variant="light"
+      title={value}
+    />
+  );
 }
 
 export default function OrderDetailView() {
@@ -102,25 +107,7 @@ export default function OrderDetailView() {
 
   const items = order?.order_items || [];
   const payments = order?.payments || [];
-  const events = order?.OrderEvents || order?.order_events || [];
   const allRefunds = payments.flatMap((p) => p.Refunds || p.refunds || []);
-
-  const productName = (item) =>
-    item?.store_variant?.product_variant?.product?.name ||
-    item?.store_variant?.product_variant?.sku ||
-    'Item';
-
-  const addressLine = order?.delivery_address
-    ? [
-        order.delivery_address.line1,
-        order.delivery_address.line2,
-        order.delivery_address.city,
-        order.delivery_address.state,
-        order.delivery_address.postal_code
-      ]
-        .filter(Boolean)
-        .join(', ')
-    : '—';
 
   return (
     <>
@@ -131,57 +118,58 @@ export default function OrderDetailView() {
       {!detail.loading && order && (
         <Grid container spacing={2}>
           <Grid size={12}>
-            <MainCard border={false} boxShadow>
+            <MainCard border={false} showTitle={false}>
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}>
                 <Stack spacing={0.5}>
-                  <Typography variant="h5">{formatOrderLabel(order, {prefix: 'Order '})}</Typography>
+                  <Typography variant="h5">{formatOrderLabel(order, { prefix: 'Order ' })}</Typography>
                   <Typography variant="caption" color="text.secondary" fontFamily="monospace">
                     {order.order_number != null ? `#${order.order_number} · ${order.id}` : order.id}
                   </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Placed {formatDate(order.placed_at || order.created_at)}
+                    {order.cancelled_at ? ` · Cancelled ${formatDate(order.cancelled_at)}` : ''}
+                  </Typography>
                 </Stack>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <StatusChip value={order.status} />
-                  <Chip size="small" variant="outlined" label={`Payment: ${order.payment_status}`} />
-                  {order.delivery?.status && (
-                    <Chip size="small" variant="outlined" label={`Delivery: ${order.delivery.status}`} />
-                  )}
+                  <StatusChip value={order.status} label={getOrderStatusLabel(order.status)} />
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    color={statusChipColor(order.payment_status)}
+                    label={getOrderPaymentStatusLabel(order)}
+                    title={order.payment_status}
+                  />
+                  {order.delivery?.status ? (
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      color={statusChipColor(order.delivery.status)}
+                      label={getDeliveryStatusLabel(order.delivery.status)}
+                      title={order.delivery.status}
+                    />
+                  ) : null}
                 </Stack>
               </Stack>
             </MainCard>
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
-            <MainCard title="Customer">
-              <Stack spacing={1}>
-                <KV label="Name" value={order.customer?.name} />
-                <KV label="Phone" value={order.customer?.phone} />
-                <KV label="Email" value={order.customer?.email} />
-                {order.customer?.id && (
-                  <Typography variant="caption" color="text.secondary">
-                    User ID: {order.customer.id}
-                  </Typography>
-                )}
-              </Stack>
-            </MainCard>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <OrderCustomerPerspective order={order} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <OrderSellerPerspective order={order} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <OrderRiderPerspective order={order} />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
-            <MainCard title="Store & delivery">
-              <Stack spacing={1}>
-                <KV label="Store" value={order.store?.name} />
-                <KV label="Store address" value={order.store?.address_text} />
-                <KV label="Deliver to" value={addressLine} />
-                <KV label="Instructions" value={order.delivery_instructions} />
-              </Stack>
-            </MainCard>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 8 }}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <MainCard title="Items">
               <Table size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>Product</TableCell>
+                    <TableCell>Variant</TableCell>
                     <TableCell>SKU</TableCell>
                     <TableCell align="right">Qty</TableCell>
                     <TableCell align="right">Unit</TableCell>
@@ -191,7 +179,12 @@ export default function OrderDetailView() {
                 <TableBody>
                   {items.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell>{productName(item)}</TableCell>
+                      <TableCell>
+                        <EntityLink href={getOrderItemProductHref(item)}>{getOrderItemName(item)}</EntityLink>
+                      </TableCell>
+                      <TableCell>
+                        <EntityLink href={getOrderItemVariantHref(item)}>{getOrderItemVariantLabel(item) || '—'}</EntityLink>
+                      </TableCell>
                       <TableCell>{item.store_variant?.product_variant?.sku || '—'}</TableCell>
                       <TableCell align="right">{item.qty}</TableCell>
                       <TableCell align="right">{formatINR(item.price_cents)}</TableCell>
@@ -200,7 +193,7 @@ export default function OrderDetailView() {
                   ))}
                   {!items.length && (
                     <TableRow>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={6}>
                         <Typography variant="body2" color="text.secondary">
                           No items
                         </Typography>
@@ -212,38 +205,45 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
+          <Grid size={{ xs: 12, md: 5 }}>
+            <OrderTrackingPanel order={order} />
+          </Grid>
+
           <Grid size={{ xs: 12, md: 4 }}>
-            <MainCard title="Totals">
+            <MainCard title="Account">
               <Stack spacing={1}>
-                <KV label="Items" value={formatINR(order.items_total_cents)} />
-                <KV label="Rider share" value={formatINR(order.rider_share_cents)} />
-                <KV label="Discount" value={formatINR(order.discount_cents)} />
-                <Divider />
-                <KV label="Total" value={formatINR(order.total_cents)} />
-                <KV label="Placed" value={formatDate(order.placed_at || order.created_at)} />
-                {order.cancelled_at ? (
-                  <KV label="Cancelled" value={formatDate(order.cancelled_at)} />
+                <EntityLink href={getOrderCustomerHref(order)}>{order.customer?.name || '—'}</EntityLink>
+                <Typography variant="body2" color="text.secondary">
+                  {order.customer?.phone || '—'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {order.customer?.email || '—'}
+                </Typography>
+                {order.customer?.id ? (
+                  <Typography variant="caption" color="text.secondary">
+                    User ID: {order.customer.id}
+                  </Typography>
                 ) : null}
+                <Typography variant="subtitle2" sx={{ pt: 1 }}>
+                  Store
+                </Typography>
+                <EntityLink href={getOrderStoreHref(order)}>{order.store?.name || '—'}</EntityLink>
+                <Typography variant="body2" color="text.secondary">
+                  {order.store?.address_text || '—'}
+                </Typography>
               </Stack>
             </MainCard>
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
-            <MainCard title="Delivery">
-              <Stack spacing={1}>
-                <KV label="Rider" value={order.delivery?.rider?.name || 'Unassigned'} />
-                <KV label="Rider phone" value={order.delivery?.rider?.phone} />
-                <KV label="Distance" value={order.delivery?.distance_m != null ? `${order.delivery.distance_m} m` : '—'} />
-                <KV label="ETA" value={order.delivery?.eta_seconds != null ? `${Math.round(order.delivery.eta_seconds / 60)} min` : '—'} />
-                <KV label="Started" value={formatDate(order.delivery?.started_at)} />
-                <KV label="Picked up" value={formatDate(order.delivery?.picked_up_at)} />
-                <KV label="Delivered" value={formatDate(order.delivery?.delivered_at)} />
-              </Stack>
-            </MainCard>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <MainCard title="Payments">
+          <Grid size={{ xs: 12, md: 4 }}>
+            <MainCard
+              title="Payments"
+              secondary={
+                <EntityLink href={getOrderPaymentsHref(order)} variant="caption">
+                  Open payments
+                </EntityLink>
+              }
+            >
               {payments.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No payments
@@ -263,6 +263,10 @@ export default function OrderDetailView() {
             </MainCard>
           </Grid>
 
+          <Grid size={{ xs: 12, md: 4 }}>
+            <OrderInvoiceCard order={order} onSuccess={handleActionDone} />
+          </Grid>
+
           {allRefunds.length > 0 || String(order?.status || '').toUpperCase() === 'CANCELLED' ? (
             <Grid size={12}>
               <OrderRefundCard order={order} refunds={allRefunds} />
@@ -270,41 +274,17 @@ export default function OrderDetailView() {
           ) : null}
 
           <Grid size={12}>
-            <MainCard title="Timeline">
-              <Stack spacing={1.5}>
-                {events.map((ev) => (
-                  <Stack key={ev.id} direction="row" spacing={2} alignItems="flex-start">
-                    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 140 }}>
-                      {formatDate(ev.created_at)}
-                    </Typography>
-                    <Chip size="small" label={ev.type} variant="light" />
-                    {ev.payload && (
-                      <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                        {JSON.stringify(ev.payload)}
-                      </Typography>
-                    )}
-                  </Stack>
-                ))}
-                {!events.length && (
-                  <Typography variant="body2" color="text.secondary">
-                    No events yet
-                  </Typography>
-                )}
-              </Stack>
-            </MainCard>
+            <OrderTimeline order={order} />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
-            <OrderCancelCard order={order} onSuccess={handleActionDone} />
-          </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <OrderRiderCard order={order} onSuccess={handleActionDone} />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <OrderInvoiceCard order={order} onSuccess={handleActionDone} />
+            <OrderCancelCard order={order} onSuccess={handleActionDone} />
           </Grid>
           <Grid size={12}>
-            <OrderTrackingPanel orderId={order.id} deliveryStatus={order.delivery?.status} />
+            <OrderTicketsCard orderId={order.id} />
           </Grid>
         </Grid>
       )}

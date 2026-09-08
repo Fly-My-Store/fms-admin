@@ -16,10 +16,14 @@ import {
   Typography
 } from '@mui/material';
 import MainCard from 'components/MainCard';
+import EntityLink from 'components/EntityLink';
 import { assignRiderToOrder } from 'api/ordersPayments';
 import { listRiders } from 'api/logistics';
+import { getRiderHrefFromUser, nestedRiderProfile } from 'utils/orderLinks';
+import { getDeliveryStatusLabel } from 'utils/orderStatusLabels';
 
-const TERMINAL_ORDER = ['DELIVERED', 'CANCELLED', 'REFUNDED'];
+const TERMINAL_ORDER = ['DELIVERED', 'CANCELLED', 'REFUNDED', 'RETURNED'];
+const LOCKED_DELIVERY = ['PICKED_UP', 'DELIVERED', 'CANCELLED', 'FAILED'];
 
 function isScreenGuardSlug(slug) {
   return slug === 'screen-guard' || (slug && String(slug).startsWith('screen-guard-'));
@@ -34,15 +38,29 @@ function orderRequiresScreenGuard(order) {
   });
 }
 
+function riderDisplayName(rider) {
+  if (!rider) return null;
+  return (
+    rider.User?.name ||
+    rider.user?.name ||
+    rider.display_name ||
+    rider.name ||
+    rider.user_id ||
+    null
+  );
+}
+
 export default function OrderRiderCard({ order, onSuccess }) {
   const [riders, setRiders] = useState([]);
   const [riderId, setRiderId] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAuto, setConfirmAuto] = useState(false);
 
   const delivery = order?.delivery;
   const currentRider = delivery?.rider;
-  const disabled = !order || TERMINAL_ORDER.includes(order.status);
+  const terminalOrder = !order || TERMINAL_ORDER.includes(order.status);
+  const deliveryLocked = LOCKED_DELIVERY.includes(String(delivery?.status || '').toUpperCase());
   const requiresScreenGuard = orderRequiresScreenGuard(order);
 
   useEffect(() => {
@@ -63,7 +81,14 @@ export default function OrderRiderCard({ order, onSuccess }) {
     [riders, delivery?.rider_id, requiresScreenGuard]
   );
 
-  if (disabled) return null;
+  const selectedRider = eligibleRiders.find((r) => String(r.user_id) === String(riderId));
+  const currentName = currentRider?.name || 'the current rider';
+  const nextName = confirmAuto
+    ? 'the next available rider'
+    : riderDisplayName(selectedRider) || 'the selected rider';
+  const sameAsCurrent = Boolean(riderId && delivery?.rider_id && String(riderId) === String(delivery.rider_id));
+
+  if (terminalOrder) return null;
 
   const runAssign = async (explicitRiderId) => {
     setLoading(true);
@@ -81,6 +106,15 @@ export default function OrderRiderCard({ order, onSuccess }) {
     }
   };
 
+  const openConfirm = (auto) => {
+    setConfirmAuto(auto);
+    setConfirmOpen(true);
+  };
+
+  const confirmCopy = currentRider
+    ? `Reassign this order from ${currentName} to ${nextName}? ${currentName} will be notified and set to available if they have no other job.`
+    : `Assign ${nextName} to this order? They will receive a job notification.`;
+
   return (
     <MainCard title="Rider assignment">
       <Stack spacing={2}>
@@ -90,17 +124,28 @@ export default function OrderRiderCard({ order, onSuccess }) {
           </Alert>
         ) : null}
 
+        {deliveryLocked ? (
+          <Alert severity="warning">
+            Rider cannot be changed after delivery is {getDeliveryStatusLabel(delivery.status)}.
+          </Alert>
+        ) : null}
+
         {currentRider ? (
           <Stack spacing={0.5}>
-            <Typography variant="body2" fontWeight={600}>
+            <EntityLink href={getRiderHrefFromUser(currentRider)} variant="body2" sx={{ fontWeight: 600 }}>
               {currentRider.name || 'Rider'}
-            </Typography>
+            </EntityLink>
             <Typography variant="caption" color="text.secondary">
               {currentRider.phone || currentRider.email || delivery.rider_id}
             </Typography>
-            {currentRider.Rider?.availability_status && (
-              <Chip size="small" label={currentRider.Rider.availability_status} variant="light" sx={{ alignSelf: 'flex-start' }} />
-            )}
+            {nestedRiderProfile(currentRider)?.availability_status ? (
+              <Chip
+                size="small"
+                label={nestedRiderProfile(currentRider).availability_status}
+                variant="light"
+                sx={{ alignSelf: 'flex-start' }}
+              />
+            ) : null}
           </Stack>
         ) : (
           <Alert severity="info">No rider assigned yet.</Alert>
@@ -113,6 +158,7 @@ export default function OrderRiderCard({ order, onSuccess }) {
           onChange={(e) => setRiderId(e.target.value)}
           fullWidth
           size="small"
+          disabled={deliveryLocked}
           helperText={
             requiresScreenGuard && !eligibleRiders.length
               ? 'No screen-guard eligible riders available'
@@ -122,7 +168,7 @@ export default function OrderRiderCard({ order, onSuccess }) {
           <MenuItem value="">Auto-assign next available</MenuItem>
           {eligibleRiders.map((r) => (
             <MenuItem key={r.user_id || r.id} value={r.user_id}>
-              {(r.User?.name || r.user?.name || r.display_name || r.user_id)} ({r.availability_status || '—'})
+              {riderDisplayName(r)} ({r.availability_status || '—'})
             </MenuItem>
           ))}
         </TextField>
@@ -130,13 +176,13 @@ export default function OrderRiderCard({ order, onSuccess }) {
         <Stack direction="row" spacing={1}>
           <Button
             variant="contained"
-            disabled={loading}
-            onClick={() => (currentRider ? setConfirmOpen(true) : runAssign())}
+            disabled={loading || deliveryLocked || sameAsCurrent}
+            onClick={() => openConfirm(!riderId)}
           >
             {loading ? 'Saving…' : currentRider ? 'Reassign rider' : 'Assign rider'}
           </Button>
           {!currentRider && (
-            <Button variant="outlined" disabled={loading} onClick={() => runAssign(null)}>
+            <Button variant="outlined" disabled={loading || deliveryLocked} onClick={() => openConfirm(true)}>
               Auto-assign
             </Button>
           )}
@@ -144,17 +190,19 @@ export default function OrderRiderCard({ order, onSuccess }) {
       </Stack>
 
       <Dialog open={confirmOpen} onClose={() => !loading && setConfirmOpen(false)}>
-        <DialogTitle>Reassign rider?</DialogTitle>
+        <DialogTitle>{currentRider ? 'Reassign rider?' : 'Assign rider?'}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            The previous rider will be set to IDLE. The new rider will receive a job notification.
-          </DialogContentText>
+          <DialogContentText>{confirmCopy}</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button variant="contained" onClick={() => runAssign()} disabled={loading}>
+          <Button
+            variant="contained"
+            onClick={() => (confirmAuto ? runAssign(null) : runAssign())}
+            disabled={loading}
+          >
             Confirm
           </Button>
         </DialogActions>
@@ -162,3 +210,4 @@ export default function OrderRiderCard({ order, onSuccess }) {
     </MainCard>
   );
 }
+

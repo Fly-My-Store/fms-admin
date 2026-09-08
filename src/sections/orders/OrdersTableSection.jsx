@@ -5,29 +5,23 @@ import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import BasicReactTable from 'components/tables/basicTable';
 import { formatOrderNumberOnly } from 'utils/orderLabel';
-
-const formatINR = (cents) => {
-  const n = Number(cents);
-  if (!Number.isFinite(n)) return '—';
-  return `₹${(n / 100).toFixed(2)}`;
-};
+import { formatINR } from 'utils/currency';
+import {
+  getOrderPaymentStatusLabel,
+  getOrderStatusLabel,
+  statusChipColor
+} from 'utils/orderStatusLabels';
 
 const formatDate = (iso) => {
   if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
 };
 
-const statusChip = (value) => {
+const statusChip = (value, label) => {
   if (!value) return <Chip size="small" label="—" variant="light" />;
-  const color =
-    value === 'DELIVERED' || value === 'SUCCESS' || value === 'CAPTURED'
-      ? 'success'
-      : value === 'CANCELLED' || value === 'FAILED' || value === 'REFUNDED'
-        ? 'error'
-        : value === 'PENDING'
-          ? 'warning'
-          : 'default';
-  return <Chip size="small" color={color} label={value} variant="light" />;
+  return (
+    <Chip size="small" color={statusChipColor(value)} label={label || value} variant="light" title={value} />
+  );
 };
 
 export default function OrdersTableSection({
@@ -77,12 +71,12 @@ export default function OrdersTableSection({
         {
           header: 'Order Status',
           accessorKey: 'status',
-          cell: ({ row }) => statusChip(row.original.status)
+          cell: ({ row }) => statusChip(row.original.status, getOrderStatusLabel(row.original.status))
         },
         {
           header: 'Payment',
           accessorKey: 'payment_status',
-          cell: ({ row }) => statusChip(row.original.payment_status)
+          cell: ({ row }) => statusChip(row.original.payment_status, getOrderPaymentStatusLabel(row.original))
         },
         {
           header: 'Created',

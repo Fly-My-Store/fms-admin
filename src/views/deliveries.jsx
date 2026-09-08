@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import DeliveriesList from 'sections/deliveries/DeliveriesList';
-import DeliveryJobsFormDialog from 'sections/delivery-jobs/DeliveryJobsFormDialog';
 import useUrlFilters from 'hooks/useUrlFilters';
 
-const DELIVERY_STATUSES = ['', 'PENDING', 'ASSIGNED', 'REACHED_STORE', 'PICKED_UP', 'DELIVERED', 'CANCELLED', 'FAILED'];
+const DELIVERY_STATUSES = ['', 'PENDING', 'ASSIGNED', 'STARTED', 'REACHED_STORE', 'PICKED_UP', 'DELIVERED', 'CANCELLED', 'FAILED'];
 
 const FILTER_DEFAULTS = {
   q: '',
@@ -18,9 +17,6 @@ const FILTER_DEFAULTS = {
 };
 
 export default function DeliveriesView() {
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const { draft, setDraft, applied, applySearch, handlePaginationChange } = useUrlFilters({
     defaults: FILTER_DEFAULTS
   });
@@ -95,30 +91,14 @@ export default function DeliveriesView() {
   );
 
   return (
-    <>
-      <DeliveriesList
-        filters={appliedFilters}
-        variant="page"
-        pageIndex={(Number(applied.page) || 1) - 1}
-        pageSize={Number(applied.limit) || 20}
-        onPaginationChange={handlePaginationChange}
-        showPagination
-        topActionsLeft={topActionsLeft}
-        onEdit={(row) => {
-          setSelected(row);
-          setOpen(true);
-        }}
-        refreshKey={refreshKey}
-      />
-      <DeliveryJobsFormDialog
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          setSelected(null);
-        }}
-        initialData={selected}
-        onSaved={() => setRefreshKey((k) => k + 1)}
-      />
-    </>
+    <DeliveriesList
+      filters={appliedFilters}
+      variant="page"
+      pageIndex={(Number(applied.page) || 1) - 1}
+      pageSize={Number(applied.limit) || 20}
+      onPaginationChange={handlePaginationChange}
+      showPagination
+      topActionsLeft={topActionsLeft}
+    />
   );
 }

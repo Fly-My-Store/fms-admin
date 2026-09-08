@@ -138,7 +138,8 @@ export const PAYMENT_STATUS = Object.freeze({
   PENDING: 'PENDING',
   SUCCESS: 'SUCCESS',
   FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED'
+  REFUNDED: 'REFUNDED',
+  CANCELLED: 'CANCELLED'
 });
 
 // Gateway lifecycle states (provider view) – used by Payment model
@@ -147,7 +148,8 @@ export const PAYMENT_GATEWAY_STATUS = Object.freeze({
   AUTHORIZED: 'AUTHORIZED',
   CAPTURED: 'CAPTURED',
   FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED'
+  REFUNDED: 'REFUNDED',
+  CANCELLED: 'CANCELLED'
 });
 
 // Gateway providers supported by the platform
@@ -156,7 +158,8 @@ export const PAYMENT_GATEWAY_TYPE = Object.freeze({
   STRIPE: 'STRIPE',
   CASHFREE: 'CASHFREE',
   PAYU: 'PAYU',
-  PAYTM: 'PAYTM'
+  PAYTM: 'PAYTM',
+  COD: 'COD'
 });
 
 export const PAYMENT_MODE = Object.freeze({

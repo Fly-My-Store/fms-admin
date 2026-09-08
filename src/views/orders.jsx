@@ -10,8 +10,8 @@ import { listStores } from 'api/sellersStores';
 import OrdersTableSection from 'sections/orders/OrdersTableSection';
 import useUrlFilters from 'hooks/useUrlFilters';
 
-const ORDER_STATUSES = ['', 'CREATED', 'CONFIRMED', 'PACKING', 'PACKED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'REFUNDED'];
-const PAYMENT_STATUSES = ['', 'PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'];
+const ORDER_STATUSES = ['', 'CREATED', 'CONFIRMED', 'PACKING', 'PACKED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'REFUNDED', 'RETURNED'];
+const PAYMENT_STATUSES = ['', 'PENDING', 'SUCCESS', 'FAILED', 'REFUNDED', 'CANCELLED'];
 
 const FILTER_DEFAULTS = {
   q: '',

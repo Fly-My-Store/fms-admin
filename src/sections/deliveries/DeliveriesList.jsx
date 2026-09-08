@@ -8,6 +8,7 @@ import BasicReactTable from 'components/tables/basicTable';
 import { listDeliveries } from 'api/logistics';
 import { formatINR } from 'utils/currency';
 import {
+  deliveryUpdatedAt,
   expectedShareCents,
   formatDeliveryDate,
   isCreditedToWallet,
@@ -78,7 +79,6 @@ export default function DeliveriesList({
   onPaginationChange: onPaginationChangeProp,
   showPagination = true,
   onMetaChange,
-  onEdit,
   onLoaded,
   refreshKey,
   title = 'Deliveries',
@@ -169,7 +169,9 @@ export default function DeliveriesList({
       },
       {
         header: 'Updated',
-        accessorFn: (row) => formatDeliveryDate(row.updated_at || row.created_at)
+        id: 'updated',
+        accessorFn: (row) => deliveryUpdatedAt(row),
+        cell: ({ getValue }) => formatDeliveryDate(getValue())
       }
     ],
     []
@@ -217,7 +219,9 @@ export default function DeliveriesList({
       },
       {
         header: 'Updated',
-        accessorFn: (row) => formatDeliveryDate(row.updated_at || row.created_at)
+        id: 'updated',
+        accessorFn: (row) => deliveryUpdatedAt(row),
+        cell: ({ getValue }) => formatDeliveryDate(getValue())
       }
     ],
     []
@@ -241,8 +245,7 @@ export default function DeliveriesList({
         data={rows}
         title={title}
         showTitle={showTitle}
-        showActions={!isRiderVariant && Boolean(onEdit)}
-        handleEditButton={onEdit}
+        showActions={false}
         pageIndex={pageIndex}
         pageSize={pageSize}
         totalPageCount={totalPages}
@@ -277,7 +280,6 @@ DeliveriesList.propTypes = {
   onPaginationChange: PropTypes.func,
   showPagination: PropTypes.bool,
   onMetaChange: PropTypes.func,
-  onEdit: PropTypes.func,
   onLoaded: PropTypes.func,
   refreshKey: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   title: PropTypes.string,

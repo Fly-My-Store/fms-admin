@@ -12,12 +12,14 @@ import {
   Typography
 } from '@mui/material';
 import MainCard from 'components/MainCard';
+import EntityLink from 'components/EntityLink';
 import {
   getRefundStatusChipColor,
   getRefundStatusLabel,
   getRefundTimelineNote,
   hasCapturedPaymentWithoutRefund
 } from 'utils/refundLabels';
+import { getOrderRefundsHref } from 'utils/orderLinks';
 
 const formatINR = (cents) => {
   const n = Number(cents);
@@ -42,7 +44,14 @@ export default function OrderRefundCard({ order, refunds = [] }) {
   }
 
   return (
-    <MainCard title="Refunds">
+    <MainCard
+      title="Refunds"
+      secondary={
+        <EntityLink href={getOrderRefundsHref(order)} variant="caption">
+          Open refunds
+        </EntityLink>
+      }
+    >
       <Stack spacing={2}>
         {showGapAlert ? (
           <Alert severity="warning">

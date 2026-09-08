@@ -1,7 +1,22 @@
 export const formatDeliveryDate = (iso) => {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
 };
+
+/** Prefer status timestamps; fall back to audit timestamps (snake or camel). */
+export const deliveryUpdatedAt = (row) =>
+  row?.delivered_at ||
+  row?.cancelled_at ||
+  row?.picked_up_at ||
+  row?.started_at ||
+  row?.assigned_at ||
+  row?.updated_at ||
+  row?.updatedAt ||
+  row?.created_at ||
+  row?.createdAt ||
+  null;
 
 export const shortOrderId = (id) => (id ? String(id).slice(0, 8) : '—');
 
@@ -12,18 +27,24 @@ export const nestedPayments = (row) => nestedOrder(row)?.payments || nestedOrder
 
 export const expectedShareCents = (row) => {
   const fee = Number(row.rider_fee_cents) || 0;
-  const paymentShare = nestedPayments(row).reduce(
+  if (fee > 0) return fee;
+  return nestedPayments(row).reduce(
     (sum, payment) => sum + Math.max(0, Number(payment.rider_share_cents) || 0),
     0
   );
-  return Math.max(fee, paymentShare);
 };
 
-export const walletShareCents = (row) =>
-  nestedPayments(row).reduce((sum, payment) => {
+export const walletShareCents = (row) => {
+  const payments = nestedPayments(row);
+  const credited = payments.some((payment) => payment.rider_wallet_credited_at);
+  if (!credited) return 0;
+  const fee = Number(row.rider_fee_cents) || 0;
+  if (fee > 0) return fee;
+  return payments.reduce((sum, payment) => {
     if (!payment.rider_wallet_credited_at) return sum;
     return sum + Math.max(0, Number(payment.rider_share_cents) || 0);
   }, 0);
+};
 
 export const isCreditedToWallet = (row) => walletShareCents(row) > 0;
 

@@ -22,6 +22,23 @@ function locationAgeMinutes(lastLocationAt) {
   return Math.max(0, Math.round((Date.now() - ts) / 60000));
 }
 
+/** Compact age for chips: `<1m`, `12m`, `3h 20m`, `2d 4h`. */
+function formatAgeLabel(ageMin) {
+  if (ageMin == null || !Number.isFinite(ageMin)) return null;
+  const minutes = Math.max(0, Math.round(ageMin));
+  if (minutes < 1) return '<1m';
+  if (minutes < 60) return `${minutes}m`;
+
+  const days = Math.floor(minutes / (60 * 24));
+  const hours = Math.floor((minutes % (60 * 24)) / 60);
+  const mins = minutes % 60;
+
+  if (days > 0) {
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  }
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+}
+
 function formatLastLocation(lastLocationAt) {
   if (!lastLocationAt) return 'Never';
   const d = new Date(lastLocationAt);
@@ -32,6 +49,7 @@ function formatLastLocation(lastLocationAt) {
 function LocationCell({ row }) {
   const lastAt = row.last_location_at;
   const ageMin = locationAgeMinutes(lastAt);
+  const ageLabel = formatAgeLabel(ageMin);
   const geomOk = hasGeom(row);
 
   let freshness = { color: 'default', label: 'No location' };
@@ -40,12 +58,12 @@ function LocationCell({ row }) {
   } else if (ageMin > LOCATION_FRESH_MINUTES) {
     freshness = {
       color: 'warning',
-      label: `Stale (${ageMin}m)`
+      label: `Stale (${ageLabel})`
     };
   } else {
     freshness = {
       color: 'success',
-      label: ageMin <= 1 ? 'Fresh (<1m)' : `Fresh (${ageMin}m)`
+      label: `Fresh (${ageLabel})`
     };
   }
 
