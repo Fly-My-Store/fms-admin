@@ -17,10 +17,10 @@ import Typography from '@mui/material/Typography';
 import { bulkImportCategories, downloadCategoriesImportExample } from 'api/catalog';
 
 const EXAMPLE_CSV = `name,slug,description,logo,prescription_required,is_featured,parent_name,parent_slug,parent_description,parent_logo,parent_prescription_required,parent_is_featured
-Accessories,,Accessories and wearable devices,images/accessories.png,false,true,,,,,,
-Neckband,,Wireless neckband earphones,images/neckband.png,false,false,Accessories,,Accessories and wearable devices,images/accessories.png,false,true
-Medicines,,OTC and Rx medicines,,true,false,Pharmacy,,,,true,true
-Smart Watches,smart-watches,Wearable smart watches,https://cdn.example.com/categories/watches.png,false,false,Accessories,,Accessories and wearable devices,images/accessories.png,false,true
+Accessories,,Accessories and wearable devices,images/accessories.png,none,true,,,,,,
+Neckband,,Wireless neckband earphones,images/neckband.png,none,false,Accessories,,Accessories and wearable devices,images/accessories.png,none,true
+Medicines,,OTC and Rx medicines,,required,false,Pharmacy,,,,optional,true
+Smart Watches,smart-watches,Wearable smart watches,https://cdn.example.com/categories/watches.png,none,false,Accessories,,Accessories and wearable devices,images/accessories.png,none,true
 `;
 
 function isAllowedFile(file) {

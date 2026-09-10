@@ -48,7 +48,7 @@ const EMPTY = {
   icon_thumb_url: '',
   level: 0,
   record_status: 1,
-  prescription_required: false,
+  prescription_required: 'none',
   is_featured: false
 };
 
@@ -147,7 +147,11 @@ export function CategoryUpsert() {
         icon_url: cat.icon_url || '',
         icon_thumb_url: cat.icon_thumb_url || '',
         record_status: cat.record_status || 1,
-        prescription_required: Boolean(cat.prescription_required),
+        prescription_required: ['none', 'optional', 'required'].includes(cat.prescription_required)
+          ? cat.prescription_required
+          : cat.prescription_required
+            ? 'required'
+            : 'none',
         is_featured: Boolean(cat.is_featured),
         level: Number(cat.level ?? 0)
       });
@@ -249,7 +253,7 @@ export function CategoryUpsert() {
         icon_thumb_url: form.icon_thumb_url || null,
         level: Number(form.level ?? 0),
         record_status: Number(form.record_status ?? 1),
-        prescription_required: Boolean(form.prescription_required),
+        prescription_required: form.prescription_required || 'none',
         is_featured: Boolean(form.is_featured),
       };
 
@@ -487,15 +491,18 @@ export function CategoryUpsert() {
               </Stack>
             </Stack>
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={Boolean(form.prescription_required)}
-                  onChange={(e) => handleField('prescription_required', e.target.checked)}
-                />
-              }
-              label="Prescription required (checkout)"
-            />
+            <TextField
+              select
+              label="Prescription at checkout"
+              value={form.prescription_required || 'none'}
+              onChange={(e) => handleField('prescription_required', e.target.value)}
+              helperText="None = hide upload · Optional = show but not required · Required = must upload"
+              fullWidth
+            >
+              <MenuItem value="none">None</MenuItem>
+              <MenuItem value="optional">Optional</MenuItem>
+              <MenuItem value="required">Required</MenuItem>
+            </TextField>
             <FormControlLabel
               control={
                 <Switch
