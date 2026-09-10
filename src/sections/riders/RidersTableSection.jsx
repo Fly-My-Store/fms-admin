@@ -108,9 +108,7 @@ export default function RidersTableSection({
           const user = row.original.user || row.original.User || {};
           const name = user.name || '—';
           const email = user.email;
-          const phone = user.phone
-            ? `${user.country_code ? `${user.country_code} ` : ''}${user.phone}`
-            : null;
+          const phone = user.phone || null;
 
           return (
             <Stack spacing={0.25}>

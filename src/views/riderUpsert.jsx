@@ -44,7 +44,6 @@ const EMPTY = {
   name: '',
   email: '',
   phone: '',
-  country_code: '+91',
   vehicle_type: '',
   vehicle_number: '',
   dl_number: '',
@@ -58,7 +57,7 @@ const EMPTY = {
   payout_account: '',
   documents: {},
   screen_guard_eligible: false,
-  status: ACCOUNT_STATUS.INACTIVE,
+  status: ACCOUNT_STATUS.ACTIVE,
   is_tester: false,
   tester_otp: ''
 };
@@ -112,7 +111,6 @@ export default function RiderUpsertView() {
       name: user.name || '',
       email: user.email || '',
       phone: user.phone || '',
-      country_code: user.country_code || '+91',
       vehicle_type: rider.vehicle_type || '',
       vehicle_number: rider.vehicle_number || '',
       dl_number: rider.dl_number || '',
@@ -126,7 +124,7 @@ export default function RiderUpsertView() {
       payout_account: rider.payout_account ? JSON.stringify(rider.payout_account, null, 2) : '',
       documents: rider.documents && typeof rider.documents === 'object' ? rider.documents : {},
       screen_guard_eligible: Boolean(rider.screen_guard_eligible),
-      status: user.status ?? ACCOUNT_STATUS.INACTIVE,
+      status: user.status ?? ACCOUNT_STATUS.ACTIVE,
       is_tester: Boolean(user.is_tester),
       tester_otp: ''
     });
@@ -187,7 +185,6 @@ export default function RiderUpsertView() {
         name: String(form.name).trim(),
         email: form.email ? String(form.email).trim() : null,
         phone: String(form.phone).trim(),
-        country_code: form.country_code || '+91',
         status: Number(form.status)
       };
 
@@ -273,14 +270,6 @@ export default function RiderUpsertView() {
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   size="small"
-                  label="Country code"
-                  fullWidth
-                  sx={{ maxWidth: { sm: 140 } }}
-                  value={form.country_code}
-                  onChange={(e) => handleField('country_code', e.target.value)}
-                />
-                <TextField
-                  size="small"
                   label="Phone"
                   required
                   fullWidth
@@ -296,6 +285,7 @@ export default function RiderUpsertView() {
                   fullWidth
                   value={form.status}
                   onChange={(e) => handleField('status', Number(e.target.value))}
+                  helperText="Inactive or Suspended blocks app login. KYC is separate."
                 >
                   {USER_STATUS_OPTIONS.map((o) => (
                     <MenuItem key={o.value} value={o.value}>

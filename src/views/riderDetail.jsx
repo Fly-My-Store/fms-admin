@@ -166,7 +166,6 @@ export default function RiderDetailView() {
               <Stack spacing={1}>
                 <KV label="Phone" value={data?.user?.phone} />
                 <KV label="Email" value={data?.user?.email} />
-                <KV label="Country code" value={data?.user?.country_code} />
                 <KV label="Account status" value={accountStatusLabel(data?.user?.status)} />
                 <KV label="Rating" value={data?.user?.rating != null ? `${data.user.rating} (${data.user.rating_count ?? 0})` : '—'} />
                 <KV label="Joined" value={formatDate(data?.user?.created_at)} />
