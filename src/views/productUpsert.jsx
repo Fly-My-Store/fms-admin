@@ -38,7 +38,8 @@ const RECORD_STATUS_LIST = [
 const RX_OVERRIDE_OPTIONS = [
   { value: 'inherit', label: 'Inherit from category' },
   { value: 'required', label: 'Required' },
-  { value: 'not_required', label: 'Not required' }
+  { value: 'optional', label: 'Optional' },
+  { value: 'none', label: 'None' },
 ];
 
 const EMPTY = {
@@ -127,8 +128,13 @@ export default function ProductUpsert() {
   useEffect(() => {
     if (!product || !id) return;
     let prescription_override = 'inherit';
-    if (product.prescription_required === true) prescription_override = 'required';
-    if (product.prescription_required === false) prescription_override = 'not_required';
+    if (product.prescription_required === true || product.prescription_required === 'required') {
+      prescription_override = 'required';
+    } else if (product.prescription_required === 'optional') {
+      prescription_override = 'optional';
+    } else if (product.prescription_required === false || product.prescription_required === 'none') {
+      prescription_override = 'none';
+    }
     setForm({
       id: product.id || '',
       brand_id: product.brand_id || product.brand?.id || '',
@@ -279,11 +285,13 @@ export default function ProductUpsert() {
         spec_json: spec || null,
         record_status: Number(form.record_status ?? 1),
         prescription_required:
-          form.prescription_override === 'required'
-            ? true
-            : form.prescription_override === 'not_required'
-              ? false
-              : null,
+          form.prescription_override === 'inherit'
+            ? null
+            : form.prescription_override === 'required'
+              ? 'required'
+              : form.prescription_override === 'optional'
+                ? 'optional'
+                : 'none',
       };
 
       // Build images payload per backend contract
