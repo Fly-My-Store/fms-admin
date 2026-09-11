@@ -285,7 +285,7 @@ Store listing (price + stock) — seller app or admin CSV update`}
             ['Operations', 'Orders, deliveries, riders, support tickets'],
             ['Network', 'Stores, sellers, customers'],
             ['Catalog', 'Products, variants, brands, categories, bulk import, pending hub, attribute defs, category attrs'],
-            ['Marketing', 'Banners, campaigns, promotions, FAQs'],
+            ['Marketing', 'Banners, push notifications, campaigns, promotions, FAQs'],
             ['Finance', 'Payments, refunds, payouts, fare, invoice settings'],
             ['Apps', 'Public app download hub (customer / seller / rider APKs)'],
             ['Admin', 'Users, roles, permissions, webhooks, audit logs']

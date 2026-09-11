@@ -36,23 +36,36 @@ export default function useAxiosPaginatedList(
     }
   }, [paramsKey]);
 
+  // Ignore cancelled / superseded requests so page changes don't flash a false error.
+  const loadSeq = useRef(0);
+
   const load = useCallback(
     async (override = {}) => {
+      const seq = ++loadSeq.current;
       setLoading(true);
       try {
+        const nextPageIndex = override.pageIndex ?? pageIndex;
+        const nextPageSize = override.pageSize ?? pageSize;
+        const page = Number(nextPageIndex) + 1;
+        const limit = Number(nextPageSize) || 20;
+        if (!Number.isFinite(page) || page < 1) {
+          return;
+        }
         const queryParams = {
-          page: (override.pageIndex ?? pageIndex) + 1,
-          limit: override.pageSize ?? pageSize,
+          page,
+          limit,
           ...JSON.parse(paramsKey)
         };
         const payload = await get(url, queryParams);
+        if (seq !== loadSeq.current) return;
         setRows(payload?.data || []);
         setTotalPages(payload?.meta?.totalPages ?? payload?.totalPages ?? 1);
         setTotalCount(payload?.meta?.total ?? payload?.total ?? 0);
-      } catch {
+      } catch (err) {
+        if (seq !== loadSeq.current) return;
         enqueueSnackbar(errorMessage, { variant: 'error' });
       } finally {
-        setLoading(false);
+        if (seq === loadSeq.current) setLoading(false);
       }
     },
     [url, pageIndex, pageSize, paramsKey, errorMessage]
