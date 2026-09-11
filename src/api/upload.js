@@ -3,7 +3,8 @@ import { post } from 'utils/api';
 
 const endpoints = {
   uploadSingle: 'upload/uploadSingle',
-  uploadMany: 'upload/uploadMany'
+  uploadMany: 'upload/uploadMany',
+  delete: 'upload/delete'
 };
 
 function buildUploadParams({ purpose, product_id, variant_id, brand_id, category_id, store_id, order_id } = {}) {
@@ -59,4 +60,13 @@ export async function uploadMany(files, onUploadProgress, opts = {}) {
     params: buildUploadParams(opts),
     onUploadProgress
   });
+}
+
+/**
+ * Delete a managed CDN/S3 asset by public URL (admin).
+ * @param {string|string[]} url
+ */
+export async function deleteUpload(url) {
+  const urls = Array.isArray(url) ? url : [url];
+  return post(endpoints.delete, { urls: urls.filter(Boolean) });
 }
