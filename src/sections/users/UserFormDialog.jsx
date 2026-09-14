@@ -29,7 +29,8 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
     status: 1,
     role_id: '',
     is_tester: false,
-    tester_otp: ''
+    tester_otp: '',
+    receive_order_whatsapp: false
   });
   const [saving, setSaving] = useState(false);
   const [roles, setRoles] = useState([]);
@@ -59,7 +60,8 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         status: initialData.status ?? 1,
         role_id: initialData.role_id || initialData.role?.id || '',
         is_tester: Boolean(initialData.is_tester),
-        tester_otp: ''
+        tester_otp: '',
+        receive_order_whatsapp: Boolean(initialData.receive_order_whatsapp)
       });
     } else {
       setForm({
@@ -70,7 +72,8 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         status: 1,
         role_id: '',
         is_tester: actorIsTester,
-        tester_otp: ''
+        tester_otp: '',
+        receive_order_whatsapp: false
       });
     }
   }, [initialData, open, actorIsTester]);
@@ -90,7 +93,8 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         status: Number(form.status),
         type: 'ADMIN',
         role_id: form.role_id || undefined,
-        is_tester: Boolean(form.is_tester)
+        is_tester: Boolean(form.is_tester),
+        receive_order_whatsapp: Boolean(form.receive_order_whatsapp)
       };
       if (form.password) payload.password = form.password;
       if (form.tester_otp.trim()) payload.tester_otp = form.tester_otp.trim();
@@ -141,6 +145,15 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
             <InputLabel>Phone</InputLabel>
             <TextField id="phone" name="phone" value={form.phone} onChange={handleChange} placeholder="Phone" fullWidth />
           </Stack>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={Boolean(form.receive_order_whatsapp)}
+                onChange={(e) => setForm((prev) => ({ ...prev, receive_order_whatsapp: e.target.checked }))}
+              />
+            }
+            label="Receive order WhatsApp (new / cancelled)"
+          />
           <Stack sx={{ gap: 1 }}>
             <InputLabel>Role</InputLabel>
             <TextField
