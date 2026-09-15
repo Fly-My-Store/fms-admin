@@ -49,6 +49,26 @@ export default function CategoriesTableSection({
             '—'
           )
       },
+      {
+        header: 'System',
+        id: 'system',
+        cell: ({ row }) => {
+          const slug = String(row.original.slug || '');
+          const system = [
+            'screen-guard',
+            'pharmacy',
+            'grocery',
+            'restaurant',
+            'product-reference',
+            'demo-screen-guard',
+            'demo-pharmacy',
+            'demo-grocery',
+            'demo-restaurant',
+            'demo-product-reference',
+          ].includes(slug);
+          return system ? <Chip color="warning" label="System" size="small" variant="light" /> : '—';
+        }
+      },
       { header: 'Slug', accessorKey: 'slug' },
       {
         header: 'Parent',

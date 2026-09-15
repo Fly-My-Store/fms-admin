@@ -19,11 +19,13 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  FormControlLabel,
   FormHelperText,
   InputLabel,
   LinearProgress,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography
 } from '@mui/material';
@@ -51,7 +53,8 @@ const EMPTY = {
   description: '',
   spec_json: '',
   record_status: 1,
-  prescription_override: 'inherit'
+  prescription_override: 'inherit',
+  is_featured: false,
 };
 
 function slugify(s = '') {
@@ -145,6 +148,7 @@ export default function ProductUpsert() {
       spec_json: product.spec_json ? JSON.stringify(product.spec_json, null, 2) : '',
       record_status: product.record_status ?? 1,
       prescription_override,
+      is_featured: Boolean(product.is_featured),
     });
 
     setBrandSel(product.brand || null);
@@ -292,6 +296,7 @@ export default function ProductUpsert() {
               : form.prescription_override === 'optional'
                 ? 'optional'
                 : 'none',
+        is_featured: Boolean(form.is_featured),
       };
 
       // Build images payload per backend contract
@@ -549,6 +554,16 @@ export default function ProductUpsert() {
                   ))}
                 </TextField>
               </Stack>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(form.is_featured)}
+                    onChange={(e) => handleField('is_featured', e.target.checked)}
+                  />
+                }
+                label="Featured on home"
+              />
             </Stack>
           </Stack>
 

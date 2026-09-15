@@ -27,6 +27,20 @@ import {
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
+import Chip from '@mui/material/Chip';
+
+const SYSTEM_CATEGORY_SLUGS = new Set([
+  'screen-guard',
+  'pharmacy',
+  'grocery',
+  'restaurant',
+  'product-reference',
+  'demo-screen-guard',
+  'demo-pharmacy',
+  'demo-grocery',
+  'demo-restaurant',
+  'demo-product-reference',
+]);
 
 const RECORD_STATUS_LIST = [
   { value: 1, label: 'ACTIVE' },
@@ -89,6 +103,9 @@ export function CategoryUpsert() {
   const [parentPage, setParentPage] = useState(1);
   const [parentHasMore, setParentHasMore] = useState(false);
   const [parentLoading, setParentLoading] = useState(false);
+
+  const isSystemCategory = Boolean(form.slug && SYSTEM_CATEGORY_SLUGS.has(String(form.slug)));
+
   // remote fetch for parent autocomplete (paginated)
   useEffect(() => {
     let cancelled = false;
@@ -375,13 +392,18 @@ export function CategoryUpsert() {
               </Stack>
 
               <Stack sx={{ gap: 1 }}>
-                <InputLabel>Slug</InputLabel>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <InputLabel>Slug</InputLabel>
+                  {isSystemCategory ? <Chip size="small" color="warning" label="System category" /> : null}
+                </Stack>
                 <TextField
                   size="small"
                   fullWidth
                   value={form.slug || ''}
                   onChange={(e) => handleField('slug', e.target.value)}
                   placeholder="smartphones"
+                  disabled={isSystemCategory}
+                  helperText={isSystemCategory ? 'System category slug cannot be changed' : undefined}
                 />
               </Stack>
 
@@ -464,6 +486,8 @@ export function CategoryUpsert() {
                   fullWidth
                   value={Number(form.level ?? 0)}
                   onChange={(e) => handleField('level', Number(e.target.value))}
+                  disabled={isSystemCategory}
+                  helperText={isSystemCategory ? 'System category must stay a root' : undefined}
                 >
                   {LEVEL_OPTIONS.map((o) => (
                     <MenuItem key={o.value} value={o.value}>

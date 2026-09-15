@@ -15,12 +15,14 @@ import {
   Typography
 } from '@mui/material';
 import MainCard from 'components/MainCard';
-import { changePasswordRequest } from 'store/auth/authSlice';
+import { changePasswordRequest, logout } from 'store/auth/authSlice';
 import EyeOutlined from '@ant-design/icons/EyeOutlined';
 import EyeInvisibleOutlined from '@ant-design/icons/EyeInvisibleOutlined';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePasswordTab() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const [form, setForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
   const [show, setShow] = useState({ current: false, next: false, confirm: false });
   const [saving, setSaving] = useState(false);
@@ -51,7 +53,9 @@ export default function ProfilePasswordTab() {
         callback: () => {
           setSaving(false);
           setForm({ current_password: '', new_password: '', confirm_password: '' });
-          enqueueSnackbar('Password updated', { variant: 'success' });
+          enqueueSnackbar('Password updated. Sign in again on all devices.', { variant: 'success' });
+          dispatch(logout());
+          router.replace('/login');
         },
         onError: (msg) => {
           setSaving(false);
@@ -98,7 +102,7 @@ export default function ProfilePasswordTab() {
         {renderPasswordField('confirm_password', 'Confirm new password', 'confirm')}
 
         <FormHelperText sx={{ mx: 0 }}>
-          You will stay signed in after changing your password.
+          Changing your password signs you out on every device. You will need to sign in again.
         </FormHelperText>
 
         <Stack direction="row" justifyContent="flex-end">

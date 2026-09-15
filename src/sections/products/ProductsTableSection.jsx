@@ -178,6 +178,16 @@ export default function ProductsTableSection({
         }
       },
       {
+        header: 'Home',
+        accessorKey: 'is_featured',
+        cell: ({ row }) =>
+          row.original?.is_featured ? (
+            <Chip color="info" label="Featured" size="small" variant="light" />
+          ) : (
+            '—'
+          )
+      },
+      {
         header: 'Status',
         accessorKey: 'record_status',
         cell: (cell) => {

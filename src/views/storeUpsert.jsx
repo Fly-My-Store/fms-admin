@@ -126,6 +126,7 @@ const EMPTY = {
   delivery_radius_m: 5000,
   code: '',
   fssai_number: '',
+  store_type: '',
   logo_url: '',
   logo_thumb_url: '',
   support_email: '',
@@ -226,6 +227,7 @@ export default function StoreUpsert() {
       delivery_radius_m: data.delivery_radius_m ?? 5000,
       code: data.code || '',
       fssai_number: data.fssai_number || '',
+      store_type: data.store_type || '',
       logo_url: data.logo_url || '',
       logo_thumb_url: data.logo_thumb_url || '',
       support_email: data.support_email || '',
@@ -522,6 +524,7 @@ export default function StoreUpsert() {
         'kyb_reason',
         'record_status',
         'fssai_number',
+        'store_type',
         'logo_url',
         'logo_thumb_url'
       ];
@@ -534,6 +537,7 @@ export default function StoreUpsert() {
         delivery_radius_m: toNumOrNull(form.delivery_radius_m),
         is_open: form.is_open === 'true',
         fssai_number: String(form.fssai_number || '').replace(/\D/g, '') || null,
+        store_type: form.store_type || null,
         logo_url: form.logo_url || null,
         logo_thumb_url: form.logo_thumb_url || null
       };
@@ -725,6 +729,20 @@ export default function StoreUpsert() {
                   placeholder="12345678901234"
                 />
               </Stack>
+              <TextField
+                select
+                size="small"
+                label="Store type"
+                fullWidth
+                value={form.store_type || ''}
+                onChange={(e) => handleField('store_type', e.target.value)}
+                helperText="Primary products they sell. Does not limit catalog. Fly still lists all nearby stores."
+              >
+                <MenuItem value="">General</MenuItem>
+                <MenuItem value="grocery">Grocery</MenuItem>
+                <MenuItem value="restaurant">Food</MenuItem>
+                <MenuItem value="pharmacy">Pharmacy</MenuItem>
+              </TextField>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   size="small"
