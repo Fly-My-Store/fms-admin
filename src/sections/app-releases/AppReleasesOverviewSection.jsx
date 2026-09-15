@@ -130,10 +130,11 @@ export default function AppReleasesOverviewSection() {
     <Box>
       <Stack spacing={1} sx={{ mb: { xs: 2, sm: 3 } }}>
         <Typography variant="h3" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' }, fontWeight: 700 }}>
-          Fly My Store apps
+          App APK releases
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 560 }}>
-          Install the latest Android APK for each Fly My Store app. 
+          Upload and download Android APKs for customer, seller, and rider. Soft / force store
+          updates are managed separately under App Updates.
         </Typography>
       </Stack>
 

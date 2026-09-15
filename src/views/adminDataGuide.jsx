@@ -307,7 +307,7 @@ Store listing (price + stock) — seller app or admin CSV update`}
         <DontList
           items={[
             'Carts, service areas, addresses, attribute groups, PLP configs — do not use groups/PLP for new production work.',
-            'APK manage history: /app-releases/customer, /seller, /rider (also from “Manage history” on the public hub).'
+            'APK manage history: /app-releases/customer, /seller, /rider (also from “Manage history” on the public hub). Soft/force policy: /app-updates.'
           ]}
         />
       </Section>
@@ -887,17 +887,22 @@ Store listing (price + stock) — seller app or admin CSV update`}
         />
       </Section>
 
-      <Section title="15. App releases">
+      <Section title="15. App releases & updates">
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
           <GuideTextLink href="/app-releases" variant="body2">
             /app-releases
           </GuideTextLink>{' '}
-          is a public download hub (no login) for customer, seller, and rider apps. Logged-in admins also reach it from Apps in the menu.
+          is the APK download hub (public). Soft / force store update policy is separate at{' '}
+          <GuideTextLink href="/app-updates" variant="body2">
+            /app-updates
+          </GuideTextLink>{' '}
+          (login required).
         </Typography>
         <DontList
           items={[
-            'Use “Manage history” on the hub (or /app-releases/customer, /seller, /rider) to upload builds — those pages require login.',
-            '/downloads is the older public URL and still works.'
+            'Use “Manage history” on the APK hub (or /app-releases/customer, /seller, /rider) to upload builds — those pages require login.',
+            'Set minimum supported (force) and recommended (soft) on /app-updates. At or above recommended → no prompt. Do not set recommended to every store release unless you want to nudge everyone.',
+            '/downloads is the older public APK URL and still works.'
           ]}
         />
       </Section>

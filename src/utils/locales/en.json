@@ -130,8 +130,9 @@
   "system": "System",
   "webhook-events": "Webhook Events",
   "audit-logs": "Audit Logs",
-  "app-releases": "App Releases",
+  "app-releases": "App Releases (APK)",
   "app-releases-overview": "Overview",
+  "app-updates": "App Updates",
   "customer-apk": "Customer APK",
   "seller-apk": "Seller APK",
   "rider-apk": "Rider APK"

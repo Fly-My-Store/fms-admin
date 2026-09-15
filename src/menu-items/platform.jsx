@@ -26,6 +26,7 @@ import {
   CalculatorOutlined,
   FileTextOutlined,
   MobileOutlined,
+  CloudSyncOutlined,
   TeamOutlined,
   SafetyCertificateOutlined,
   LockOutlined,
@@ -61,6 +62,7 @@ const icons = {
   CalculatorOutlined,
   FileTextOutlined,
   MobileOutlined,
+  CloudSyncOutlined,
   TeamOutlined,
   SafetyCertificateOutlined,
   LockOutlined,
@@ -212,6 +214,15 @@ const platformMenuGroups = [
         type: 'item',
         url: '/app-releases',
         icon: icons.MobileOutlined
+      },
+      {
+        id: 'app-updates',
+        title: 'app-updates',
+        type: 'item',
+        url: '/app-updates',
+        icon: icons.CloudSyncOutlined,
+        perm: 'appRelease',
+        action: 'read'
       }
     ]
   },

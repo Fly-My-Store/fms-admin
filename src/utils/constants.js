@@ -23,7 +23,8 @@ export const ROUTES = {
   COMING_SOON: '/coming-soon',
   UNDER_CONSTRUCTION: '/pages/under-construction',
   APP_DOWNLOADS: '/downloads',
-  APP_RELEASES: '/app-releases'
+  APP_RELEASES: '/app-releases',
+  APP_UPDATES: '/app-updates'
 };
 
 export function isPublicPath(path) {
