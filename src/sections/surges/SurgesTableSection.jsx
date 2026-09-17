@@ -7,26 +7,20 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import BasicReactTable from 'components/tables/basicTable';
 import {
-  getPromotionFundingLabel,
-  getPromotionScopeLabel,
-  getPromotionStatusChipColor,
-  getPromotionStatusLabel,
-  getPromotionVisibilityLabel
-} from 'utils/promotionLabels';
+  SURGE_BENEFICIARY_LABELS,
+  SURGE_SCOPE_LABELS,
+  formatSurgeAmount,
+  getSurgeStatusChipColor,
+  getSurgeStatusLabel
+} from 'utils/surgeLabels';
 
-function formatDiscount(row) {
-  if (row.discount_type === 'FLAT') return `₹${(Number(row.discount_value) / 100).toFixed(2)}`;
-  if (row.discount_type === 'FREE_DELIVERY') return 'Free delivery';
-  return `${row.discount_value}%`;
-}
-
-export default function PromotionsTableSection({
+export default function SurgesTableSection({
   rows,
   handleAddButton,
   handleViewButton,
   handleEditButton,
-  onApprove,
-  onReject,
+  onEnable,
+  onDisable,
   pageIndex,
   pageSize,
   totalPageCount,
@@ -38,44 +32,33 @@ export default function PromotionsTableSection({
   const columns = useMemo(
     () => [
       {
-        header: 'Code',
-        accessorKey: 'code',
+        header: 'Title',
+        accessorKey: 'title',
         cell: ({ row }) => (
           <Typography
             variant="body2"
             sx={{ cursor: handleViewButton ? 'pointer' : 'default', color: 'primary.main' }}
             onClick={() => handleViewButton?.(row.original)}
           >
-            {row.original.code}
+            {row.original.title}
           </Typography>
         )
       },
-      { header: 'Title', accessorKey: 'title' },
       {
-        header: 'Discount',
-        id: 'discount',
-        cell: ({ row }) => formatDiscount(row.original)
+        header: 'Amount',
+        id: 'amount',
+        cell: ({ row }) => formatSurgeAmount(row.original)
       },
       {
         header: 'Scope',
-        id: 'scope',
-        cell: ({ row }) => getPromotionScopeLabel(row.original.scope, row.original)
+        accessorKey: 'scope',
+        cell: ({ row }) => SURGE_SCOPE_LABELS[row.original.scope] || row.original.scope
       },
       {
-        header: 'Funding',
-        accessorKey: 'funding',
-        cell: ({ row }) => getPromotionFundingLabel(row.original.funding)
-      },
-      {
-        header: 'Visibility',
-        accessorKey: 'visibility',
-        cell: ({ row }) => (
-          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-            <Chip size="small" variant="outlined" label={getPromotionVisibilityLabel(row.original.visibility)} />
-            {row.original.auto_apply ? <Chip size="small" label="Auto" /> : null}
-            {row.original.silent ? <Chip size="small" label="Silent" /> : null}
-          </Stack>
-        )
+        header: 'Beneficiary',
+        accessorKey: 'surge_beneficiary',
+        cell: ({ row }) =>
+          SURGE_BENEFICIARY_LABELS[row.original.surge_beneficiary] || row.original.surge_beneficiary
       },
       {
         header: 'Store',
@@ -90,8 +73,8 @@ export default function PromotionsTableSection({
         cell: ({ row }) => (
           <Chip
             size="small"
-            label={getPromotionStatusLabel(row.original.status)}
-            color={getPromotionStatusChipColor(row.original.status)}
+            label={getSurgeStatusLabel(row.original.status)}
+            color={getSurgeStatusChipColor(row.original.status)}
           />
         )
       }
@@ -100,15 +83,19 @@ export default function PromotionsTableSection({
   );
 
   const tableActions = (row) => {
-    if (row?.status !== 'PENDING_APPROVAL') return null;
+    if (!row) return null;
     return (
       <Stack direction="row" spacing={0.5} alignItems="center">
-        <Button size="small" onClick={() => onApprove?.(row)}>
-          Approve
-        </Button>
-        <Button size="small" color="warning" onClick={() => onReject?.(row)}>
-          Reject
-        </Button>
+        {row.status !== 'ACTIVE' ? (
+          <Button size="small" onClick={() => onEnable?.(row)}>
+            Enable
+          </Button>
+        ) : null}
+        {row.status === 'ACTIVE' ? (
+          <Button size="small" color="warning" onClick={() => onDisable?.(row)}>
+            Pause
+          </Button>
+        ) : null}
       </Stack>
     );
   };
@@ -117,7 +104,7 @@ export default function PromotionsTableSection({
     <BasicReactTable
       columns={columns}
       data={rows}
-      title="Promotions"
+      title="Surges"
       ariaLebel="Create"
       handleAddButton={handleAddButton}
       handleViewButton={handleViewButton}

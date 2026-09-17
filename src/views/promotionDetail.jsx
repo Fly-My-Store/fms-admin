@@ -22,6 +22,7 @@ import MainCard from 'components/MainCard';
 import { approvePromotion, getPromotion, listPromotionRedemptions, rejectPromotion } from 'api/promotions';
 import {
   getPromotionFundingLabel,
+  getPromotionScopeLabel,
   getPromotionStatusChipColor,
   getPromotionStatusLabel,
   getPromotionTargetTypeLabel,
@@ -181,7 +182,7 @@ export default function PromotionDetail() {
           <Typography color="text.secondary">Promotion not found.</Typography>
         ) : (
           <Stack spacing={3}>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
               <Chip
                 size="small"
                 label={getPromotionStatusLabel(row.status)}
@@ -189,6 +190,9 @@ export default function PromotionDetail() {
               />
               <Chip size="small" variant="outlined" label={getPromotionFundingLabel(row.funding)} />
               <Chip size="small" variant="outlined" label={getPromotionVisibilityLabel(row.visibility)} />
+              <Chip size="small" variant="outlined" label={getPromotionScopeLabel(row.scope, row)} />
+              {row.auto_apply ? <Chip size="small" color="info" label="Auto-apply" /> : null}
+              {row.silent ? <Chip size="small" label="Silent" /> : null}
             </Stack>
 
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
@@ -218,6 +222,9 @@ export default function PromotionDetail() {
               </Stack>
               <Stack flex={1} spacing={2}>
                 <Field label="Discount" value={formatDiscount(row)} />
+                <Field label="Scope" value={getPromotionScopeLabel(row.scope, row)} />
+                <Field label="Auto-apply" value={row.auto_apply ? 'Yes (standalone)' : 'No'} />
+                <Field label="Silent" value={row.silent ? 'Yes — hidden from coupon list' : 'No'} />
                 <Field label="Max discount cap" value={formatINRFromCents(row.max_discount_cents)} />
                 <Field label="Min cart" value={formatINRFromCents(row.min_cart_cents)} />
                 <Field

@@ -5,7 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   Autocomplete,
   Button,
+  Checkbox,
   CircularProgress,
+  FormControlLabel,
   MenuItem,
   Stack,
   TextField,
@@ -39,6 +41,9 @@ const EMPTY = {
   funding: 'PLATFORM',
   status: 'ACTIVE',
   store_id: '',
+  scope: 'CART',
+  auto_apply: false,
+  silent: false,
   min_cart_rupees: '0',
   max_total_uses: '',
   max_uses_per_user: '',
@@ -94,13 +99,16 @@ function buildPayload(form) {
   else if (isFlat) discount_value = rupeesToCents(form.discount_value) || 0;
   else discount_value = Math.trunc(Number(form.discount_value) || 0);
 
-  return {
+  return sanitizePromotionPayload({
     title: form.title.trim(),
     code: form.code.trim() || undefined,
     description: form.description.trim() || null,
     discount_type: form.discount_type,
     discount_value,
     max_discount_cents: form.max_discount_rupees === '' ? null : rupeesToCents(form.max_discount_rupees),
+    scope: isFree ? 'DELIVERY_FEE' : form.scope || 'CART',
+    auto_apply: Boolean(form.auto_apply),
+    silent: Boolean(form.silent),
     visibility: form.visibility,
     funding: form.funding,
     status: form.status,
@@ -116,7 +124,23 @@ function buildPayload(form) {
         target_type: t.target_type,
         target_id: String(t.target_id).trim()
       }))
-  };
+  });
+}
+
+// Clear targets for fee/cart scopes and free delivery
+function sanitizePromotionPayload(payload) {
+  const scope = payload.scope;
+  if (
+    payload.discount_type === 'FREE_DELIVERY' ||
+    scope === 'CART' ||
+    scope === 'DELIVERY_FEE' ||
+    scope === 'PLATFORM_FEE' ||
+    scope === 'SERVICE_FEE' ||
+    scope === 'GATEWAY_FEE'
+  ) {
+    return { ...payload, targets: [] };
+  }
+  return payload;
 }
 
 export default function PromotionUpsert() {
@@ -170,6 +194,9 @@ export default function PromotionUpsert() {
         funding: row.funding || 'PLATFORM',
         status: row.status || 'ACTIVE',
         store_id: storeId,
+        scope: row.scope || (row.discount_type === 'FREE_DELIVERY' ? 'DELIVERY_FEE' : 'CART'),
+        auto_apply: Boolean(row.auto_apply),
+        silent: Boolean(row.silent),
         min_cart_rupees: centsToRupeesInput(row.min_cart_cents) || '0',
         max_total_uses: row.max_total_uses ?? '',
         max_uses_per_user: row.max_uses_per_user ?? '',
@@ -451,7 +478,9 @@ export default function PromotionUpsert() {
                   setForm((p) => ({
                     ...p,
                     discount_type: next,
-                    discount_value: next === 'FREE_DELIVERY' ? '0' : next === 'FLAT' ? '20' : '10'
+                    discount_value: next === 'FREE_DELIVERY' ? '0' : next === 'FLAT' ? '20' : '10',
+                    scope: next === 'FREE_DELIVERY' ? 'DELIVERY_FEE' : p.scope === 'DELIVERY_FEE' ? 'CART' : p.scope,
+                    targets: next === 'FREE_DELIVERY' ? [] : p.targets
                   }));
                 }}
                 disabled={loading}
@@ -461,6 +490,24 @@ export default function PromotionUpsert() {
                 <MenuItem value="PERCENT">Percent</MenuItem>
                 <MenuItem value="FLAT">Flat (₹)</MenuItem>
                 <MenuItem value="FREE_DELIVERY">Free delivery (+ km)</MenuItem>
+              </TextField>
+              <TextField
+                select
+                size="small"
+                label="Applies to (scope)"
+                fullWidth
+                value={form.discount_type === 'FREE_DELIVERY' ? 'DELIVERY_FEE' : form.scope}
+                onChange={(e) => setField('scope', e.target.value)}
+                disabled={loading || form.discount_type === 'FREE_DELIVERY'}
+                error={!!errors.scope}
+                sx={{ flex: 1 }}
+              >
+                <MenuItem value="CART">Whole cart</MenuItem>
+                <MenuItem value="ITEM">Matching items</MenuItem>
+                <MenuItem value="DELIVERY_FEE">Delivery fee</MenuItem>
+                <MenuItem value="PLATFORM_FEE">Platform fee</MenuItem>
+                <MenuItem value="SERVICE_FEE">Service fee</MenuItem>
+                <MenuItem value="GATEWAY_FEE">Gateway fee</MenuItem>
               </TextField>
               <TextField
                 size="small"
@@ -486,6 +533,28 @@ export default function PromotionUpsert() {
                 error={!!errors.max_discount_rupees}
                 inputProps={{ min: 0, step: 0.01 }}
                 sx={{ flex: 1 }}
+              />
+            </Stack>
+            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={Boolean(form.auto_apply)}
+                    onChange={(e) => setField('auto_apply', e.target.checked)}
+                    disabled={loading}
+                  />
+                }
+                label="Auto-apply (standalone only)"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={Boolean(form.silent)}
+                    onChange={(e) => setField('silent', e.target.checked)}
+                    disabled={loading}
+                  />
+                }
+                label="Silent (hide from coupon list)"
               />
             </Stack>
           </MainCard>

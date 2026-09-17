@@ -39,6 +39,15 @@ export const PROMOTION_TARGET_TYPE_LABELS = {
   PRODUCT_VARIANT: 'Product variant'
 };
 
+export const PROMOTION_SCOPE_LABELS = {
+  CART: 'Whole cart',
+  ITEM: 'Matching items',
+  DELIVERY_FEE: 'Delivery fee',
+  PLATFORM_FEE: 'Platform fee',
+  SERVICE_FEE: 'Service fee',
+  GATEWAY_FEE: 'Gateway fee'
+};
+
 function labelFromMap(map, value) {
   const key = String(value || '').toUpperCase();
   return map[key] || value || '—';
@@ -71,4 +80,11 @@ export function getPromotionDiscountTypeLabel(type) {
 
 export function getPromotionTargetTypeLabel(type) {
   return labelFromMap(PROMOTION_TARGET_TYPE_LABELS, type);
+}
+
+export function getPromotionScopeLabel(scope, row) {
+  if (!scope && row?.discount_type === 'FREE_DELIVERY') {
+    return PROMOTION_SCOPE_LABELS.DELIVERY_FEE;
+  }
+  return labelFromMap(PROMOTION_SCOPE_LABELS, scope);
 }
