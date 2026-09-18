@@ -1,5 +1,7 @@
 /** Client-side promotion form validation for admin (aligned with backend Joi). */
 
+import { parseDdMmYyyyHm } from './dateFormat';
+
 const CODE_RE = /^[A-Z0-9_-]+$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -59,11 +61,7 @@ function parseIntField(v) {
 }
 
 function parseDatetimeLocal(value) {
-  const s = String(value || '').trim();
-  if (!s) return null;
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return undefined;
-  return d;
+  return parseDdMmYyyyHm(value);
 }
 
 /**
@@ -162,16 +160,17 @@ export function validateAdminPromotionForm(form, { mode = 'create' } = {}) {
 
   const starts = parseDatetimeLocal(form.starts_at);
   if (form.starts_at?.trim() && starts === undefined) {
-    errors.starts_at = 'Enter a valid start date/time';
+    errors.starts_at = 'Use DD-MM-YYYY or DD-MM-YYYY HH:mm';
   }
 
   const ends = parseDatetimeLocal(form.ends_at);
   if (form.ends_at?.trim() && ends === undefined) {
-    errors.ends_at = 'Enter a valid end date/time';
+    errors.ends_at = 'Use DD-MM-YYYY or DD-MM-YYYY HH:mm';
   }
 
-  if (starts && ends && ends < starts) {
-    errors.ends_at = 'End must be on or after start';
+  if (starts && ends && starts.getTime() >= ends.getTime()) {
+    errors.starts_at = 'Start must be before end';
+    errors.ends_at = 'End must be after start';
   }
 
   if (ends) {
@@ -186,10 +185,26 @@ export function validateAdminPromotionForm(form, { mode = 'create' } = {}) {
     }
   }
 
+  const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const startTime = String(form.start_time || '').trim();
+  const endTime = String(form.end_time || '').trim();
+  if (startTime && !TIME_RE.test(startTime)) errors.start_time = 'Use HH:mm';
+  if (endTime && !TIME_RE.test(endTime)) errors.end_time = 'Use HH:mm';
+  if ((startTime || endTime) && (!startTime || !endTime)) {
+    errors.end_time = errors.end_time || 'Set both hours, or clear both';
+  }
+
   const targets = Array.isArray(form.targets) ? form.targets : [];
+  const scope = form.discount_type === 'FREE_DELIVERY' ? 'DELIVERY_FEE' : form.scope || 'CART';
+  if (scope === 'ITEM') {
+    const complete = targets.filter((t) => t?.target_type && String(t?.target_id || '').trim());
+    if (!complete.length) {
+      errors.targets = 'Matching items scope needs at least one target';
+    }
+  }
   if (targets.length > L.MAX_TARGETS) {
     errors.targets = `You can add at most ${L.MAX_TARGETS} targets`;
-  } else {
+  } else if (!errors.targets) {
     const incomplete = targets.some((t) => {
       const hasType = Boolean(t?.target_type);
       const id = String(t?.target_id || '').trim();

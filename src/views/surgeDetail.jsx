@@ -7,23 +7,31 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Stack,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
+  TextField,
   Typography
 } from '@mui/material';
 import { enqueueSnackbar } from 'notistack';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
-import { disableSurge, enableSurge, getSurge } from 'api/surges';
+import { approveSurge, disableSurge, enableSurge, getSurge, rejectSurge } from 'api/surges';
+import { formatDateTimeDdMmYyyy } from 'utils/dateFormat';
 import {
   SURGE_BENEFICIARY_LABELS,
   SURGE_SCOPE_LABELS,
   SURGE_TYPE_LABELS,
+  formatSurgeActiveDays,
   formatSurgeAmount,
+  formatSurgeDailyHours,
   getSurgeStatusChipColor,
   getSurgeStatusLabel
 } from 'utils/surgeLabels';
@@ -57,6 +65,8 @@ export default function SurgeDetail() {
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -87,6 +97,19 @@ export default function SurgeDetail() {
     }),
     [id, row?.title]
   );
+
+  const onApprove = async () => {
+    setActing(true);
+    try {
+      await approveSurge(id);
+      enqueueSnackbar('Surge approved', { variant: 'success' });
+      load();
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || 'Approve failed', { variant: 'error' });
+    } finally {
+      setActing(false);
+    }
+  };
 
   const onEnable = async () => {
     setActing(true);
@@ -139,15 +162,26 @@ export default function SurgeDetail() {
           <Button component={Link} href={`/surges/edit/${id}`} variant="contained">
             Edit
           </Button>
-          {row.status !== 'ACTIVE' ? (
+          {row.status === 'PENDING_APPROVAL' ? (
+            <>
+              <Button variant="outlined" onClick={onApprove} disabled={acting}>
+                Approve
+              </Button>
+              <Button variant="outlined" color="warning" onClick={() => setRejectOpen(true)} disabled={acting}>
+                Reject
+              </Button>
+            </>
+          ) : null}
+          {row.status === 'PAUSED' ? (
             <Button variant="outlined" onClick={onEnable} disabled={acting}>
               Enable
             </Button>
-          ) : (
+          ) : null}
+          {row.status === 'ACTIVE' ? (
             <Button variant="outlined" color="warning" onClick={onDisable} disabled={acting}>
               Pause
             </Button>
-          )}
+          ) : null}
           <Button variant="text" onClick={() => router.push('/surges')}>
             Back to list
           </Button>
@@ -168,6 +202,22 @@ export default function SurgeDetail() {
               />
               <Field label="Amount" value={formatSurgeAmount(row)} />
               <Field label="Type" value={SURGE_TYPE_LABELS[row.surge_type] || row.surge_type} />
+              <Field
+                label="Max surge"
+                value={
+                  row.surge_type === 'PERCENT' && row.max_surge_cents != null
+                    ? `₹${(Number(row.max_surge_cents) / 100).toFixed(2)}`
+                    : '—'
+                }
+              />
+              <Field
+                label="Max cart"
+                value={
+                  row.max_cart_cents != null
+                    ? `Under ₹${(Number(row.max_cart_cents) / 100).toFixed(2)}`
+                    : '—'
+                }
+              />
               <Field label="Scope" value={SURGE_SCOPE_LABELS[row.scope] || row.scope} />
               <Field
                 label="Beneficiary"
@@ -177,11 +227,14 @@ export default function SurgeDetail() {
                 label="Store"
                 value={row.store?.name || (row.store_id ? String(row.store_id) : 'App-wide')}
               />
-              <Field label="Starts" value={row.starts_at ? new Date(row.starts_at).toLocaleString() : '—'} />
-              <Field label="Ends" value={row.ends_at ? new Date(row.ends_at).toLocaleString() : '—'} />
+              <Field label="Starts" value={row.starts_at ? formatDateTimeDdMmYyyy(row.starts_at) : '—'} />
+              <Field label="Ends" value={row.ends_at ? formatDateTimeDdMmYyyy(row.ends_at) : '—'} />
+              <Field label="Active days" value={formatSurgeActiveDays(row.active_days)} />
+              <Field label="Hours" value={formatSurgeDailyHours(row.start_time, row.end_time)} />
             </Stack>
-            {row.description ? (
-              <Field label="Description" value={row.description} />
+            {row.description ? <Field label="Customer message" value={row.description} /> : null}
+            {row.status === 'REJECTED' && row.rejection_reason ? (
+              <Field label="Rejection reason" value={row.rejection_reason} />
             ) : null}
           </Stack>
         </MainCard>
@@ -207,6 +260,45 @@ export default function SurgeDetail() {
           </MainCard>
         ) : null}
       </Stack>
+
+      <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Reject surge</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Reason"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            fullWidth
+            multiline
+            minRows={3}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectOpen(false)}>Cancel</Button>
+          <Button
+            color="warning"
+            variant="contained"
+            disabled={acting}
+            onClick={async () => {
+              setActing(true);
+              try {
+                await rejectSurge(id, { reason: rejectReason });
+                setRejectOpen(false);
+                setRejectReason('');
+                enqueueSnackbar('Surge rejected', { variant: 'success' });
+                load();
+              } catch (e) {
+                enqueueSnackbar(e?.response?.data?.message || 'Reject failed', { variant: 'error' });
+              } finally {
+                setActing(false);
+              }
+            }}
+          >
+            Reject
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

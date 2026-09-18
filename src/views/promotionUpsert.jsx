@@ -11,6 +11,8 @@ import {
   MenuItem,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
@@ -23,6 +25,8 @@ import { createPromotion, getPromotion, updatePromotion } from 'api/promotions';
 import { getStore, listStores } from 'api/sellersStores';
 import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
 import { PROMOTION_STATUS_OPTIONS } from 'utils/promotionLabels';
+import { SURGE_WEEKDAY_OPTIONS } from 'utils/surgeLabels';
+import { fromDdMmYyyyHmToIso, toDdMmYyyyHm } from 'utils/dateFormat';
 import { normalizeValidationErrors } from 'utils/formErrors';
 import {
   firstAdminPromotionError,
@@ -49,6 +53,9 @@ const EMPTY = {
   max_uses_per_user: '',
   starts_at: '',
   ends_at: '',
+  active_days: [],
+  start_time: '',
+  end_time: '',
   targets: []
 };
 
@@ -76,19 +83,21 @@ function centsToRupeesInput(cents) {
   return String(Number(cents) / 100);
 }
 
-function toDatetimeLocal(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function normalizeTimeInput(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const match = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return undefined;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return undefined;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return undefined;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
-function fromDatetimeLocal(value) {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
+function toTimeInput(value) {
+  const normalized = normalizeTimeInput(value);
+  return normalized || '';
 }
 
 function buildPayload(form) {
@@ -98,6 +107,9 @@ function buildPayload(form) {
   if (isFree) discount_value = 0;
   else if (isFlat) discount_value = rupeesToCents(form.discount_value) || 0;
   else discount_value = Math.trunc(Number(form.discount_value) || 0);
+  const activeDays = Array.isArray(form.active_days)
+    ? [...new Set(form.active_days.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))]
+    : [];
 
   return sanitizePromotionPayload({
     title: form.title.trim(),
@@ -116,8 +128,11 @@ function buildPayload(form) {
     min_cart_cents: rupeesToCents(form.min_cart_rupees) || 0,
     max_total_uses: form.max_total_uses === '' ? null : Number(form.max_total_uses),
     max_uses_per_user: form.max_uses_per_user === '' ? null : Number(form.max_uses_per_user),
-    starts_at: fromDatetimeLocal(form.starts_at),
-    ends_at: fromDatetimeLocal(form.ends_at),
+    starts_at: fromDdMmYyyyHmToIso(form.starts_at) || null,
+    ends_at: fromDdMmYyyyHmToIso(form.ends_at) || null,
+    active_days: activeDays.length ? activeDays : null,
+    start_time: normalizeTimeInput(form.start_time) || null,
+    end_time: normalizeTimeInput(form.end_time) || null,
     targets: (form.targets || [])
       .filter((t) => t.target_type && t.target_id)
       .map((t) => ({
@@ -127,20 +142,12 @@ function buildPayload(form) {
   });
 }
 
-// Clear targets for fee/cart scopes and free delivery
+// Clear targets unless scope is ITEM
 function sanitizePromotionPayload(payload) {
-  const scope = payload.scope;
-  if (
-    payload.discount_type === 'FREE_DELIVERY' ||
-    scope === 'CART' ||
-    scope === 'DELIVERY_FEE' ||
-    scope === 'PLATFORM_FEE' ||
-    scope === 'SERVICE_FEE' ||
-    scope === 'GATEWAY_FEE'
-  ) {
-    return { ...payload, targets: [] };
+  if (payload.scope === 'ITEM' && payload.discount_type !== 'FREE_DELIVERY') {
+    return payload;
   }
-  return payload;
+  return { ...payload, targets: [] };
 }
 
 export default function PromotionUpsert() {
@@ -200,8 +207,11 @@ export default function PromotionUpsert() {
         min_cart_rupees: centsToRupeesInput(row.min_cart_cents) || '0',
         max_total_uses: row.max_total_uses ?? '',
         max_uses_per_user: row.max_uses_per_user ?? '',
-        starts_at: toDatetimeLocal(row.starts_at),
-        ends_at: toDatetimeLocal(row.ends_at),
+        starts_at: toDdMmYyyyHm(row.starts_at),
+        ends_at: toDdMmYyyyHm(row.ends_at),
+        active_days: Array.isArray(row.active_days) ? row.active_days.map(Number) : [],
+        start_time: toTimeInput(row.start_time),
+        end_time: toTimeInput(row.end_time),
         targets: Array.isArray(row.targets)
           ? row.targets.map((t) => ({
               target_type: t.target_type,
@@ -237,6 +247,8 @@ export default function PromotionUpsert() {
 
   const discountValueLabel =
     form.discount_type === 'PERCENT' ? 'Percent value' : form.discount_type === 'FLAT' ? 'Flat amount (₹)' : 'Value';
+
+  const showTargets = form.discount_type !== 'FREE_DELIVERY' && form.scope === 'ITEM';
 
   const formErrorMessage = useMemo(() => {
     if (!errors || !Object.keys(errors).length) return '';
@@ -497,7 +509,16 @@ export default function PromotionUpsert() {
                 label="Applies to (scope)"
                 fullWidth
                 value={form.discount_type === 'FREE_DELIVERY' ? 'DELIVERY_FEE' : form.scope}
-                onChange={(e) => setField('scope', e.target.value)}
+                onChange={(e) => {
+                  const scope = e.target.value;
+                  clearError('scope');
+                  clearError('targets');
+                  setForm((p) => ({
+                    ...p,
+                    scope,
+                    targets: scope === 'ITEM' ? p.targets : []
+                  }));
+                }}
                 disabled={loading || form.discount_type === 'FREE_DELIVERY'}
                 error={!!errors.scope}
                 sx={{ flex: 1 }}
@@ -606,60 +627,118 @@ export default function PromotionUpsert() {
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   size="small"
-                  label="Starts at"
+                  label="Starts at (DD-MM-YYYY HH:mm)"
                   fullWidth
-                  type="datetime-local"
+                  placeholder="16-09-2026 09:00"
                   value={form.starts_at}
                   onChange={(e) => setField('starts_at', e.target.value)}
                   disabled={loading}
                   error={!!errors.starts_at}
+                  helperText={errors.starts_at || 'Optional'}
                   InputLabelProps={{ shrink: true }}
                   sx={{ flex: 1 }}
                 />
                 <TextField
                   size="small"
-                  label="Ends at"
+                  label="Ends at (DD-MM-YYYY HH:mm)"
                   fullWidth
-                  type="datetime-local"
+                  placeholder="30-09-2026 23:59"
                   value={form.ends_at}
                   onChange={(e) => setField('ends_at', e.target.value)}
                   disabled={loading}
                   error={!!errors.ends_at}
+                  helperText={errors.ends_at || 'Optional'}
                   InputLabelProps={{ shrink: true }}
                   sx={{ flex: 1 }}
+                />
+              </Stack>
+              <Stack spacing={1}>
+                <Typography variant="caption" color="text.secondary">
+                  Active days (optional — empty = every day, IST)
+                </Typography>
+                <ToggleButtonGroup
+                  size="small"
+                  value={form.active_days}
+                  onChange={(_e, next) =>
+                    setField(
+                      'active_days',
+                      (next || []).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+                    )
+                  }
+                  aria-label="Active days"
+                  disabled={loading}
+                >
+                  {SURGE_WEEKDAY_OPTIONS.map((day) => (
+                    <ToggleButton key={day.value} value={day.value} aria-label={day.label}>
+                      {day.label}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  size="small"
+                  label="From hour"
+                  type="time"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  value={form.start_time}
+                  onChange={(e) => setField('start_time', e.target.value)}
+                  disabled={loading}
+                  error={!!errors.start_time}
+                  helperText={errors.start_time || 'Leave blank for all day'}
+                />
+                <TextField
+                  size="small"
+                  label="To hour"
+                  type="time"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  value={form.end_time}
+                  onChange={(e) => setField('end_time', e.target.value)}
+                  disabled={loading}
+                  error={!!errors.end_time}
+                  helperText={errors.end_time || 'Overnight OK (e.g. 22:00–06:00)'}
                 />
               </Stack>
             </Stack>
           </MainCard>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
-          <MainCard
-            title="Targets"
-            secondary={
-              <Button size="small" startIcon={<PlusOutlined />} onClick={addTarget} disabled={loading}>
-                Add target
-              </Button>
-            }
-          >
-            <Stack spacing={1.5}>
-              {(form.targets || []).map((t, index) => (
-                <PromotionTargetRow
-                  key={index}
-                  value={t}
-                  onChange={(next) => updateTarget(index, next)}
-                  onRemove={() => removeTarget(index)}
-                  disabled={loading}
-                />
-              ))}
-              {!form.targets?.length ? (
-                <Typography variant="body2" color="text.secondary">
-                  No targets — applies to all eligible items in scope.
-                </Typography>
-              ) : null}
-            </Stack>
-          </MainCard>
-        </Grid>
+        {showTargets ? (
+          <Grid size={{ xs: 12, md: 6 }}>
+            <MainCard
+              title="Targets"
+              secondary={
+                <Button size="small" startIcon={<PlusOutlined />} onClick={addTarget} disabled={loading}>
+                  Add target
+                </Button>
+              }
+            >
+              <Stack spacing={1.5}>
+                {(form.targets || []).map((t, index) => (
+                  <PromotionTargetRow
+                    key={index}
+                    value={t}
+                    onChange={(next) => updateTarget(index, next)}
+                    onRemove={() => removeTarget(index)}
+                    disabled={loading}
+                  />
+                ))}
+                {errors.targets ? (
+                  <Typography variant="caption" color="error">
+                    {errors.targets}
+                  </Typography>
+                ) : null}
+                {!form.targets?.length ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Matching items scope requires at least one brand, category, product, or variant target.
+                  </Typography>
+                ) : null}
+              </Stack>
+            </MainCard>
+          </Grid>
+        ) : null}
 
         <Grid size={12}>
           <Stack direction="row" spacing={2} alignItems="center" justifyContent="flex-end">

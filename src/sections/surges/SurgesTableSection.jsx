@@ -21,6 +21,8 @@ export default function SurgesTableSection({
   handleEditButton,
   onEnable,
   onDisable,
+  onApprove,
+  onReject,
   pageIndex,
   pageSize,
   totalPageCount,
@@ -84,9 +86,21 @@ export default function SurgesTableSection({
 
   const tableActions = (row) => {
     if (!row) return null;
+    if (row.status === 'PENDING_APPROVAL') {
+      return (
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <Button size="small" onClick={() => onApprove?.(row)}>
+            Approve
+          </Button>
+          <Button size="small" color="warning" onClick={() => onReject?.(row)}>
+            Reject
+          </Button>
+        </Stack>
+      );
+    }
     return (
       <Stack direction="row" spacing={0.5} alignItems="center">
-        {row.status !== 'ACTIVE' ? (
+        {row.status === 'PAUSED' ? (
           <Button size="small" onClick={() => onEnable?.(row)}>
             Enable
           </Button>

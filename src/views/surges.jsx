@@ -2,12 +2,21 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, MenuItem, Stack, TextField } from '@mui/material';
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Stack,
+  TextField
+} from '@mui/material';
 import { enqueueSnackbar } from 'notistack';
 import SurgesTableSection from 'sections/surges/SurgesTableSection';
 import useAxiosPaginatedList from 'hooks/useAxiosPaginatedList';
 import useUrlFilters from 'hooks/useUrlFilters';
-import { disableSurge, enableSurge } from 'api/surges';
+import { approveSurge, disableSurge, enableSurge, rejectSurge } from 'api/surges';
 import { SURGE_SCOPE_LABELS, SURGE_STATUS_OPTIONS } from 'utils/surgeLabels';
 
 const FILTER_DEFAULTS = {
@@ -30,6 +39,8 @@ export default function SurgesView() {
     defaults: FILTER_DEFAULTS
   });
   const [searchQuery, setSearchQuery] = useState(draft.q || '');
+  const [rejectId, setRejectId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const listParams = useMemo(
     () => ({
@@ -57,6 +68,16 @@ export default function SurgesView() {
       status: draft.status,
       scope: draft.scope
     });
+  };
+
+  const handleApprove = async (row) => {
+    try {
+      await approveSurge(row.id);
+      enqueueSnackbar('Surge approved', { variant: 'success' });
+      load();
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || 'Approve failed', { variant: 'error' });
+    }
   };
 
   const handleEnable = async (row) => {
@@ -125,19 +146,58 @@ export default function SurgesView() {
   );
 
   return (
-    <SurgesTableSection
-      rows={rows}
-      handleAddButton={() => router.push('/surges/create')}
-      handleViewButton={(row) => row?.id && router.push(`/surges/${row.id}`)}
-      handleEditButton={(row) => row?.id && router.push(`/surges/edit/${row.id}`)}
-      onEnable={handleEnable}
-      onDisable={handleDisable}
-      pageIndex={(Number(applied.page) || 1) - 1}
-      pageSize={Number(applied.limit) || 20}
-      totalPageCount={totalPages}
-      totalCount={totalCount}
-      onPaginationChange={handlePaginationChange}
-      topActionsLeft={topActionsLeft}
-    />
+    <>
+      <SurgesTableSection
+        rows={rows}
+        handleAddButton={() => router.push('/surges/create')}
+        handleViewButton={(row) => row?.id && router.push(`/surges/${row.id}`)}
+        handleEditButton={(row) => row?.id && router.push(`/surges/edit/${row.id}`)}
+        onApprove={handleApprove}
+        onReject={(row) => setRejectId(row.id)}
+        onEnable={handleEnable}
+        onDisable={handleDisable}
+        pageIndex={(Number(applied.page) || 1) - 1}
+        pageSize={Number(applied.limit) || 20}
+        totalPageCount={totalPages}
+        totalCount={totalCount}
+        onPaginationChange={handlePaginationChange}
+        topActionsLeft={topActionsLeft}
+      />
+
+      <Dialog open={Boolean(rejectId)} onClose={() => setRejectId(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Reject surge</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Reason"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            fullWidth
+            multiline
+            minRows={3}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectId(null)}>Cancel</Button>
+          <Button
+            color="warning"
+            variant="contained"
+            onClick={async () => {
+              try {
+                await rejectSurge(rejectId, { reason: rejectReason });
+                setRejectId(null);
+                setRejectReason('');
+                enqueueSnackbar('Surge rejected', { variant: 'success' });
+                load();
+              } catch (e) {
+                enqueueSnackbar(e?.response?.data?.message || 'Reject failed', { variant: 'error' });
+              }
+            }}
+          >
+            Reject
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

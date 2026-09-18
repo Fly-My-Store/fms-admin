@@ -20,6 +20,7 @@ import { enqueueSnackbar } from 'notistack';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 import { approvePromotion, getPromotion, listPromotionRedemptions, rejectPromotion } from 'api/promotions';
+import { formatDateTimeDdMmYyyy } from 'utils/dateFormat';
 import {
   getPromotionFundingLabel,
   getPromotionScopeLabel,
@@ -28,6 +29,7 @@ import {
   getPromotionTargetTypeLabel,
   getPromotionVisibilityLabel
 } from 'utils/promotionLabels';
+import { formatSurgeActiveDays, formatSurgeDailyHours } from 'utils/surgeLabels';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
@@ -233,8 +235,10 @@ export default function PromotionDetail() {
                 />
               </Stack>
               <Stack flex={1} spacing={2}>
-                <Field label="Starts at" value={row.starts_at ? new Date(row.starts_at).toLocaleString() : '—'} />
-                <Field label="Ends at" value={row.ends_at ? new Date(row.ends_at).toLocaleString() : '—'} />
+                <Field label="Starts at" value={row.starts_at ? formatDateTimeDdMmYyyy(row.starts_at) : '—'} />
+                <Field label="Ends at" value={row.ends_at ? formatDateTimeDdMmYyyy(row.ends_at) : '—'} />
+                <Field label="Active days" value={formatSurgeActiveDays(row.active_days)} />
+                <Field label="Hours" value={formatSurgeDailyHours(row.start_time, row.end_time)} />
                 <Field label="Rejection reason" value={row.rejection_reason} />
                 <Field label="ID" value={row.id} mono />
               </Stack>
