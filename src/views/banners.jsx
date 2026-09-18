@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useRouter } from 'next/navigation';
 import { enqueueSnackbar } from 'notistack';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import { actions as content } from 'store/content/slice';
 import BannersTableSection from 'sections/banners/BannersTableSection';
-import BannersFormDialog from 'sections/banners/BannersFormDialog';
 import useUrlFilters from 'hooks/useUrlFilters';
 import { RECORD_STATUS } from 'utils/constants';
 
@@ -17,14 +17,24 @@ const RECORD_STATUS_OPTIONS = [
   { value: String(RECORD_STATUS.ARCHIVED), label: 'Archived' }
 ];
 
+const VERTICAL_OPTIONS = [
+  { value: '', label: 'All tabs' },
+  { value: 'all', label: 'All' },
+  { value: 'pharmacy', label: 'Pharmacy' },
+  { value: 'restaurant', label: 'Food' },
+  { value: 'grocery', label: 'Grocery' }
+];
+
 const FILTER_DEFAULTS = {
   q: '',
   record_status: '',
+  vertical: '',
   page: 1,
   limit: 20
 };
 
 export function BannersView() {
+  const router = useRouter();
   const dispatch = useDispatch();
   const state = useSelector((s) => s.content || {});
   const list = state.banners || {
@@ -39,8 +49,6 @@ export function BannersView() {
     error
   } = list;
 
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
   const { draft, setDraft, applied, applySearch, handlePaginationChange, urlKey } = useUrlFilters({
     defaults: FILTER_DEFAULTS
   });
@@ -50,13 +58,14 @@ export function BannersView() {
     page: Number(f.page) || 1,
     limit: Number(f.limit) || 20,
     ...(f.q ? { q: f.q } : {}),
-    ...(f.record_status ? { record_status: f.record_status } : {})
+    ...(f.record_status ? { record_status: f.record_status } : {}),
+    ...(f.vertical ? { vertical: f.vertical } : {})
   });
 
   useEffect(() => {
     dispatch(content.bannersListRequest({ params: buildParams(applied) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, urlKey, applied.page, applied.limit, applied.q, applied.record_status]);
+  }, [dispatch, urlKey, applied.page, applied.limit, applied.q, applied.record_status, applied.vertical]);
 
   useEffect(() => {
     setSearchQuery(applied.q || '');
@@ -69,27 +78,9 @@ export function BannersView() {
   const handleSearch = () => {
     applySearch({
       q: searchQuery.trim(),
-      record_status: draft.record_status
+      record_status: draft.record_status,
+      vertical: draft.vertical
     });
-  };
-
-  const handleDialogToggle = () => {
-    setOpen((prev) => !prev);
-    if (open) setSelected(null);
-  };
-
-  const handleAddButton = () => {
-    setSelected(null);
-    setOpen(true);
-  };
-
-  const handleEditButton = (row) => {
-    setSelected(row);
-    setOpen(true);
-  };
-
-  const handleSaved = () => {
-    dispatch(content.bannersListRequest({ params: buildParams(applied) }));
   };
 
   const topActionsLeft = () => (
@@ -117,6 +108,20 @@ export function BannersView() {
           </MenuItem>
         ))}
       </TextField>
+      <TextField
+        select
+        size="small"
+        label="Shows on"
+        value={draft.vertical}
+        onChange={(e) => setDraft({ vertical: e.target.value })}
+        sx={{ minWidth: 150 }}
+      >
+        {VERTICAL_OPTIONS.map((o) => (
+          <MenuItem key={o.value || 'any'} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
       <Button variant="outlined" size="small" onClick={handleSearch}>
         Search
       </Button>
@@ -127,8 +132,8 @@ export function BannersView() {
     <>
       <BannersTableSection
         rows={data}
-        handleAddButton={handleAddButton}
-        handleEditButton={handleEditButton}
+        handleAddButton={() => router.push('/banners/create')}
+        handleEditButton={(row) => router.push(`/banners/edit/${row.id}`)}
         pageIndex={(Number(applied.page) || 1) - 1}
         pageSize={Number(applied.limit) || 20}
         totalPageCount={totalPages}
@@ -136,7 +141,6 @@ export function BannersView() {
         onPaginationChange={handlePaginationChange}
         topActionsLeft={topActionsLeft}
       />
-      <BannersFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={handleSaved} />
     </>
   );
 }

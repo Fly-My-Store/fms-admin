@@ -8,6 +8,13 @@ import Typography from '@mui/material/Typography';
 import BasicReactTable from 'components/tables/basicTable';
 import { RECORD_STATUS } from 'utils/constants';
 
+const VERTICAL_LABELS = {
+  all: 'All',
+  pharmacy: 'Pharmacy',
+  restaurant: 'Food',
+  grocery: 'Grocery'
+};
+
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
 const formatDate = (iso) => {
@@ -64,11 +71,11 @@ export default function BannersTableSection({
               <Box
                 sx={{
                   width: 72,
-                  height: 40,
+                  height: 24,
                   borderRadius: 1,
                   overflow: 'hidden',
                   flexShrink: 0,
-                  bgcolor: 'grey.100',
+                  bgcolor: 'primary.main',
                   border: '1px solid',
                   borderColor: 'divider'
                 }}
@@ -84,11 +91,17 @@ export default function BannersTableSection({
               </Box>
               <Stack spacing={0.25} minWidth={0}>
                 <Typography variant="subtitle2" noWrap>
-                  {safe(data.title)}
+                  {safe(data.title || data.subtitle)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" noWrap fontFamily="monospace">
-                  {data.id}
-                </Typography>
+                {data.subtitle && data.title ? (
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    {data.subtitle}
+                  </Typography>
+                ) : (
+                  <Typography variant="caption" color="text.secondary" noWrap fontFamily="monospace">
+                    {data.id}
+                  </Typography>
+                )}
               </Stack>
             </Stack>
           );
@@ -101,6 +114,18 @@ export default function BannersTableSection({
           <Typography variant="body2" noWrap sx={{ maxWidth: 220 }} title={row.original.deeplink || ''}>
             {safe(row.original.deeplink)}
           </Typography>
+        )
+      },
+      {
+        header: 'Shows on',
+        accessorKey: 'vertical',
+        cell: ({ row }) => (
+          <Chip
+            size="small"
+            variant="light"
+            color={row.original.vertical && row.original.vertical !== 'all' ? 'primary' : 'default'}
+            label={VERTICAL_LABELS[row.original.vertical] || 'All'}
+          />
         )
       },
       {
