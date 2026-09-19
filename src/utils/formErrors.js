@@ -34,7 +34,7 @@ export const STORE_FIELD_LABELS = {
   pan: 'PAN',
   gstin: 'GSTIN',
   legal_name: 'Legal name',
-  display_name: 'Display name',
+  display_name: 'Display name'
 };
 
 export function fieldLabel(key) {
@@ -76,14 +76,11 @@ export function normalizeValidationErrors(data) {
   const first = Object.values(errors)[0];
   const rawMessage = data.message || null;
   const isGeneric =
-    !rawMessage ||
-    /^validation failed$/i.test(rawMessage) ||
-    /^validation error$/i.test(rawMessage) ||
-    rawMessage === 'ValidationError';
+    !rawMessage || /^validation failed$/i.test(rawMessage) || /^validation error$/i.test(rawMessage) || rawMessage === 'ValidationError';
 
   return {
     message: isGeneric ? first || 'Please fix the highlighted fields' : rawMessage,
-    errors,
+    errors
   };
 }
 
@@ -91,7 +88,7 @@ export function formatErrorEntries(errors) {
   return Object.entries(errors || {}).map(([key, message]) => ({
     key,
     label: fieldLabel(key),
-    message: String(message),
+    message: String(message)
   }));
 }
 

@@ -116,6 +116,7 @@ export const purgeAllPendingImages = () => post('admin/catalog/images/purge-all-
 export const listProductImages = (productId, params) => get(`admin/catalog/products/${productId}/images`, params);
 export const createProductImage = (productId, data) => post(`admin/catalog/products/${productId}/images`, data);
 export const updateProductImage = (productId, imageId, data) => patch(`admin/catalog/products/${productId}/images/${imageId}`, data);
+export const putProductImage = (productId, imageId, data) => put(`admin/catalog/products/${productId}/images/${imageId}`, data);
 export const removeProductImage = (productId, imageId) => del(`admin/catalog/products/${productId}/images/${imageId}`);
 
 /** JSON quick-create (one or more catalog rows) */

@@ -40,12 +40,7 @@ export function parseDdMmYyyyHm(value) {
   if (month < 1 || month > 12 || day < 1 || day > 31) return undefined;
   if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return undefined;
   const d = new Date(year, month - 1, day, hour, minute, 0, 0);
-  if (
-    Number.isNaN(d.getTime()) ||
-    d.getFullYear() !== year ||
-    d.getMonth() !== month - 1 ||
-    d.getDate() !== day
-  ) {
+  if (Number.isNaN(d.getTime()) || d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
     return undefined;
   }
   return d;

@@ -88,12 +88,7 @@ function eventGroup(type) {
   const key = String(type || '').toUpperCase();
   if (key.startsWith('PAYMENT') || key.includes('WALLET')) return 'Payment';
   if (key === 'ORDER_REFUNDED') return 'Refund';
-  if (
-    key.startsWith('DELIVERY') ||
-    key.startsWith('RIDER') ||
-    key === 'ORDER_DISPATCHED' ||
-    key === 'REACHED_STORE'
-  ) {
+  if (key.startsWith('DELIVERY') || key.startsWith('RIDER') || key === 'ORDER_DISPATCHED' || key === 'REACHED_STORE') {
     return 'Delivery';
   }
   if (key === 'ORDER_CANCELLED') return 'Cancel';
@@ -130,7 +125,14 @@ function detailsForEvent(event, order) {
     if (phase === 'DONE') pushUnique(details, 'All items packed and ready for pickup');
   }
 
-  if (type === 'DELIVERY_ASSIGNED' || type === 'RIDER_TRIP_STARTED' || type === 'ORDER_DISPATCHED' || type === 'ORDER_DELIVERED' || type === 'DELIVERY_COMPLETED' || type === 'REACHED_STORE') {
+  if (
+    type === 'DELIVERY_ASSIGNED' ||
+    type === 'RIDER_TRIP_STARTED' ||
+    type === 'ORDER_DISPATCHED' ||
+    type === 'ORDER_DELIVERED' ||
+    type === 'DELIVERY_COMPLETED' ||
+    type === 'REACHED_STORE'
+  ) {
     pushUnique(details, riderLabel(order, payload.rider_id));
     pushUnique(details, formatDistance(delivery?.distance_m) ? `Trip ${formatDistance(delivery.distance_m)}` : null);
   }
@@ -157,11 +159,12 @@ function detailsForEvent(event, order) {
   if (type === 'ORDER_CANCELLED') {
     const by = actorLabel(payload.initiated_by);
     pushUnique(details, by ? `${payload.auto ? 'Automatic cancel' : 'Cancelled'} by ${by}` : payload.auto ? 'Automatic cancel' : null);
-    pushUnique(details, reasonLabel(payload.reason_code || payload.reason) ? `Reason: ${reasonLabel(payload.reason_code || payload.reason)}` : null);
+    pushUnique(
+      details,
+      reasonLabel(payload.reason_code || payload.reason) ? `Reason: ${reasonLabel(payload.reason_code || payload.reason)}` : null
+    );
     pushUnique(details, payload.customer_message);
-    const oos = Array.isArray(payload.oos_items)
-      ? payload.oos_items.map((item) => item?.name).filter(Boolean)
-      : payload.oos_item_names;
+    const oos = Array.isArray(payload.oos_items) ? payload.oos_items.map((item) => item?.name).filter(Boolean) : payload.oos_item_names;
     if (Array.isArray(oos) && oos.length) pushUnique(details, `Out of stock: ${oos.join(', ')}`);
     pushUnique(details, payload.charge_bearer ? `Charge bearer: ${actorLabel(payload.charge_bearer)}` : null);
     pushUnique(details, payload.refund_error ? `Refund error: ${payload.refund_error}` : null);
@@ -196,7 +199,15 @@ function linksForEvent(type, order) {
     links.push({ href: storeHref, label: storeName });
   }
   if (
-    ['DELIVERY_ASSIGNED', 'RIDER_TRIP_STARTED', 'ORDER_DISPATCHED', 'ORDER_DELIVERED', 'DELIVERY_COMPLETED', 'REACHED_STORE', 'RIDER_WALLET_CREDITED'].includes(key) &&
+    [
+      'DELIVERY_ASSIGNED',
+      'RIDER_TRIP_STARTED',
+      'ORDER_DISPATCHED',
+      'ORDER_DELIVERED',
+      'DELIVERY_COMPLETED',
+      'REACHED_STORE',
+      'RIDER_WALLET_CREDITED'
+    ].includes(key) &&
     riderHref &&
     riderName
   ) {
@@ -261,10 +272,18 @@ export function buildOrderTimeline(order) {
     { at: order.confirmed_at, type: 'ORDER_CONFIRMED' },
     { at: order.packed_at, type: 'ORDER_PACKED', event: { type: 'ORDER_PACKED', payload: { phase: 'DONE' } } },
     { at: delivery.assigned_at, type: 'DELIVERY_ASSIGNED', event: { type: 'DELIVERY_ASSIGNED', payload: { rider_id: delivery.rider_id } } },
-    { at: delivery.started_at, type: 'RIDER_TRIP_STARTED', event: { type: 'RIDER_TRIP_STARTED', payload: { rider_id: delivery.rider_id } } },
+    {
+      at: delivery.started_at,
+      type: 'RIDER_TRIP_STARTED',
+      event: { type: 'RIDER_TRIP_STARTED', payload: { rider_id: delivery.rider_id } }
+    },
     { at: delivery.reached_store_at, type: 'REACHED_STORE', event: { type: 'REACHED_STORE', payload: { rider_id: delivery.rider_id } } },
     { at: delivery.picked_up_at, type: 'ORDER_DISPATCHED', event: { type: 'ORDER_DISPATCHED', payload: { rider_id: delivery.rider_id } } },
-    { at: delivery.delivered_at || order.delivered_at, type: 'ORDER_DELIVERED', event: { type: 'ORDER_DELIVERED', payload: { rider_id: delivery.rider_id } } },
+    {
+      at: delivery.delivered_at || order.delivered_at,
+      type: 'ORDER_DELIVERED',
+      event: { type: 'ORDER_DELIVERED', payload: { rider_id: delivery.rider_id } }
+    },
     { at: delivery.cancelled_at || order.cancelled_at, type: 'ORDER_CANCELLED' }
   ];
 
@@ -272,9 +291,7 @@ export function buildOrderTimeline(order) {
     const atMs = toMs(milestone.at);
     if (atMs == null) return;
     if (milestone.type === 'ORDER_PACKED') {
-      const hasPackedDone = items.some(
-        (item) => item.type === 'ORDER_PACKED' && item.title === 'Order packed'
-      );
+      const hasPackedDone = items.some((item) => item.type === 'ORDER_PACKED' && item.title === 'Order packed');
       if (hasPackedDone) return;
     } else if (hasNearby(items, [milestone.type], atMs)) {
       return;
@@ -340,10 +357,7 @@ export function buildOrderTimeline(order) {
         event: {
           type: 'SELLER_WALLET_CREDITED',
           payload: {
-            amount_cents:
-              Number(payment.seller_share_cents) ||
-              Number(order?.earnings?.net_payout_cents) ||
-              0
+            amount_cents: Number(payment.seller_share_cents) || Number(order?.earnings?.net_payout_cents) || 0
           }
         },
         order
@@ -360,8 +374,7 @@ export function buildOrderTimeline(order) {
         event: {
           type: 'RIDER_WALLET_CREDITED',
           payload: {
-            amount_cents:
-              deliveryFee || Number(payment.rider_share_cents) || Number(order?.rider_share_cents) || 0
+            amount_cents: deliveryFee || Number(payment.rider_share_cents) || Number(order?.rider_share_cents) || 0
           }
         },
         order

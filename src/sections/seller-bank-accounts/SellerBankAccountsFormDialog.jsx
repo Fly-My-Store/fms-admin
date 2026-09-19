@@ -12,7 +12,7 @@ import Stack from '@mui/material/Stack';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
-import axiosServices from 'utils/axios';
+import { createGlobalSellerBankAccount, updateGlobalSellerBankAccount } from 'api/sellersStores';
 
 export default function SellerBankAccountsFormDialog({ open, onClose, initialData = null, onSaved }) {
   const [form, setForm] = useState({ seller_id: '', account_holder_name: '', account_number: '', ifsc: '', is_primary: false });
@@ -30,11 +30,13 @@ export default function SellerBankAccountsFormDialog({ open, onClose, initialDat
   const handleSubmit = async () => {
     try {
       const payload = { ...form };
-      if (initialData?.id) await axiosServices.put('admin/sellers-stores/seller-bank-accounts/' + initialData.id, payload);
-      else await axiosServices.post('admin/sellers-stores/seller-bank-accounts', payload);
+      if (initialData?.id) await updateGlobalSellerBankAccount(initialData.id, payload);
+      else await createGlobalSellerBankAccount(payload);
       onSaved && onSaved();
       onClose();
-    } catch (e) {}
+    } catch {
+      /* keep dialog open */
+    }
   };
 
   return (

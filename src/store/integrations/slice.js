@@ -7,7 +7,7 @@ const initialState = {
   webhookEvents: initialList(),
   webhookEventsDetail: initialEntity(),
   webhookReplay: { loading: false, error: null, data: null },
-  paymentOps: { loading: false, error: null, data: null, action: null },
+  paymentOps: { loading: false, error: null, data: null, action: null }
 };
 
 const slice = createSlice({

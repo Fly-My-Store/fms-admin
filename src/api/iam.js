@@ -21,5 +21,4 @@ export const createPermission = (data) => post('admin/iam/permissions', data);
 export const updatePermission = (id, data) => patch(`admin/iam/permissions/${id}`, data);
 export const removePermission = (id) => del(`admin/iam/permissions/${id}`);
 
-export const setRolePermissions = (roleId, permissions) =>
-  post(`admin/iam/roles/${roleId}/permissions/bulk`, { permissions });
+export const setRolePermissions = (roleId, permissions) => post(`admin/iam/roles/${roleId}/permissions/bulk`, { permissions });

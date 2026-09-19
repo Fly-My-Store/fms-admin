@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { enqueueSnackbar } from 'notistack';
-import __TABLE__ from 'sections/seller-bank-accounts/SellerBankAccountsTableSection';
-import __FORM__ from 'sections/seller-bank-accounts/SellerBankAccountsFormDialog';
-import axiosServices from 'utils/axios';
+import SellerBankAccountsTableSection from 'sections/seller-bank-accounts/SellerBankAccountsTableSection';
+import SellerBankAccountsFormDialog from 'sections/seller-bank-accounts/SellerBankAccountsFormDialog';
+import { listAllSellerBankAccounts } from 'api/sellersStores';
 
 export default function SellerBankAccountsView() {
   const [rows, setRows] = useState([]);
@@ -14,9 +14,18 @@ export default function SellerBankAccountsView() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  const handleDialogToggle = () => { setOpen((p) => !p); if (open) setSelected(null); };
-  const handleAddButton = () => { setSelected(null); setOpen(true); };
-  const handleEditButton = (row) => { setSelected(row); setOpen(true); };
+  const handleDialogToggle = () => {
+    setOpen((p) => !p);
+    if (open) setSelected(null);
+  };
+  const handleAddButton = () => {
+    setSelected(null);
+    setOpen(true);
+  };
+  const handleEditButton = (row) => {
+    setSelected(row);
+    setOpen(true);
+  };
   const handlePaginationChange = (updater) => {
     const next = typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
     setPageIndex(next.pageIndex);
@@ -25,18 +34,21 @@ export default function SellerBankAccountsView() {
 
   const load = async () => {
     try {
-      const resp = await axiosServices.get('admin/sellers-stores/seller-bank-accounts', { params: { page: pageIndex + 1, limit: pageSize } });
-      const payload = resp?.data || {};
+      const payload = await listAllSellerBankAccounts({ page: pageIndex + 1, limit: pageSize });
       setRows(payload.data || []);
       setTotalPages(payload?.meta?.totalPages || 1);
-    } catch (e) { enqueueSnackbar('Failed to load', { variant: 'error' }); }
+    } catch (e) {
+      enqueueSnackbar('Failed to load', { variant: 'error' });
+    }
   };
 
-  useEffect(() => { {load()}; }, [pageIndex, pageSize]);
+  useEffect(() => {
+    load();
+  }, [pageIndex, pageSize]);
 
   return (
     <>
-      <__TABLE__
+      <SellerBankAccountsTableSection
         rows={rows}
         handleAddButton={handleAddButton}
         handleEditButton={handleEditButton}
@@ -45,7 +57,7 @@ export default function SellerBankAccountsView() {
         totalPageCount={totalPages}
         onPaginationChange={handlePaginationChange}
       />
-      <__FORM__ open={open} onClose={handleDialogToggle} initialData={selected} onSaved={load} />
+      <SellerBankAccountsFormDialog open={open} onClose={handleDialogToggle} initialData={selected} onSaved={load} />
     </>
   );
 }

@@ -12,9 +12,9 @@ import Stack from '@mui/material/Stack';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
-import axiosServices from 'utils/axios';
+import { createProductImage, putProductImage } from 'api/catalog';
 
-export default function ProductImageFormDialog({ open, onClose, initialData = null, onSaved }) {
+export default function ProductImageFormDialog({ open, onClose, initialData = null, productId, onSaved }) {
   const [form, setForm] = useState({ url: '', alt_text: '', position: '' });
 
   useEffect(() => {
@@ -30,11 +30,13 @@ export default function ProductImageFormDialog({ open, onClose, initialData = nu
   const handleSubmit = async () => {
     try {
       const payload = { ...form };
-      if (initialData?.id) await axiosServices.put('admin/catalog/products/{productId}/images/' + initialData.id, payload);
-      else await axiosServices.post('admin/catalog/products/{productId}/images', payload);
+      if (initialData?.id) await putProductImage(productId, initialData.id, payload);
+      else await createProductImage(productId, payload);
       onSaved && onSaved();
       onClose();
-    } catch (e) {}
+    } catch {
+      /* keep dialog open */
+    }
   };
 
   return (
@@ -72,5 +74,6 @@ ProductImageFormDialog.propTypes = {
   open: PropTypes.bool,
   onClose: PropTypes.func,
   initialData: PropTypes.object,
+  productId: PropTypes.string,
   onSaved: PropTypes.func
 };

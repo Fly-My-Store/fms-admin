@@ -1,7 +1,7 @@
 export const REFUND_STATUS_LABELS = {
   PENDING: 'Pending',
   PROCESSED: 'Processed',
-  FAILED: 'Failed',
+  FAILED: 'Failed'
 };
 
 export function getRefundStatusLabel(status) {

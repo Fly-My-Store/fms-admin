@@ -11,17 +11,13 @@ export function assertCsvJobFileSize(file) {
   }
 }
 
-export const listStoreCsvJobs = (storeId, params) =>
-  get(`admin/listings-inventory/stores/${storeId}/csv-jobs`, params);
+export const listStoreCsvJobs = (storeId, params) => get(`admin/listings-inventory/stores/${storeId}/csv-jobs`, params);
 
-export const getStoreCsvJob = (storeId, jobId) =>
-  get(`admin/listings-inventory/stores/${storeId}/csv-jobs/${jobId}`);
+export const getStoreCsvJob = (storeId, jobId) => get(`admin/listings-inventory/stores/${storeId}/csv-jobs/${jobId}`);
 
-export const presignStoreCsvJob = (storeId, body) =>
-  post(`admin/listings-inventory/stores/${storeId}/csv-jobs/presign`, body);
+export const presignStoreCsvJob = (storeId, body) => post(`admin/listings-inventory/stores/${storeId}/csv-jobs/presign`, body);
 
-export const enqueueStoreCsvExport = (storeId, filters) =>
-  post(`admin/listings-inventory/stores/${storeId}/csv-jobs/export`, filters);
+export const enqueueStoreCsvExport = (storeId, filters) => post(`admin/listings-inventory/stores/${storeId}/csv-jobs/export`, filters);
 
 export const enqueueStoreCsvUpdate = (storeId, body, config) =>
   post(`admin/listings-inventory/stores/${storeId}/csv-jobs/update`, body, config);
@@ -35,8 +31,7 @@ export const presignCatalogCsvJob = (body) => post('admin/catalog/csv-jobs/presi
 
 export const enqueueCatalogCsvImport = (body, config) => post('admin/catalog/csv-jobs/import', body, config);
 
-export const abortStoreCsvJob = (storeId, jobId, body) =>
-  post(`admin/listings-inventory/stores/${storeId}/csv-jobs/${jobId}/abort`, body);
+export const abortStoreCsvJob = (storeId, jobId, body) => post(`admin/listings-inventory/stores/${storeId}/csv-jobs/${jobId}/abort`, body);
 
 export const abortCatalogCsvJob = (jobId, body) => post(`admin/catalog/csv-jobs/${jobId}/abort`, body);
 
@@ -58,14 +53,7 @@ async function putToPresign(uploadUrl, file, contentType, onProgress) {
   });
 }
 
-export async function enqueueCsvJobWithFile({
-  file,
-  presign,
-  enqueueJson,
-  enqueueForm,
-  extraJson = {},
-  onProgress
-}) {
+export async function enqueueCsvJobWithFile({ file, presign, enqueueJson, enqueueForm, extraJson = {}, onProgress }) {
   assertCsvJobFileSize(file);
   try {
     const signedResp = await presign({
@@ -77,7 +65,7 @@ export async function enqueueCsvJobWithFile({
     if (!signed?.upload_url || !signed?.file_url) throw new Error('Presign failed');
     await putToPresign(signed.upload_url, file, signed.content_type, onProgress);
     return enqueueJson({ ...extraJson, file_url: signed.file_url, file_name: file.name });
-  } catch (err) {
+  } catch {
     const form = new FormData();
     form.append('file', file);
     return enqueueForm(form, {

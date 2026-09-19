@@ -74,14 +74,7 @@ export function parseBannerDeeplink(raw) {
 /**
  * Build a simple fms:// deeplink (not for variant_store — that uses share-link API).
  */
-export function buildBannerDeeplink({
-  destination,
-  searchQuery,
-  category,
-  store,
-  variant,
-  customUrl
-}) {
+export function buildBannerDeeplink({ destination, searchQuery, category, store, variant, customUrl }) {
   switch (destination) {
     case 'none':
       return null;

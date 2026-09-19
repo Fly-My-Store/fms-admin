@@ -28,10 +28,7 @@ export const nestedPayments = (row) => nestedOrder(row)?.payments || nestedOrder
 export const expectedShareCents = (row) => {
   const fee = Number(row.rider_fee_cents) || 0;
   if (fee > 0) return fee;
-  return nestedPayments(row).reduce(
-    (sum, payment) => sum + Math.max(0, Number(payment.rider_share_cents) || 0),
-    0
-  );
+  return nestedPayments(row).reduce((sum, payment) => sum + Math.max(0, Number(payment.rider_share_cents) || 0), 0);
 };
 
 export const walletShareCents = (row) => {

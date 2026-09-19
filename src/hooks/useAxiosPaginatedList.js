@@ -10,10 +10,7 @@ import { get } from 'utils/api';
  * when `autoLoad` is true (default). Call `load()` after Search if you keep draft
  * filters outside and only update `params` on apply.
  */
-export default function useAxiosPaginatedList(
-  url,
-  { params: extraParams = {}, errorMessage = 'Failed to load', autoLoad = true } = {}
-) {
+export default function useAxiosPaginatedList(url, { params: extraParams = {}, errorMessage = 'Failed to load', autoLoad = true } = {}) {
   const [rows, setRows] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(20);
@@ -61,7 +58,7 @@ export default function useAxiosPaginatedList(
         setRows(payload?.data || []);
         setTotalPages(payload?.meta?.totalPages ?? payload?.totalPages ?? 1);
         setTotalCount(payload?.meta?.total ?? payload?.total ?? 0);
-      } catch (err) {
+      } catch {
         if (seq !== loadSeq.current) return;
         enqueueSnackbar(errorMessage, { variant: 'error' });
       } finally {

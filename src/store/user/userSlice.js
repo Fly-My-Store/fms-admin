@@ -33,12 +33,6 @@ const userSlice = createSlice({
   }
 });
 
-export const {
-  fetchUserByIdRequest,
-  fetchUserByIdSuccess,
-  fetchUserByIdFailure,
-  clearUser,
-  clearError
-} = userSlice.actions;
+export const { fetchUserByIdRequest, fetchUserByIdSuccess, fetchUserByIdFailure, clearUser, clearError } = userSlice.actions;
 
 export default userSlice.reducer;

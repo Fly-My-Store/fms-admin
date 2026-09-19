@@ -7,9 +7,7 @@ export const PUSH_BROADCAST_STATUS_OPTIONS = [
   { value: 'CANCELLED', label: 'Cancelled' }
 ];
 
-export const PUSH_BROADCAST_STATUS_LABELS = Object.fromEntries(
-  PUSH_BROADCAST_STATUS_OPTIONS.map((o) => [o.value, o.label])
-);
+export const PUSH_BROADCAST_STATUS_LABELS = Object.fromEntries(PUSH_BROADCAST_STATUS_OPTIONS.map((o) => [o.value, o.label]));
 
 export const PUSH_BROADCAST_AUDIENCE_OPTIONS = [
   { value: 'ALL', label: 'All (customer + seller + rider)' },
@@ -18,9 +16,7 @@ export const PUSH_BROADCAST_AUDIENCE_OPTIONS = [
   { value: 'RIDER', label: 'Riders' }
 ];
 
-export const PUSH_BROADCAST_AUDIENCE_LABELS = Object.fromEntries(
-  PUSH_BROADCAST_AUDIENCE_OPTIONS.map((o) => [o.value, o.label])
-);
+export const PUSH_BROADCAST_AUDIENCE_LABELS = Object.fromEntries(PUSH_BROADCAST_AUDIENCE_OPTIONS.map((o) => [o.value, o.label]));
 
 export function getPushBroadcastStatusLabel(status) {
   return PUSH_BROADCAST_STATUS_LABELS[status] || status || '—';

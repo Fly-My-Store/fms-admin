@@ -41,10 +41,7 @@ function* webhookEventsReplayWorker(action) {
 function* paymentOpsWorker(action) {
   const { action: op } = action.payload || {};
   try {
-    const resp =
-      op === 'checkout-expiry'
-        ? yield call(api.runCheckoutExpiry)
-        : yield call(api.runPaymentReconcile);
+    const resp = op === 'checkout-expiry' ? yield call(api.runCheckoutExpiry) : yield call(api.runPaymentReconcile);
     yield put(actions.paymentOpsSuccess(resp));
   } catch (err) {
     const msg = getErrorMessage(err, 'Operation failed');

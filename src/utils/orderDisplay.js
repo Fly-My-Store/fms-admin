@@ -1,8 +1,7 @@
 export function formatAddressLine(address) {
   if (!address) return '—';
   const primary = [address.line1, address.line2].filter(Boolean).join(', ');
-  const area =
-    address.formatted_address || [address.city, address.state, address.postal_code].filter(Boolean).join(', ');
+  const area = address.formatted_address || [address.city, address.state, address.postal_code].filter(Boolean).join(', ');
   const parts = [primary, area].filter(Boolean);
   return parts.length ? parts.join(', ') : '—';
 }
@@ -21,12 +20,7 @@ export function formatReceiverLine(order) {
 
 export function getOrderItemName(item) {
   const snap = item?.snapshot || {};
-  return (
-    snap.product_name ||
-    item?.store_variant?.product_variant?.product?.name ||
-    item?.store_variant?.product_variant?.sku ||
-    'Item'
-  );
+  return snap.product_name || item?.store_variant?.product_variant?.product?.name || item?.store_variant?.product_variant?.sku || 'Item';
 }
 
 export function getOrderItemVariantLabel(item) {

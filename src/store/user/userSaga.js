@@ -1,9 +1,5 @@
 import { call, put, takeLatest, all } from 'redux-saga/effects';
-import {
-  fetchUserByIdRequest,
-  fetchUserByIdSuccess,
-  fetchUserByIdFailure
-} from './userSlice';
+import { fetchUserByIdRequest, fetchUserByIdSuccess, fetchUserByIdFailure } from './userSlice';
 import { getUserById } from 'api/user';
 
 function* handleFetchUserById(action) {

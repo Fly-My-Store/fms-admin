@@ -12,7 +12,7 @@ import Stack from '@mui/material/Stack';
 import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
 import { CloseOutlined } from '@ant-design/icons';
-import axiosServices from 'utils/axios';
+import { createGlobalServiceArea, updateGlobalServiceArea } from 'api/sellersStores';
 
 export default function ServiceAreasFormDialog({ open, onClose, initialData = null, onSaved }) {
   const [form, setForm] = useState({ store_id: '', pincode: '', is_active: true });
@@ -30,11 +30,13 @@ export default function ServiceAreasFormDialog({ open, onClose, initialData = nu
   const handleSubmit = async () => {
     try {
       const payload = { ...form };
-      if (initialData?.id) await axiosServices.put('admin/sellers-stores/service-areas/' + initialData.id, payload);
-      else await axiosServices.post('admin/sellers-stores/service-areas', payload);
+      if (initialData?.id) await updateGlobalServiceArea(initialData.id, payload);
+      else await createGlobalServiceArea(payload);
       onSaved && onSaved();
       onClose();
-    } catch (e) {}
+    } catch {
+      /* keep dialog open */
+    }
   };
 
   return (

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { enqueueSnackbar } from 'notistack';
 import ProductImagesTableSection from 'sections/images/ProductImagesTableSection';
 import ProductImageFormDialog from 'sections/images/ProductImageFormDialog';
-import axiosServices from 'utils/axios';
+import { listProductImages } from 'api/catalog';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
@@ -19,25 +19,37 @@ export default function ProductImagesView() {
   const load = async () => {
     try {
       if (!productId) return;
-      const resp = await axiosServices.get(`admin/catalog/products/${productId}/images`);
-      const payload = resp?.data || {};
+      const payload = await listProductImages(productId);
       setRows(payload.data || payload || []);
-    } catch (e) { enqueueSnackbar('Failed to load', { variant: 'error' }); }
+    } catch (e) {
+      enqueueSnackbar('Failed to load', { variant: 'error' });
+    }
   };
 
-  const handleDialogToggle = () => { setOpen((p)=>!p); if (open) setSelected(null); };
-  const handleAddButton = () => { setSelected(null); setOpen(true); };
-  const handleEditButton = (row) => { setSelected(row); setOpen(true); };
+  const handleDialogToggle = () => {
+    setOpen((p) => !p);
+    if (open) setSelected(null);
+  };
+  const handleAddButton = () => {
+    setSelected(null);
+    setOpen(true);
+  };
+  const handleEditButton = (row) => {
+    setSelected(row);
+    setOpen(true);
+  };
 
   return (
     <>
       <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
         <Stack sx={{ gap: 1, minWidth: 360 }}>
           <InputLabel>Product ID</InputLabel>
-          <TextField value={productId} onChange={(e)=>setProductId(e.target.value)} placeholder="Enter Product UUID" fullWidth />
+          <TextField value={productId} onChange={(e) => setProductId(e.target.value)} placeholder="Enter Product UUID" fullWidth />
         </Stack>
         <Stack alignItems="flex-end" justifyContent="flex-end">
-          <Button variant="contained" onClick={load} sx={{ mt: 'auto' }}>Load</Button>
+          <Button variant="contained" onClick={load} sx={{ mt: 'auto' }}>
+            Load
+          </Button>
         </Stack>
       </Stack>
 

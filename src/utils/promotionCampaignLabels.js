@@ -10,9 +10,7 @@ export const PROMOTION_CAMPAIGN_STATUS_OPTIONS = [
   { value: 'ENDED', label: 'Ended' }
 ];
 
-export const PROMOTION_CAMPAIGN_STATUS_LABELS = Object.fromEntries(
-  PROMOTION_CAMPAIGN_STATUS_OPTIONS.map((o) => [o.value, o.label])
-);
+export const PROMOTION_CAMPAIGN_STATUS_LABELS = Object.fromEntries(PROMOTION_CAMPAIGN_STATUS_OPTIONS.map((o) => [o.value, o.label]));
 
 export function getPromotionCampaignStatusLabel(status) {
   return PROMOTION_CAMPAIGN_STATUS_LABELS[status] || status || '—';

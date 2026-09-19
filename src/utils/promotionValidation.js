@@ -3,8 +3,7 @@
 import { parseDdMmYyyyHm } from './dateFormat';
 
 const CODE_RE = /^[A-Z0-9_-]+$/;
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** Admin caps — looser than seller app; still guards obvious mistakes. */
 export const ADMIN_PROMO_LIMITS = Object.freeze({

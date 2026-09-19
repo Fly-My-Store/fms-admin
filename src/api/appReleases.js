@@ -4,32 +4,27 @@ import { del, get, patch } from 'utils/api';
 export const APP_RELEASE_TYPES = {
   CUSTOMER: 'CUSTOMER',
   SELLER: 'SELLER',
-  RIDER: 'RIDER',
+  RIDER: 'RIDER'
 };
 
-export const listReleases = (appType, params = {}) =>
-  get('admin/app-releases', { app_type: appType, ...params });
+export const listReleases = (appType, params = {}) => get('admin/app-releases', { app_type: appType, ...params });
 
-export const getCurrentRelease = (appType) =>
-  get('admin/app-releases/current', { app_type: appType });
+export const getCurrentRelease = (appType) => get('admin/app-releases/current', { app_type: appType });
 
 /** Public endpoint — no auth required */
-export const getPublicLatestRelease = (appType) =>
-  get(`public/app-releases/${String(appType).toLowerCase()}/latest`);
+export const getPublicLatestRelease = (appType) => get(`public/app-releases/${String(appType).toLowerCase()}/latest`);
 
 export function normalizeReleaseRow(data) {
   if (!data) return null;
   return {
     ...data,
-    file_url: data.file_url || data.download_url || null,
+    file_url: data.file_url || data.download_url || null
   };
 }
 
-export const setCurrentRelease = (id) =>
-  patch(`admin/app-releases/${id}/set-current`, {});
+export const setCurrentRelease = (id) => patch(`admin/app-releases/${id}/set-current`, {});
 
-export const deleteRelease = (id) =>
-  del(`admin/app-releases/${id}`);
+export const deleteRelease = (id) => del(`admin/app-releases/${id}`);
 
 /**
  * Upload APK multipart to admin endpoint.
@@ -39,7 +34,7 @@ export const deleteRelease = (id) =>
 export async function uploadRelease(formData, onUploadProgress) {
   const r = await axiosServices.post('admin/app-releases/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    onUploadProgress,
+    onUploadProgress
   });
   return r.data;
 }
