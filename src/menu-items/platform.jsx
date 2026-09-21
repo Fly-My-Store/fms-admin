@@ -218,15 +218,15 @@ const platformMenuGroups = [
         url: '/app-releases',
         icon: icons.MobileOutlined
       },
-      // {
-      //   id: 'app-updates',
-      //   title: 'app-updates',
-      //   type: 'item',
-      //   url: '/app-updates',
-      //   icon: icons.CloudSyncOutlined,
-      //   perm: 'appRelease',
-      //   action: 'read'
-      // }
+      {
+        id: 'app-updates',
+        title: 'app-updates',
+        type: 'item',
+        url: '/app-updates',
+        icon: icons.CloudSyncOutlined,
+        perm: 'appRelease',
+        action: 'read'
+      }
     ]
   },
   {
