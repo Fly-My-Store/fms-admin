@@ -182,7 +182,7 @@ const platformMenuGroups = [
       { id: 'share-links', title: 'share-links', type: 'item', url: '/share-links', icon: icons.ShareAltOutlined, perm: 'shareLink', action: 'read' },
       { id: 'promotion-campaigns', title: 'campaigns', type: 'item', url: '/promotion-campaigns', icon: icons.NotificationOutlined, perm: 'promotion', action: 'read' },
       { id: 'promotions', title: 'promotions', type: 'item', url: '/promotions', icon: icons.GiftOutlined, perm: 'promotion', action: 'read' },
-      // { id: 'surges', title: 'surges', type: 'item', url: '/surges', icon: icons.ThunderboltOutlined, perm: 'promotion', action: 'read' },
+      { id: 'surges', title: 'surges', type: 'item', url: '/surges', icon: icons.ThunderboltOutlined, perm: 'promotion', action: 'read' },
       { id: 'faqs', title: 'faqs', type: 'item', url: '/faqs', icon: icons.QuestionCircleOutlined, perm: 'faq', action: 'read' }
     ]
   },
