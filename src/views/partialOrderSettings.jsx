@@ -49,8 +49,12 @@ export default function PartialOrderSettingsView() {
     <>
       <Breadcrumbs
         custom
-        heading="Partial order"
-        links={[{ title: 'Finance' }, { title: 'Partial order' }]}
+        heading="partial-order"
+        links={[
+          { title: 'home', to: '/dashboard' },
+          { title: 'finance' },
+          { title: 'partial-order' },
+        ]}
       />
       <MainCard title="Remaining items threshold">
         <Stack spacing={2} maxWidth={480}>
