@@ -365,12 +365,7 @@ export function FareRulesView() {
 
   return (
     <MainCard
-      title="Fare rules"
-      secondary={
-        <Button startIcon={<PlusOutlined />} onClick={openAdd} variant="contained">
-          Add {tab === 0 ? 'category' : 'gateway'} rule
-        </Button>
-      }
+      showTitle={false}
     >
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab label="Category fees" />
@@ -390,7 +385,11 @@ export function FareRulesView() {
         </Alert>
       )}
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={1.5}
+        sx={{ mb: 2, justifyContent: 'right', alignItems: { xs: 'stretch', md: 'center' } }}
+      >
         {tab === 0 ? (
           <Autocomplete
             sx={{ minWidth: 240 }}
@@ -422,6 +421,9 @@ export function FareRulesView() {
           <MenuItem value="true">Active</MenuItem>
           <MenuItem value="false">Inactive</MenuItem>
         </TextField>
+        <Button size="small" startIcon={<PlusOutlined />} onClick={openAdd} variant="contained">
+          Add {tab === 0 ? 'category' : 'gateway'} rule
+        </Button>
       </Stack>
 
       {loading ? (

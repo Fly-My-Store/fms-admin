@@ -203,6 +203,15 @@ const platformMenuGroups = [
         icon: icons.FileTextOutlined,
         perm: 'payment',
         action: 'modify'
+      },
+      {
+        id: 'partial-order-settings',
+        title: 'partial-order',
+        type: 'item',
+        url: '/partial-order-settings',
+        icon: icons.CalculatorOutlined,
+        perm: 'payment',
+        action: 'modify'
       }
     ]
   },
