@@ -7,11 +7,14 @@ import {
   Button,
   Chip,
   Divider,
+  FormControlLabel,
   Stack,
+  Switch,
   Typography
 } from '@mui/material';
 import MainCard from 'components/MainCard';
 import { RECORD_STATUS, TABLE_STATUS } from 'utils/constants';
+import { useCan } from 'hooks/useCan';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
@@ -30,27 +33,14 @@ function RecordStatusChip({ value }) {
   return <Chip size="small" color={meta.color} label={meta.label} variant="light" />;
 }
 
-function StatusChip({ value, prefix = '' }) {
-  const color =
-    value === 'APPROVED'
-      ? 'success'
-      : value === 'REJECTED' || value === 'RESUBMIT'
-        ? 'error'
-        : value === 'IN_REVIEW'
-          ? 'warning'
-          : 'default';
-  const label = value ? `${prefix}${value}` : `${prefix}—`;
-  return <Chip size="small" color={color} label={label} variant="outlined" />;
-}
-
 function AccountStatusChip({ value }) {
   switch (Number(value)) {
     case TABLE_STATUS.ACTIVE:
-      return "Active";
+      return 'Active';
     case TABLE_STATUS.INACTIVE:
-      return "Inactive";
+      return 'Inactive';
     case TABLE_STATUS.SUSPENDED:
-      return "Suspended";
+      return 'Suspended';
     default:
       return safe(value);
   }
@@ -73,7 +63,18 @@ const SectionTitle = ({ children }) => (
   </Typography>
 );
 
-export default function StoreDetailSidebar({ data, seller, sellerUser, ownerPhone, onEdit }) {
+export default function StoreDetailSidebar({
+  data,
+  seller,
+  sellerUser,
+  ownerPhone,
+  onEdit,
+  onToggleOpen,
+  togglingOpen = false
+}) {
+  const { canModify } = useCan();
+  const canToggle = canModify('store') && typeof onToggleOpen === 'function';
+
   if (!data) return null;
 
   const needsAttention =
@@ -87,6 +88,8 @@ export default function StoreDetailSidebar({ data, seller, sellerUser, ownerPhon
       : Number(data.record_status) === RECORD_STATUS.INACTIVE
         ? 'Inactive'
         : 'Archived';
+
+  const isOpen = Boolean(data?.is_open);
 
   return (
     <Stack spacing={2} sx={{ position: { md: 'sticky' }, top: { md: 88 } }}>
@@ -120,13 +123,33 @@ export default function StoreDetailSidebar({ data, seller, sellerUser, ownerPhon
             </Stack>
           </Stack>
 
-          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-            <Chip
-              size="small"
-              variant="light"
-              color={data?.is_open ? 'success' : 'default'}
-              label={data?.is_open ? 'Open' : 'Closed'}
-            />
+          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
+            {canToggle ? (
+              <FormControlLabel
+                sx={{ m: 0 }}
+                control={
+                  <Switch
+                    size="small"
+                    checked={isOpen}
+                    disabled={togglingOpen}
+                    onChange={(e) => onToggleOpen(e.target.checked)}
+                    inputProps={{ 'aria-label': isOpen ? 'Close store' : 'Open store' }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" color={isOpen ? 'success.main' : 'text.secondary'}>
+                    {isOpen ? 'Open for orders' : 'Closed for orders'}
+                  </Typography>
+                }
+              />
+            ) : (
+              <Chip
+                size="small"
+                variant="light"
+                color={isOpen ? 'success' : 'default'}
+                label={isOpen ? 'Open' : 'Closed'}
+              />
+            )}
             <RecordStatusChip value={data.record_status} />
             {data.is_demo ? <Chip size="small" color="warning" label="Demo" variant="light" /> : null}
           </Stack>
@@ -185,5 +208,7 @@ StoreDetailSidebar.propTypes = {
   seller: PropTypes.object,
   sellerUser: PropTypes.object,
   ownerPhone: PropTypes.string,
-  onEdit: PropTypes.func
+  onEdit: PropTypes.func,
+  onToggleOpen: PropTypes.func,
+  togglingOpen: PropTypes.bool
 };

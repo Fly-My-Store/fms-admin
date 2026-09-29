@@ -20,12 +20,8 @@ import {
   hasCapturedPaymentWithoutRefund
 } from 'utils/refundLabels';
 import { getOrderRefundsHref } from 'utils/orderLinks';
-
-const formatINR = (cents) => {
-  const n = Number(cents);
-  if (!Number.isFinite(n)) return '—';
-  return `₹${(n / 100).toFixed(2)}`;
-};
+import { formatINR } from 'utils/currency';
+import { buildAdminPartialOrderView } from 'utils/partialOrderDisplay';
 
 const formatDate = (iso) => {
   if (!iso) return '—';
@@ -36,10 +32,12 @@ const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(
 
 export default function OrderRefundCard({ order, refunds = [] }) {
   const showGapAlert = hasCapturedPaymentWithoutRefund(order, refunds);
+  const partialView = buildAdminPartialOrderView(order);
+  const showDeferredPartial = Boolean(partialView?.deferredRefund) && refunds.length === 0;
   const latest = refunds[0] || null;
   const timelineNote = latest ? getRefundTimelineNote(latest.status) : null;
 
-  if (!refunds.length && !showGapAlert) {
+  if (!refunds.length && !showGapAlert && !showDeferredPartial) {
     return null;
   }
 
@@ -57,6 +55,13 @@ export default function OrderRefundCard({ order, refunds = [] }) {
           <Alert severity="warning">
             This order was cancelled but no refund record exists for a captured payment. Check Razorpay
             dashboard or retry cancel/refund.
+          </Alert>
+        ) : null}
+
+        {showDeferredPartial ? (
+          <Alert severity="info">
+            Partial order adjustment · customer refund {formatINR(partialView.refundCents)} after
+            delivery (no refund row yet).
           </Alert>
         ) : null}
 
@@ -92,7 +97,7 @@ export default function OrderRefundCard({ order, refunds = [] }) {
               ))}
             </TableBody>
           </Table>
-        ) : (
+        ) : showDeferredPartial ? null : (
           <Typography variant="body2" color="text.secondary">
             No refund rows recorded yet.
           </Typography>

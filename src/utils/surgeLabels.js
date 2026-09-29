@@ -14,7 +14,8 @@ export const SURGE_SCOPE_LABELS = Object.freeze({
 
 export const SURGE_BENEFICIARY_LABELS = Object.freeze({
   SELLER: 'Seller',
-  PLATFORM: 'Platform'
+  PLATFORM: 'Platform',
+  RIDER: 'Rider'
 });
 
 export const SURGE_STATUS_OPTIONS = [

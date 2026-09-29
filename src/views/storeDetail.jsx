@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { enqueueSnackbar } from 'notistack';
 import {
   Alert,
   Box,
@@ -22,7 +23,7 @@ import PharmacyLicenseReviewPanel from 'sections/seller-documents/PharmacyLicens
 import StoreDetailSidebar from 'sections/stores/detail/StoreDetailSidebar';
 import StoreVariantsTab from 'sections/stores/detail/StoreVariantsTab';
 import StoreBulkUploadTab from 'sections/stores/detail/StoreBulkUploadTab';
-import { getStore } from 'api/sellersStores';
+import { getStore, updateStore } from 'api/sellersStores';
 
 const TAB_IDS = ['orders', 'variants', 'bulk-upload', 'seller', 'location', 'verification', 'pharmacy', 'payouts', 'support'];
 
@@ -50,6 +51,7 @@ export default function StoreDetailView() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [togglingOpen, setTogglingOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -116,6 +118,27 @@ export default function StoreDetailView() {
 
   const showPharmacyTab = Boolean(seller?.is_pharmacy);
 
+  const handleToggleOpen = useCallback(
+    async (is_open) => {
+      if (!id || !data || togglingOpen) return;
+      const prev = Boolean(data.is_open);
+      setTogglingOpen(true);
+      setData((d) => (d ? { ...d, is_open } : d));
+      try {
+        await updateStore(id, { is_open });
+        enqueueSnackbar(is_open ? 'Store opened' : 'Store closed', { variant: 'success' });
+      } catch (e) {
+        setData((d) => (d ? { ...d, is_open: prev } : d));
+        enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to update store', {
+          variant: 'error'
+        });
+      } finally {
+        setTogglingOpen(false);
+      }
+    },
+    [id, data, togglingOpen]
+  );
+
   return (
     <>
       <Breadcrumbs custom heading={breadcrumb.heading} links={breadcrumb.links} />
@@ -132,6 +155,8 @@ export default function StoreDetailView() {
                 sellerUser={sellerUser}
                 ownerPhone={ownerPhone}
                 onEdit={() => router.push(`/stores/edit/${id}`)}
+                onToggleOpen={handleToggleOpen}
+                togglingOpen={togglingOpen}
               />
             </Grid>
 

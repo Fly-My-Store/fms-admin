@@ -156,6 +156,9 @@ function validateForm(form) {
     const targets = (form.targets || []).filter((t) => t.target_type && t.target_id);
     if (!targets.length) errors.targets = 'ITEM scope needs at least one target';
   }
+  if (form.surge_beneficiary === 'RIDER' && form.scope !== 'DELIVERY_FEE') {
+    errors.surge_beneficiary = 'Rider beneficiary requires delivery fee scope';
+  }
   const starts = parseDdMmYyyyHm(form.starts_at);
   const ends = parseDdMmYyyyHm(form.ends_at);
   if (form.starts_at && starts === undefined) errors.starts_at = 'Use DD-MM-YYYY or DD-MM-YYYY HH:mm';
@@ -398,13 +401,26 @@ export default function SurgeUpsert() {
                     const scope = e.target.value;
                     clearError('scope');
                     clearError('targets');
+                    clearError('surge_beneficiary');
                     setForm((p) => ({
                       ...p,
                       scope,
-                      targets: scope === 'ITEM' ? p.targets : []
+                      targets: scope === 'ITEM' ? p.targets : [],
+                      // Rider can only receive delivery-fee surge.
+                      surge_beneficiary:
+                        p.surge_beneficiary === 'RIDER' && scope !== 'DELIVERY_FEE'
+                          ? 'PLATFORM'
+                          : p.surge_beneficiary
                     }));
                   }}
-                  disabled={loading}
+                  disabled={loading || form.surge_beneficiary === 'RIDER'}
+                  error={Boolean(errors.scope)}
+                  helperText={
+                    errors.scope ||
+                    (form.surge_beneficiary === 'RIDER'
+                      ? 'Locked to delivery fee for rider beneficiary'
+                      : undefined)
+                  }
                 >
                   {Object.entries(SURGE_SCOPE_LABELS).map(([value, label]) => (
                     <MenuItem key={value} value={value}>
@@ -420,8 +436,27 @@ export default function SurgeUpsert() {
                   label="Beneficiary"
                   fullWidth
                   value={form.surge_beneficiary}
-                  onChange={(e) => setField('surge_beneficiary', e.target.value)}
+                  onChange={(e) => {
+                    const beneficiary = e.target.value;
+                    clearError('surge_beneficiary');
+                    clearError('scope');
+                    setForm((p) => ({
+                      ...p,
+                      surge_beneficiary: beneficiary,
+                      // Lock scope to delivery fee when rider receives the surge.
+                      ...(beneficiary === 'RIDER'
+                        ? { scope: 'DELIVERY_FEE', targets: [] }
+                        : {})
+                    }));
+                  }}
                   disabled={loading}
+                  error={Boolean(errors.surge_beneficiary)}
+                  helperText={
+                    errors.surge_beneficiary ||
+                    (form.surge_beneficiary === 'RIDER'
+                      ? 'Rider receives delivery-fee surge only'
+                      : undefined)
+                  }
                 >
                   {Object.entries(SURGE_BENEFICIARY_LABELS).map(([value, label]) => (
                     <MenuItem key={value} value={value}>

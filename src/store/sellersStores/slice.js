@@ -125,6 +125,19 @@ const slice = createSlice({
       state.storeDetail.loading = false;
       state.storeDetail.error = action.payload;
     },
+    /** Optimistic / post-PATCH update of is_open on the list row (and detail if same id). */
+    storesSetOpenLocal(state, action) {
+      const { id, is_open } = action.payload || {};
+      if (!id) return;
+      const rows = state.stores.rows || [];
+      const idx = rows.findIndex((r) => r.id === id);
+      if (idx >= 0) {
+        rows[idx] = { ...rows[idx], is_open: Boolean(is_open) };
+      }
+      if (state.storeDetail.data?.id === id) {
+        state.storeDetail.data = { ...state.storeDetail.data, is_open: Boolean(is_open) };
+      }
+    },
     storesRemoveRequest(state) {
       state.storeDetail.loading = true;
       state.storeDetail.error = null;

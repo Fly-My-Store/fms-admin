@@ -37,6 +37,7 @@ const ORDER_EVENT_LABELS = {
   ORDER_DELIVERED: 'Delivered',
   ORDER_CANCELLED: 'Order cancelled',
   ORDER_REFUNDED: 'Refund processed',
+  PARTIAL_ITEMS_REMOVED: 'Items removed (partial)',
   PAYMENT_SUCCESS: 'Payment received',
   PAYMENT_FAILED: 'Payment failed',
   DELIVERY_ASSIGNED: 'Rider assigned',

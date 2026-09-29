@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
@@ -9,6 +9,7 @@ import StoresTableSection from 'sections/stores/StoresTableSection';
 import useUrlFilters from 'hooks/useUrlFilters';
 import { useRouter } from 'next/navigation';
 import { STORE_STATUS } from 'utils/constants';
+import { updateStore } from 'api/sellersStores';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All' },
@@ -52,6 +53,7 @@ export function StoresView() {
     defaults: FILTER_DEFAULTS
   });
   const [searchQuery, setSearchQuery] = useState(draft.q || '');
+  const [togglingId, setTogglingId] = useState(null);
 
   const buildParams = (f = applied) => ({
     page: Number(f.page) || 1,
@@ -97,6 +99,27 @@ export function StoresView() {
   const handleViewButton = (row) => {
     router.push(`/stores/${row.id}`);
   };
+
+  const handleToggleOpen = useCallback(
+    async (row, is_open) => {
+      if (!row?.id || togglingId) return;
+      const prev = Boolean(row.is_open);
+      setTogglingId(row.id);
+      dispatch(sellersStores.storesSetOpenLocal({ id: row.id, is_open }));
+      try {
+        await updateStore(row.id, { is_open });
+        enqueueSnackbar(is_open ? 'Store opened' : 'Store closed', { variant: 'success' });
+      } catch (e) {
+        dispatch(sellersStores.storesSetOpenLocal({ id: row.id, is_open: prev }));
+        enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to update store', {
+          variant: 'error'
+        });
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [dispatch, togglingId]
+  );
 
   const topActionsLeft = () => (
     <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
@@ -155,6 +178,8 @@ export function StoresView() {
       totalCount={total}
       onPaginationChange={handlePaginationChange}
       topActionsLeft={topActionsLeft}
+      onToggleOpen={handleToggleOpen}
+      togglingId={togglingId}
     />
   );
 }

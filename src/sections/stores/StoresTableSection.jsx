@@ -4,14 +4,16 @@ import { useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import Chip from '@mui/material/Chip';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Stack from '@mui/material/Stack';
+import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import { EnvironmentOutlined } from '@ant-design/icons';
 import BasicReactTable from 'components/tables/basicTable';
 import { TABLE_STATUS } from 'utils/constants';
 import IconButton from 'components/@extended/IconButton';
+import { useCan } from 'hooks/useCan';
 
 const isFullyVerified = (row) => {
   const seller = row?.seller;
@@ -51,6 +53,47 @@ const mapsUrl = (row) => {
   return null;
 };
 
+function OpenToggleCell({ row, onToggleOpen, canToggle, togglingId }) {
+  const data = row.original;
+  const checked = Boolean(data.is_open);
+  const busy = togglingId === data.id;
+
+  if (!canToggle || !onToggleOpen) {
+    return (
+      <Chip
+        size="small"
+        variant="light"
+        color={checked ? 'success' : 'default'}
+        label={checked ? 'Open' : 'Closed'}
+      />
+    );
+  }
+
+  return (
+    <FormControlLabel
+      sx={{ m: 0, mr: 0 }}
+      control={
+        <Switch
+          size="small"
+          checked={checked}
+          disabled={busy}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggleOpen(data, e.target.checked);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          inputProps={{ 'aria-label': checked ? 'Close store' : 'Open store' }}
+        />
+      }
+      label={
+        <Typography variant="caption" color={checked ? 'success.main' : 'text.secondary'}>
+          {checked ? 'Open' : 'Closed'}
+        </Typography>
+      }
+    />
+  );
+}
+
 export default function StoresTableSection({
   rows,
   handleAddButton,
@@ -63,8 +106,13 @@ export default function StoresTableSection({
   totalCount,
   topActionsLeft,
   topActions,
-  showPagination = true
+  showPagination = true,
+  onToggleOpen,
+  togglingId = null,
 }) {
+  const { canModify } = useCan();
+  const canToggle = canModify('store');
+
   const columns = useMemo(
     () => [
       {
@@ -105,11 +153,11 @@ export default function StoresTableSection({
           return (
             <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1, flexWrap: 'nowrap' }}>
               <Typography variant="body2" noWrap>{formatTimings(data)}</Typography>
-              <Chip
-                size="small"
-                variant="light"
-                color={data.is_open ? 'success' : 'default'}
-                label={data.is_open ? 'Open' : 'Closed'}
+              <OpenToggleCell
+                row={row}
+                onToggleOpen={onToggleOpen}
+                canToggle={canToggle}
+                togglingId={togglingId}
               />
             </Box>
           );
@@ -172,7 +220,7 @@ export default function StoresTableSection({
         },
       },
     ],
-    []
+    [canToggle, onToggleOpen, togglingId]
   );
 
   return (

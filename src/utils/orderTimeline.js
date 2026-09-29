@@ -80,7 +80,7 @@ function eventTone(type) {
     return 'success';
   }
   if (['ORDER_CANCELLED', 'PAYMENT_FAILED', 'DELIVERY_FAILED'].includes(key)) return 'error';
-  if (key.includes('WALLET')) return 'info';
+  if (key === 'PARTIAL_ITEMS_REMOVED' || key.includes('WALLET')) return 'info';
   return 'default';
 }
 
@@ -92,6 +92,7 @@ function eventGroup(type) {
     return 'Delivery';
   }
   if (key === 'ORDER_CANCELLED') return 'Cancel';
+  if (key === 'PARTIAL_ITEMS_REMOVED') return 'Partial';
   return 'Order';
 }
 
@@ -171,10 +172,32 @@ function detailsForEvent(event, order) {
     pushUnique(details, paymentGatewayLabel(payload.payment_gateway));
   }
 
+  if (type === 'PARTIAL_ITEMS_REMOVED') {
+    pushUnique(details, 'Seller removed unavailable items');
+    pushUnique(
+      details,
+      reasonLabel(payload.reason_code || payload.reason) ? `Reason: ${reasonLabel(payload.reason_code || payload.reason)}` : null
+    );
+    const removedIds = Array.isArray(payload.removed_store_variant_ids) ? payload.removed_store_variant_ids : [];
+    if (removedIds.length) {
+      pushUnique(details, `Removed ${removedIds.length} line${removedIds.length === 1 ? '' : 's'}`);
+    }
+    const original = payload.original_total_cents;
+    const next = payload.new_total_cents;
+    if (original != null && next != null) {
+      pushUnique(details, `Total ${formatINR(original)} → ${formatINR(next)}`);
+    }
+    if (payload.refund_cents != null && Number(payload.refund_cents) > 0) {
+      pushUnique(details, `Refund ${formatINR(payload.refund_cents)} after delivery`);
+    }
+    pushUnique(details, payload.note ? `Note: ${payload.note}` : null);
+  }
+
   if (type === 'ORDER_REFUNDED') {
     pushUnique(details, payload.amount_cents != null ? formatINR(payload.amount_cents) : null);
     pushUnique(details, payload.status ? `Status: ${titleCaseKey(payload.status)}` : null);
     pushUnique(details, payload.reason ? `Reason: ${payload.reason}` : null);
+    if (payload.partial) pushUnique(details, 'Partial order adjustment');
     pushUnique(details, payload.gateway_refund_id ? `Gateway: ${payload.gateway_refund_id}` : null);
   }
 
