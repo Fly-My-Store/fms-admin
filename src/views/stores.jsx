@@ -9,6 +9,7 @@ import StoresTableSection from 'sections/stores/StoresTableSection';
 import useUrlFilters from 'hooks/useUrlFilters';
 import { useRouter } from 'next/navigation';
 import { STORE_STATUS } from 'utils/constants';
+import { adminOpenBlockedReason } from 'utils/storeAvailability';
 import { updateStore } from 'api/sellersStores';
 
 const STATUS_OPTIONS = [
@@ -103,14 +104,52 @@ export function StoresView() {
   const handleToggleOpen = useCallback(
     async (row, is_open) => {
       if (!row?.id || togglingId) return;
-      const prev = Boolean(row.is_open);
+      if (is_open) {
+        const blocked = adminOpenBlockedReason(row);
+        if (blocked) {
+          enqueueSnackbar(blocked, { variant: 'error' });
+          return;
+        }
+      }
+      const confirmMsg = is_open
+        ? 'Open this store until the next schedule close (full remaining window)?'
+        : 'Close this store until the next schedule open (full remaining window)?';
+      if (typeof window !== 'undefined' && !window.confirm(confirmMsg)) return;
+
+      const prev = Boolean(row.accepting_orders ?? row.is_open);
+      const prevLabel = row.availability_label;
       setTogglingId(row.id);
       dispatch(sellersStores.storesSetOpenLocal({ id: row.id, is_open }));
       try {
-        await updateStore(row.id, { is_open });
-        enqueueSnackbar(is_open ? 'Store opened' : 'Store closed', { variant: 'success' });
+        const res = await updateStore(row.id, { is_open });
+        const updated = res?.data?.data ?? res?.data ?? {};
+        const accepting = Boolean(updated.accepting_orders ?? updated.is_open);
+        dispatch(sellersStores.storesSetOpenLocal({
+          id: row.id,
+          is_open: accepting,
+          availability_label: updated.availability_label,
+          accepting_orders: updated.accepting_orders,
+          availability_next_at: updated.availability_next_at,
+          temp_override: updated.temp_override,
+        }));
+        if (is_open && !accepting) {
+          enqueueSnackbar(
+            updated.availability_label || 'Store could not be opened',
+            { variant: 'error' },
+          );
+          return;
+        }
+        enqueueSnackbar(
+          updated.availability_label
+            || (is_open ? 'Store opened' : 'Store closed'),
+          { variant: 'success' },
+        );
       } catch (e) {
-        dispatch(sellersStores.storesSetOpenLocal({ id: row.id, is_open: prev }));
+        dispatch(sellersStores.storesSetOpenLocal({
+          id: row.id,
+          is_open: prev,
+          availability_label: prevLabel,
+        }));
         enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to update store', {
           variant: 'error'
         });

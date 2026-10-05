@@ -24,6 +24,7 @@ import StoreDetailSidebar from 'sections/stores/detail/StoreDetailSidebar';
 import StoreVariantsTab from 'sections/stores/detail/StoreVariantsTab';
 import StoreBulkUploadTab from 'sections/stores/detail/StoreBulkUploadTab';
 import { getStore, updateStore } from 'api/sellersStores';
+import { adminOpenBlockedReason } from 'utils/storeAvailability';
 
 const TAB_IDS = ['orders', 'variants', 'bulk-upload', 'seller', 'location', 'verification', 'pharmacy', 'payouts', 'support'];
 
@@ -121,14 +122,41 @@ export default function StoreDetailView() {
   const handleToggleOpen = useCallback(
     async (is_open) => {
       if (!id || !data || togglingOpen) return;
-      const prev = Boolean(data.is_open);
+      if (is_open) {
+        const blocked = adminOpenBlockedReason({ ...data, seller });
+        if (blocked) {
+          enqueueSnackbar(blocked, { variant: 'error' });
+          return;
+        }
+      }
+      const confirmMsg = is_open
+        ? 'Open this store until the next schedule close (full remaining window)?'
+        : 'Close this store until the next schedule open (full remaining window)?';
+      if (typeof window !== 'undefined' && !window.confirm(confirmMsg)) return;
+
+      const prev = { ...data };
       setTogglingOpen(true);
-      setData((d) => (d ? { ...d, is_open } : d));
+      setData((d) => (d ? { ...d, is_open, accepting_orders: is_open } : d));
       try {
-        await updateStore(id, { is_open });
-        enqueueSnackbar(is_open ? 'Store opened' : 'Store closed', { variant: 'success' });
+        const res = await updateStore(id, { is_open });
+        const updated = res?.data?.data ?? res?.data ?? null;
+        if (updated && typeof updated === 'object') {
+          setData((d) => (d ? { ...d, ...updated } : updated));
+        }
+        const accepting = Boolean(updated?.accepting_orders ?? updated?.is_open);
+        if (is_open && !accepting) {
+          enqueueSnackbar(
+            updated?.availability_label || 'Store could not be opened',
+            { variant: 'error' },
+          );
+          return;
+        }
+        enqueueSnackbar(
+          updated?.availability_label || (is_open ? 'Store opened' : 'Store closed'),
+          { variant: 'success' },
+        );
       } catch (e) {
-        setData((d) => (d ? { ...d, is_open: prev } : d));
+        setData(prev);
         enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to update store', {
           variant: 'error'
         });
@@ -136,7 +164,7 @@ export default function StoreDetailView() {
         setTogglingOpen(false);
       }
     },
-    [id, data, togglingOpen]
+    [id, data, seller, togglingOpen]
   );
 
   return (

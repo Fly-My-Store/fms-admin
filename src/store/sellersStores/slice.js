@@ -125,17 +125,26 @@ const slice = createSlice({
       state.storeDetail.loading = false;
       state.storeDetail.error = action.payload;
     },
-    /** Optimistic / post-PATCH update of is_open on the list row (and detail if same id). */
+    /** Optimistic / post-PATCH update of open state on the list row (and detail if same id). */
     storesSetOpenLocal(state, action) {
-      const { id, is_open } = action.payload || {};
+      const payload = action.payload || {};
+      const { id } = payload;
       if (!id) return;
+      const patch = { ...payload };
+      delete patch.id;
+      if (Object.prototype.hasOwnProperty.call(patch, 'is_open')) {
+        patch.is_open = Boolean(patch.is_open);
+        if (patch.accepting_orders === undefined) {
+          patch.accepting_orders = patch.is_open;
+        }
+      }
       const rows = state.stores.rows || [];
       const idx = rows.findIndex((r) => r.id === id);
       if (idx >= 0) {
-        rows[idx] = { ...rows[idx], is_open: Boolean(is_open) };
+        rows[idx] = { ...rows[idx], ...patch };
       }
       if (state.storeDetail.data?.id === id) {
-        state.storeDetail.data = { ...state.storeDetail.data, is_open: Boolean(is_open) };
+        state.storeDetail.data = { ...state.storeDetail.data, ...patch };
       }
     },
     storesRemoveRequest(state) {

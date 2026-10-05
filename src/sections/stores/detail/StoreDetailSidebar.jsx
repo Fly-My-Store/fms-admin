@@ -15,6 +15,12 @@ import {
 import MainCard from 'components/MainCard';
 import { RECORD_STATUS, TABLE_STATUS } from 'utils/constants';
 import { useCan } from 'hooks/useCan';
+import {
+  adminOpenBlockedReason,
+  canAdminOpenStore,
+  formatWeeklyHoursSummary,
+  storeAvailabilityLabel,
+} from 'utils/storeAvailability';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
@@ -89,7 +95,17 @@ export default function StoreDetailSidebar({
         ? 'Inactive'
         : 'Archived';
 
-  const isOpen = Boolean(data?.is_open);
+  const isOpen = Boolean(data?.accepting_orders ?? data?.is_open);
+  const tillLine = storeAvailabilityLabel(data);
+  const weekSummary = formatWeeklyHoursSummary(
+    data?.weekly_hours,
+    data?.open_time,
+    data?.close_time,
+  );
+  const storeWithSeller = { ...data, seller: data?.seller || seller };
+  const canOpen = canAdminOpenStore(storeWithSeller);
+  const openBlockedReason = adminOpenBlockedReason(storeWithSeller);
+  const switchDisabled = togglingOpen || (!isOpen && !canOpen);
 
   return (
     <Stack spacing={2} sx={{ position: { md: 'sticky' }, top: { md: 88 } }}>
@@ -123,6 +139,10 @@ export default function StoreDetailSidebar({
             </Stack>
           </Stack>
 
+          <Alert severity={isOpen ? 'success' : 'info'} variant="outlined">
+            {tillLine}
+          </Alert>
+
           <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
             {canToggle ? (
               <FormControlLabel
@@ -131,7 +151,7 @@ export default function StoreDetailSidebar({
                   <Switch
                     size="small"
                     checked={isOpen}
-                    disabled={togglingOpen}
+                    disabled={switchDisabled}
                     onChange={(e) => onToggleOpen(e.target.checked)}
                     inputProps={{ 'aria-label': isOpen ? 'Close store' : 'Open store' }}
                   />
@@ -153,6 +173,15 @@ export default function StoreDetailSidebar({
             <RecordStatusChip value={data.record_status} />
             {data.is_demo ? <Chip size="small" color="warning" label="Demo" variant="light" /> : null}
           </Stack>
+          {!isOpen && openBlockedReason ? (
+            <Typography variant="caption" color="warning.main">
+              {openBlockedReason}
+            </Typography>
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              Toggle applies a temporary open/close for the full remaining schedule window.
+            </Typography>
+          )}
 
           <Button variant="contained" size="small" onClick={onEdit} sx={{ alignSelf: 'flex-start' }}>
             Edit store
@@ -183,8 +212,9 @@ export default function StoreDetailSidebar({
             <KV label="Phone" value={data.phone} />
             <KV label="Email" value={data.email} />
             <KV label="Support" value={data.support_phone || data.support_email} />
+            <KV label="Schedule" value={weekSummary} />
             <KV
-              label="Hours"
+              label="Usual hours"
               value={data.open_time && data.close_time ? `${data.open_time} – ${data.close_time}` : null}
             />
             <KV label="FSSAI" value={data.fssai_number} />

@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import Chip from '@mui/material/Chip';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -14,6 +13,11 @@ import BasicReactTable from 'components/tables/basicTable';
 import { TABLE_STATUS } from 'utils/constants';
 import IconButton from 'components/@extended/IconButton';
 import { useCan } from 'hooks/useCan';
+import {
+  adminOpenBlockedReason,
+  canAdminOpenStore,
+  storeAvailabilityLabel,
+} from 'utils/storeAvailability';
 
 const isFullyVerified = (row) => {
   const seller = row?.seller;
@@ -35,13 +39,6 @@ const combinedVerificationTooltip = (row) => {
   ].join(' · ');
 };
 
-const formatTimings = (row) => {
-  const open = row?.open_time;
-  const close = row?.close_time;
-  if (!open && !close) return '—';
-  return `${open || '—'} – ${close || '—'}`;
-};
-
 const mapsUrl = (row) => {
   const lat = row?.lat;
   const lng = row?.lng;
@@ -55,42 +52,66 @@ const mapsUrl = (row) => {
 
 function OpenToggleCell({ row, onToggleOpen, canToggle, togglingId }) {
   const data = row.original;
-  const checked = Boolean(data.is_open);
+  const checked = Boolean(data.accepting_orders ?? data.is_open);
   const busy = togglingId === data.id;
+  const tillLine = storeAvailabilityLabel(data);
+  const canOpen = canAdminOpenStore(data);
+  const openBlockedReason = adminOpenBlockedReason(data);
+  // Closing is always allowed; opening requires verification + ACTIVE.
+  const switchDisabled = busy || (!checked && !canOpen);
 
   if (!canToggle || !onToggleOpen) {
     return (
-      <Chip
-        size="small"
-        variant="light"
-        color={checked ? 'success' : 'default'}
-        label={checked ? 'Open' : 'Closed'}
-      />
+      <Stack spacing={0.25}>
+        <Chip
+          size="small"
+          variant="light"
+          color={checked ? 'success' : 'default'}
+          label={checked ? 'Open' : 'Closed'}
+        />
+        <Typography variant="caption" color="text.secondary" noWrap>
+          {tillLine}
+        </Typography>
+      </Stack>
     );
   }
 
   return (
-    <FormControlLabel
-      sx={{ m: 0, mr: 0 }}
-      control={
-        <Switch
-          size="small"
-          checked={checked}
-          disabled={busy}
-          onChange={(e) => {
-            e.stopPropagation();
-            onToggleOpen(data, e.target.checked);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          inputProps={{ 'aria-label': checked ? 'Close store' : 'Open store' }}
-        />
-      }
-      label={
-        <Typography variant="caption" color={checked ? 'success.main' : 'text.secondary'}>
-          {checked ? 'Open' : 'Closed'}
+    <Stack spacing={0.25} sx={{ minWidth: 140 }}>
+      <Tooltip title={!checked && openBlockedReason ? openBlockedReason : ''}>
+        <span>
+          <FormControlLabel
+            sx={{ m: 0, mr: 0 }}
+            control={
+              <Switch
+                size="small"
+                checked={checked}
+                disabled={switchDisabled}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onToggleOpen(data, e.target.checked);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                inputProps={{ 'aria-label': checked ? 'Close store' : 'Open store' }}
+              />
+            }
+            label={
+              <Typography variant="caption" color={checked ? 'success.main' : 'text.secondary'}>
+                {checked ? 'Open' : 'Closed'}
+              </Typography>
+            }
+          />
+        </span>
+      </Tooltip>
+      <Typography variant="caption" color="text.secondary" noWrap title={tillLine}>
+        {tillLine}
+      </Typography>
+      {!checked && openBlockedReason ? (
+        <Typography variant="caption" color="warning.main" noWrap title={openBlockedReason}>
+          {openBlockedReason}
         </Typography>
-      }
-    />
+      ) : null}
+    </Stack>
   );
 }
 
@@ -146,22 +167,16 @@ export default function StoresTableSection({
         },
       },
       {
-        header: 'Timings',
+        header: 'Open / close',
         id: 'timings',
-        cell: ({ row }) => {
-          const data = row.original;
-          return (
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1, flexWrap: 'nowrap' }}>
-              <Typography variant="body2" noWrap>{formatTimings(data)}</Typography>
-              <OpenToggleCell
-                row={row}
-                onToggleOpen={onToggleOpen}
-                canToggle={canToggle}
-                togglingId={togglingId}
-              />
-            </Box>
-          );
-        },
+        cell: ({ row }) => (
+          <OpenToggleCell
+            row={row}
+            onToggleOpen={onToggleOpen}
+            canToggle={canToggle}
+            togglingId={togglingId}
+          />
+        ),
       },
       {
         header: 'Location',
