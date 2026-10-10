@@ -33,26 +33,38 @@ export function adminOpenBlockedReason(store) {
   return `Complete ${pending.join(', ')} before opening`;
 }
 
-export function formatWeeklyHoursSummary(weeklyHours, fallbackOpen, fallbackClose) {
+/** Per-day schedule lines (Mon→Sun). Sellers may set different hours each day. */
+export function formatWeeklyHoursLines(weeklyHours, fallbackOpen, fallbackClose) {
+  const order = [1, 2, 3, 4, 5, 6, 0]; // Mon → Sun
   if (!weeklyHours || typeof weeklyHours !== 'object') {
-    if (fallbackOpen && fallbackClose) return `${fallbackOpen} – ${fallbackClose} (all days)`;
-    return null;
+    if (fallbackOpen && fallbackClose) {
+      return order.map((i) => ({
+        key: String(i),
+        label: DAY_LABELS[i],
+        text: `${fallbackOpen} – ${fallbackClose}`,
+        closed: false,
+      }));
+    }
+    return [];
   }
-  const openDays = [];
-  let sample = null;
-  for (let i = 0; i <= 6; i += 1) {
+  return order.map((i) => {
     const day = weeklyHours[String(i)] ?? weeklyHours[i];
     if (day?.open && day?.close) {
-      openDays.push(DAY_LABELS[i]);
-      if (!sample) sample = day;
+      let text = `${day.open} – ${day.close}`;
+      if (day.break_start && day.break_end) {
+        text += ` · break ${day.break_start}–${day.break_end}`;
+      }
+      return {key: String(i), label: DAY_LABELS[i], text, closed: false};
     }
-  }
-  if (!sample) return 'No open days';
-  let line = `${openDays.join(', ')} ${sample.open} – ${sample.close}`;
-  if (sample.break_start && sample.break_end) {
-    line += ` · break ${sample.break_start}–${sample.break_end}`;
-  }
-  return line;
+    return {key: String(i), label: DAY_LABELS[i], text: 'Closed', closed: true};
+  });
+}
+
+/** @deprecated prefer formatWeeklyHoursLines for per-day schedules */
+export function formatWeeklyHoursSummary(weeklyHours, fallbackOpen, fallbackClose) {
+  const lines = formatWeeklyHoursLines(weeklyHours, fallbackOpen, fallbackClose);
+  if (!lines.length) return null;
+  return lines.map((l) => `${l.label} ${l.text}`).join(' · ');
 }
 
 export function toggleConfirmMessage(store, wantsOpen) {

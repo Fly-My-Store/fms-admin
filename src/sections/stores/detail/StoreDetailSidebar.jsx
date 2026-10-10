@@ -18,7 +18,7 @@ import { useCan } from 'hooks/useCan';
 import {
   adminOpenBlockedReason,
   canAdminOpenStore,
-  formatWeeklyHoursSummary,
+  formatWeeklyHoursLines,
   storeAvailabilityLabel,
 } from 'utils/storeAvailability';
 
@@ -97,7 +97,7 @@ export default function StoreDetailSidebar({
 
   const isOpen = Boolean(data?.accepting_orders ?? data?.is_open);
   const tillLine = storeAvailabilityLabel(data);
-  const weekSummary = formatWeeklyHoursSummary(
+  const weekLines = formatWeeklyHoursLines(
     data?.weekly_hours,
     data?.open_time,
     data?.close_time,
@@ -212,11 +212,31 @@ export default function StoreDetailSidebar({
             <KV label="Phone" value={data.phone} />
             <KV label="Email" value={data.email} />
             <KV label="Support" value={data.support_phone || data.support_email} />
-            <KV label="Schedule" value={weekSummary} />
-            <KV
-              label="Usual hours"
-              value={data.open_time && data.close_time ? `${data.open_time} – ${data.close_time}` : null}
-            />
+            <Stack spacing={0.5}>
+              <Typography variant="caption" color="text.secondary">
+                Weekly schedule
+              </Typography>
+              {weekLines.length ? (
+                weekLines.map((line) => (
+                  <Stack key={line.key} direction="row" spacing={1} justifyContent="space-between">
+                    <Typography variant="body2" sx={{ minWidth: 36, fontWeight: 600 }}>
+                      {line.label}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color={line.closed ? 'text.secondary' : 'text.primary'}
+                      sx={{ textAlign: 'right', flex: 1 }}
+                    >
+                      {line.text}
+                    </Typography>
+                  </Stack>
+                ))
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  —
+                </Typography>
+              )}
+            </Stack>
             <KV label="FSSAI" value={data.fssai_number} />
             <KV
               label="Rating"
