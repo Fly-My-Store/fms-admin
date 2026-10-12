@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
+import { enqueueSnackbar } from 'notistack';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import CustomersTableSection from 'sections/customers/CustomersTableSection';
 import useAxiosPaginatedList from 'hooks/useAxiosPaginatedList';
 import useUrlFilters from 'hooks/useUrlFilters';
+import { downloadUsersCsv } from 'api/iam';
 import { ACCOUNT_STATUS } from 'utils/constants';
 
 const STATUS_OPTIONS = [
@@ -38,6 +40,7 @@ export default function CustomersView() {
     defaults: FILTER_DEFAULTS
   });
   const [searchQuery, setSearchQuery] = useState(draft.q || '');
+  const [exporting, setExporting] = useState(false);
 
   const listParams = useMemo(() => {
     const params = {
@@ -69,6 +72,30 @@ export default function CustomersView() {
       is_tester: draft.is_tester
     });
   };
+
+  const handleDownloadCsv = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await downloadUsersCsv({
+        ...listParams,
+        page: Number(applied.page) || 1,
+        limit: Number(applied.limit) || 20
+      });
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'CSV download failed', {
+        variant: 'error'
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const topActions = () => (
+    <Button variant="outlined" size="small" onClick={handleDownloadCsv} disabled={exporting}>
+      {exporting ? 'Downloading…' : 'Download CSV'}
+    </Button>
+  );
 
   const topActionsLeft = () => (
     <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
@@ -128,6 +155,7 @@ export default function CustomersView() {
       totalCount={totalCount}
       onPaginationChange={handlePaginationChange}
       topActionsLeft={topActionsLeft}
+      topActions={false ? topActions : undefined}
     />
   );
 }

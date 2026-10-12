@@ -1,6 +1,10 @@
 import { get, post, patch } from '../utils/api';
+import { downloadCsvBlob } from 'utils/downloadCsvBlob';
 
 export const listOrders = (params) => get('admin/orders-payments/orders', params);
+export const downloadOrdersCsv = (params) =>
+  downloadCsvBlob('admin/orders-payments/orders/export.csv', params, 'orders.csv');
+
 export const getOrder = (id) => get(`admin/orders-payments/orders/${id}`);
 export const getOrderTracking = (id) => get(`admin/orders-payments/orders/${id}/tracking`);
 export const updateOrder = (id, data) => patch(`admin/orders-payments/orders/${id}`, data);

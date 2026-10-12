@@ -1,4 +1,5 @@
 import { get, post, patch, del, put } from '../utils/api';
+import { downloadCsvBlob } from 'utils/downloadCsvBlob';
 
 export const listSellers = (params) => get('admin/sellers-stores/sellers', params);
 export const getSeller = (id) => get(`admin/sellers-stores/sellers/${id}`);
@@ -27,6 +28,8 @@ export const getSellerPolicy = (sellerId) => get(`admin/sellers-stores/sellers/$
 export const upsertSellerPolicy = (sellerId, data) => put(`admin/sellers-stores/sellers/${sellerId}/policy`, data);
 
 export const listStores = (params) => get('admin/sellers-stores/stores', params);
+export const downloadStoresCsv = (params) =>
+  downloadCsvBlob('admin/sellers-stores/stores/export.csv', params, 'stores.csv');
 export const getStore = (id) => get(`admin/sellers-stores/stores/${id}`);
 export const createStore = (data) => post('admin/sellers-stores/stores', data);
 export const updateStore = (id, data) => patch(`admin/sellers-stores/stores/${id}`, data);

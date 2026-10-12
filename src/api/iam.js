@@ -1,9 +1,13 @@
 import { get, post, patch, del } from '../utils/api';
+import { downloadCsvBlob } from 'utils/downloadCsvBlob';
 
 export const getMe = () => get('admin/iam/me');
 export const updateMe = (data) => patch('admin/iam/me', data);
 
 export const listUsers = (params) => get('admin/iam/users', params);
+export const downloadUsersCsv = (params) =>
+  downloadCsvBlob('admin/iam/users/export.csv', params, 'customers.csv');
+
 export const getUser = (id) => get(`admin/iam/users/${id}`);
 export const createUser = (data) => post('admin/iam/users', data);
 export const updateUser = (id, data) => patch(`admin/iam/users/${id}`, data);

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import { actions as ordersPayments } from 'store/ordersPayments/slice';
 import { listStores } from 'api/sellersStores';
+import { downloadOrdersCsv } from 'api/ordersPayments';
 import OrdersTableSection from 'sections/orders/OrdersTableSection';
 import useUrlFilters from 'hooks/useUrlFilters';
 
@@ -43,6 +44,7 @@ export function OrdersView() {
   });
   const [searchQuery, setSearchQuery] = useState(draft.q || '');
   const [stores, setStores] = useState([]);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     listStores({ limit: 200 })
@@ -81,6 +83,33 @@ export function OrdersView() {
       store_id: draft.store_id
     });
   };
+
+  const handleDownloadCsv = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await downloadOrdersCsv({
+        page: Number(applied.page) || 1,
+        limit: Number(applied.limit) || 20,
+        ...(applied.q ? { q: applied.q } : {}),
+        ...(applied.status ? { status: applied.status } : {}),
+        ...(applied.payment_status ? { payment_status: applied.payment_status } : {}),
+        ...(applied.store_id ? { store_id: applied.store_id } : {})
+      });
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'CSV download failed', {
+        variant: 'error'
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const topActions = () => (
+    <Button variant="outlined" size="small" onClick={handleDownloadCsv} disabled={exporting}>
+      {exporting ? 'Downloading…' : 'Download CSV'}
+    </Button>
+  );
 
   const topActionsLeft = () => (
     <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }} useFlexGap flexWrap="wrap">
@@ -152,6 +181,7 @@ export function OrdersView() {
       onPaginationChange={handlePaginationChange}
       totalCount={total}
       topActionsLeft={topActionsLeft}
+      topActions={false ? topActions : undefined}
     />
   );
 }

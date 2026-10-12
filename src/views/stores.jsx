@@ -10,7 +10,7 @@ import useUrlFilters from 'hooks/useUrlFilters';
 import { useRouter } from 'next/navigation';
 import { STORE_STATUS } from 'utils/constants';
 import { adminOpenBlockedReason } from 'utils/storeAvailability';
-import { updateStore } from 'api/sellersStores';
+import { downloadStoresCsv, updateStore } from 'api/sellersStores';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All' },
@@ -55,6 +55,7 @@ export function StoresView() {
   });
   const [searchQuery, setSearchQuery] = useState(draft.q || '');
   const [togglingId, setTogglingId] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   const buildParams = (f = applied) => ({
     page: Number(f.page) || 1,
@@ -88,6 +89,26 @@ export function StoresView() {
       kyb_status: draft.kyb_status
     });
   };
+
+  const handleDownloadCsv = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await downloadStoresCsv(buildParams(applied));
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'CSV download failed', {
+        variant: 'error'
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const topActions = () => (
+    <Button variant="outlined" size="small" onClick={handleDownloadCsv} disabled={exporting}>
+      {exporting ? 'Downloading…' : 'Download CSV'}
+    </Button>
+  );
 
   const handleAddButton = () => {
     router.push('/stores/add');
@@ -217,6 +238,7 @@ export function StoresView() {
       totalCount={total}
       onPaginationChange={handlePaginationChange}
       topActionsLeft={topActionsLeft}
+      topActions={false ? topActions : undefined}
       onToggleOpen={handleToggleOpen}
       togglingId={togglingId}
     />
