@@ -181,7 +181,7 @@ export function OrdersView() {
       onPaginationChange={handlePaginationChange}
       totalCount={total}
       topActionsLeft={topActionsLeft}
-      topActions={false ? topActions : undefined}
+      topActions={topActions}
     />
   );
 }

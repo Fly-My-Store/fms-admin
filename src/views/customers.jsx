@@ -155,7 +155,7 @@ export default function CustomersView() {
       totalCount={totalCount}
       onPaginationChange={handlePaginationChange}
       topActionsLeft={topActionsLeft}
-      topActions={false ? topActions : undefined}
+      topActions={topActions}
     />
   );
 }

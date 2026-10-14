@@ -238,7 +238,7 @@ export function StoresView() {
       totalCount={total}
       onPaginationChange={handlePaginationChange}
       topActionsLeft={topActionsLeft}
-      topActions={false ? topActions : undefined}
+      topActions={topActions}
       onToggleOpen={handleToggleOpen}
       togglingId={togglingId}
     />
