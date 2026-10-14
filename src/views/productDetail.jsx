@@ -214,6 +214,14 @@ export default function ProductDetail() {
 
                 {/* JSON blocks */}
                 <Field label="Specifications" value={data?.spec_json ? JSON.stringify(data.spec_json) : '—'} mono />
+                <Field
+                  label="Search tags"
+                  value={
+                    Array.isArray(data?.search_tags) && data.search_tags.length
+                      ? data.search_tags.join(', ')
+                      : '—'
+                  }
+                />
 
                 {/* Actions */}
                 <Stack direction="row" spacing={1}>

@@ -52,6 +52,7 @@ const EMPTY = {
   slug: '',
   description: '',
   spec_json: '',
+  search_tags: '',
   record_status: 1,
   prescription_override: 'inherit',
   is_featured: false,
@@ -146,6 +147,9 @@ export default function ProductUpsert() {
       slug: product.slug || '',
       description: product.description || '',
       spec_json: product.spec_json ? JSON.stringify(product.spec_json, null, 2) : '',
+      search_tags: Array.isArray(product.search_tags)
+        ? product.search_tags.join(', ')
+        : (product.search_tags || ''),
       record_status: product.record_status ?? 1,
       prescription_override,
       is_featured: Boolean(product.is_featured),
@@ -297,6 +301,10 @@ export default function ProductUpsert() {
                 ? 'optional'
                 : 'none',
         is_featured: Boolean(form.is_featured),
+        search_tags: String(form.search_tags || '')
+          .split(/[,\s]+/)
+          .map((s) => s.trim().toLowerCase())
+          .filter((s) => s.length >= 2),
       };
 
       // Build images payload per backend contract
@@ -517,6 +525,18 @@ export default function ProductUpsert() {
                   value={form.spec_json}
                   onChange={(e) => handleField('spec_json', e.target.value)}
                   inputProps={{ style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } }}
+                />
+              </Stack>
+
+              <Stack sx={{ gap: 1 }}>
+                <InputLabel>Search tags</InputLabel>
+                <TextField
+                  size="small"
+                  fullWidth
+                  value={form.search_tags}
+                  onChange={(e) => handleField('search_tags', e.target.value)}
+                  placeholder="cola, coke"
+                  helperText="Admin-only aliases for customer search (comma or space separated)"
                 />
               </Stack>
 
