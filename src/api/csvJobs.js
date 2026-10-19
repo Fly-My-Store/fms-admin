@@ -35,6 +35,24 @@ export const abortStoreCsvJob = (storeId, jobId, body) => post(`admin/listings-i
 
 export const abortCatalogCsvJob = (jobId, body) => post(`admin/catalog/csv-jobs/${jobId}/abort`, body);
 
+export const listProductCsvJobs = (params) => get('admin/catalog/products/csv-jobs', params);
+
+export const enqueueProductCsvExport = (filters) => post('admin/catalog/products/csv-jobs/export', filters);
+
+export const enqueueProductCsvUpdate = (body, config) => post('admin/catalog/products/csv-jobs/update', body, config);
+
+export const abortProductCsvJob = (jobId, body) => post(`admin/catalog/products/csv-jobs/${jobId}/abort`, body);
+
+export const listProductVariantCsvJobs = (params) => get('admin/catalog/variants/csv-jobs', params);
+
+export const enqueueProductVariantCsvExport = (filters) => post('admin/catalog/variants/csv-jobs/export', filters);
+
+export const enqueueProductVariantCsvUpdate = (body, config) =>
+  post('admin/catalog/variants/csv-jobs/update', body, config);
+
+export const abortProductVariantCsvJob = (jobId, body) =>
+  post(`admin/catalog/variants/csv-jobs/${jobId}/abort`, body);
+
 async function putToPresign(uploadUrl, file, contentType, onProgress) {
   await new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -97,4 +115,12 @@ export function storeCsvJobDownloadPath(storeId, jobId, file = 'result') {
 
 export function catalogCsvJobDownloadPath(jobId, file = 'result') {
   return `admin/catalog/csv-jobs/${jobId}/download?file=${file}`;
+}
+
+export function productCsvJobDownloadPath(jobId, file = 'result') {
+  return `admin/catalog/products/csv-jobs/${jobId}/download?file=${file}`;
+}
+
+export function productVariantCsvJobDownloadPath(jobId, file = 'result') {
+  return `admin/catalog/variants/csv-jobs/${jobId}/download?file=${file}`;
 }

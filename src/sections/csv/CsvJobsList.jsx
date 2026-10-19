@@ -32,6 +32,14 @@ function kindLabel(kind) {
       return 'Add listings';
     case 'CATALOG_IMPORT':
       return 'Catalog import';
+    case 'PRODUCT_EXPORT':
+      return 'Export products';
+    case 'PRODUCT_UPDATE':
+      return 'Update products';
+    case 'PRODUCT_VARIANT_EXPORT':
+      return 'Export variants';
+    case 'PRODUCT_VARIANT_UPDATE':
+      return 'Update variants';
     default:
       return kind || 'Job';
   }
@@ -61,8 +69,13 @@ function describeJob(job) {
   if (f.stock_status === 'IN_STOCK') bits.push('in stock');
   if (f.stock_status === 'OUT_OF_STOCK') bits.push('out of stock');
   if (f.status) bits.push(String(f.status).toLowerCase());
+  if (f.record_status != null) bits.push(`status ${f.record_status}`);
+  if (f.brand_id) bits.push('brand filter');
   if (f.category_id) bits.push('category filter');
-  return bits.length ? bits.join(' · ') : 'All listings';
+  if (f.product_id) bits.push('product filter');
+  if (bits.length) return bits.join(' · ');
+  if (String(job.kind || '').startsWith('PRODUCT')) return 'All matching rows';
+  return 'All listings';
 }
 
 function formatSummary(job) {

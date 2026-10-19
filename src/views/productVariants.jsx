@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { enqueueSnackbar } from 'notistack';
 import {
   Autocomplete,
@@ -14,10 +14,19 @@ import { PlusOutlined } from '@ant-design/icons';
 import ProductVariantsGrid from 'sections/product-variants/ProductVariantsGrid';
 import MainCard from 'components/MainCard';
 import ListPagination from 'components/list/ListPagination';
+import CatalogCsvUpdatePanel from 'sections/catalog/CatalogCsvUpdatePanel';
+import CsvJobsList from 'sections/csv/CsvJobsList';
 import { actions as catalog } from 'store/catalog/slice';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { getBrand, getCategory, getProduct, listBrands, listCategories, listProducts } from 'api/catalog';
+import {
+  abortProductVariantCsvJob,
+  enqueueProductVariantCsvExport,
+  enqueueProductVariantCsvUpdate,
+  listProductVariantCsvJobs,
+  productVariantCsvJobDownloadPath
+} from 'api/csvJobs';
 import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
 import useUrlFilters from 'hooks/useUrlFilters';
 import { RECORD_STATUS } from 'utils/constants';
@@ -195,6 +204,33 @@ export default function ProductVariantsView({ product_id, productName }) {
     });
   };
 
+  const [jobsTick, setJobsTick] = useState(0);
+  const loadVariantJobs = useCallback(() => listProductVariantCsvJobs({ limit: 20 }), []);
+
+  const handleDownloadCsv = async () => {
+    try {
+      const filters = scoped
+        ? {
+            product_id,
+            record_status: String(RECORD_STATUS.ACTIVE)
+          }
+        : {
+            q: applied.q || '',
+            record_status: applied.record_status === 'all' ? '' : applied.record_status,
+            product_id: applied.product_id || '',
+            brand_id: applied.brand_id || '',
+            category_id: applied.category_id || ''
+          };
+      await enqueueProductVariantCsvExport(filters);
+      enqueueSnackbar('Queued — you can close this page.', { variant: 'success' });
+      setJobsTick((n) => n + 1);
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Could not queue export', {
+        variant: 'error'
+      });
+    }
+  };
+
   const handleAddButton = () => {
     const qs = scoped
       ? `?product_id=${product_id}&product_name=${encodeURIComponent(productName || '')}`
@@ -352,6 +388,9 @@ export default function ProductVariantsView({ product_id, productName }) {
           </Button>
         </>
       ) : null}
+      <Button variant="outlined" size="small" onClick={handleDownloadCsv} disabled={loading}>
+        Download CSV
+      </Button>
       <Button variant="contained" size="small" startIcon={<PlusOutlined />} onClick={handleAddButton}>
         New Variant
       </Button>
@@ -359,22 +398,54 @@ export default function ProductVariantsView({ product_id, productName }) {
   );
 
   return (
-    <MainCard secondary={headerActions}>
-      <Stack spacing={2}>
-        <ProductVariantsGrid
-          rows={data}
-          showProductMeta={!scoped}
-          handleEditButton={handleEditButton}
-          handleViewButton={handleViewButton}
+    <Stack spacing={2}>
+      <MainCard secondary={headerActions}>
+        <Stack spacing={2}>
+          <ProductVariantsGrid
+            rows={data}
+            showProductMeta={!scoped}
+            handleEditButton={handleEditButton}
+            handleViewButton={handleViewButton}
+          />
+          <ListPagination
+            page={Number(applied.page) || 1}
+            pageSize={Number(applied.limit) || DEFAULT_PAGE_SIZE}
+            totalPages={totalPages}
+            totalCount={total}
+            onPaginationChange={handlePaginationChange}
+          />
+        </Stack>
+      </MainCard>
+
+      <MainCard
+        title="Bulk update variants"
+        subheader="Re-upload the downloaded CSV. Only filled update_ cells are written."
+      >
+        <CatalogCsvUpdatePanel
+          updateKind="PRODUCT_VARIANT_UPDATE"
+          enqueueUpdate={enqueueProductVariantCsvUpdate}
+          onQueued={() => setJobsTick((n) => n + 1)}
+          helpText={
+            <>
+              Fill <strong>update_mrp</strong>, <strong>update_sale_price</strong>,{' '}
+              <strong>update_tax_inclusive</strong> (inclusive/exclusive), <strong>update_gtin</strong>,{' '}
+              <strong>update_mpn</strong>, or <strong>update_variant_images</strong> only when that field
+              should change. Blank update cells are left alone. A filled image cell replaces variant
+              photos (<code>https://…</code> URLs separated by <code>|</code>). Match is by{' '}
+              <strong>id</strong>.
+            </>
+          }
         />
-        <ListPagination
-          page={Number(applied.page) || 1}
-          pageSize={Number(applied.limit) || DEFAULT_PAGE_SIZE}
-          totalPages={totalPages}
-          totalCount={total}
-          onPaginationChange={handlePaginationChange}
-        />
-      </Stack>
-    </MainCard>
+      </MainCard>
+
+      <CsvJobsList
+        title="Variant CSV jobs"
+        loadJobs={loadVariantJobs}
+        downloadPath={(jobId, file) => productVariantCsvJobDownloadPath(jobId, file)}
+        abortJob={(jobId, body) => abortProductVariantCsvJob(jobId, body)}
+        refreshKey={jobsTick}
+        emptyText="Variant exports and updates show up here."
+      />
+    </Stack>
   );
 }

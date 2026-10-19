@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { enqueueSnackbar } from 'notistack';
 import {
@@ -11,10 +11,20 @@ import {
   Stack,
   TextField
 } from '@mui/material';
+import MainCard from 'components/MainCard';
 import { actions as catalog } from 'store/catalog/slice';
 import ProductsTableSection from 'sections/products/ProductsTableSection';
+import CatalogCsvUpdatePanel from 'sections/catalog/CatalogCsvUpdatePanel';
+import CsvJobsList from 'sections/csv/CsvJobsList';
 import { useRouter } from 'next/navigation';
 import { getBrand, getCategory, listBrands, listCategories } from 'api/catalog';
+import {
+  abortProductCsvJob,
+  enqueueProductCsvExport,
+  enqueueProductCsvUpdate,
+  listProductCsvJobs,
+  productCsvJobDownloadPath
+} from 'api/csvJobs';
 import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
 import useUrlFilters from 'hooks/useUrlFilters';
 import { RECORD_STATUS } from 'utils/constants';
@@ -114,6 +124,9 @@ export function ProductsView() {
     if (error) enqueueSnackbar(error, { variant: 'error' });
   }, [error]);
 
+  const [jobsTick, setJobsTick] = useState(0);
+  const loadProductJobs = useCallback(() => listProductCsvJobs({ limit: 20 }), []);
+
   const handleSearch = () => {
     applySearch({
       q: searchQuery.trim(),
@@ -123,6 +136,25 @@ export function ProductsView() {
       sort: draft.sort,
       dir: draft.dir
     });
+  };
+
+  const handleDownloadCsv = async () => {
+    try {
+      await enqueueProductCsvExport({
+        q: applied.q || '',
+        record_status: applied.record_status,
+        brand_id: applied.brand_id || '',
+        category_id: applied.category_id || '',
+        sort: applied.sort || 'name',
+        dir: applied.dir || 'ASC'
+      });
+      enqueueSnackbar('Queued — you can close this page.', { variant: 'success' });
+      setJobsTick((n) => n + 1);
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'Could not queue export', {
+        variant: 'error'
+      });
+    }
   };
 
   const topActionsLeft = () => (
@@ -238,25 +270,61 @@ export function ProductsView() {
   );
 
   const topActions = () => (
-    <Button variant="outlined" size="small" onClick={() => router.push('/catalog-bulk-import')}>
-      Bulk Upload
-    </Button>
+    <Stack direction="row" spacing={1}>
+      <Button variant="outlined" size="small" onClick={handleDownloadCsv}>
+        Download CSV
+      </Button>
+      <Button variant="outlined" size="small" onClick={() => router.push('/catalog-bulk-import')}>
+        Bulk Upload
+      </Button>
+    </Stack>
   );
 
   return (
-    <ProductsTableSection
-      rows={data}
-      handleAddButton={() => router.push('/products/create')}
-      handleEditButton={(row) => router.push(`/products/edit/${row.id}`)}
-      handleViewButton={(row) => router.push(`/products/${row.id}`)}
-      pageIndex={(Number(applied.page) || 1) - 1}
-      pageSize={Number(applied.limit) || DEFAULT_PAGE_SIZE}
-      totalPageCount={totalPages}
-      onPaginationChange={handlePaginationChange}
-      totalCount={total}
-      topActionsLeft={topActionsLeft}
-      topActions={topActions}
-    />
+    <Stack spacing={2}>
+      <ProductsTableSection
+        rows={data}
+        handleAddButton={() => router.push('/products/create')}
+        handleEditButton={(row) => router.push(`/products/edit/${row.id}`)}
+        handleViewButton={(row) => router.push(`/products/${row.id}`)}
+        pageIndex={(Number(applied.page) || 1) - 1}
+        pageSize={Number(applied.limit) || DEFAULT_PAGE_SIZE}
+        totalPageCount={totalPages}
+        onPaginationChange={handlePaginationChange}
+        totalCount={total}
+        topActionsLeft={topActionsLeft}
+        topActions={topActions}
+      />
+
+      <MainCard
+        title="Bulk update products"
+        subheader="Re-upload the downloaded CSV. Only filled update_ cells are written."
+      >
+        <CatalogCsvUpdatePanel
+          updateKind="PRODUCT_UPDATE"
+          enqueueUpdate={enqueueProductCsvUpdate}
+          onQueued={() => setJobsTick((n) => n + 1)}
+          helpText={
+            <>
+              Fill <strong>update_name</strong>, <strong>update_slug</strong>,{' '}
+              <strong>update_brand_name</strong>, <strong>update_category_name</strong>, or{' '}
+              <strong>update_product_images</strong> only when that field should change. Blank update
+              cells are left alone. A filled image cell replaces product photos (
+              <code>https://…</code> URLs separated by <code>|</code>). Match is by <strong>id</strong>.
+            </>
+          }
+        />
+      </MainCard>
+
+      <CsvJobsList
+        title="Product CSV jobs"
+        loadJobs={loadProductJobs}
+        downloadPath={(jobId, file) => productCsvJobDownloadPath(jobId, file)}
+        abortJob={(jobId, body) => abortProductCsvJob(jobId, body)}
+        refreshKey={jobsTick}
+        emptyText="Product exports and updates show up here."
+      />
+    </Stack>
   );
 }
 
