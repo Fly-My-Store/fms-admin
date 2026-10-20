@@ -431,8 +431,11 @@ export default function ProductVariantsView({ product_id, productName }) {
               <strong>update_tax_inclusive</strong> (inclusive/exclusive), <strong>update_gtin</strong>,{' '}
               <strong>update_mpn</strong>, or <strong>update_variant_images</strong> only when that field
               should change. Blank update cells are left alone. A filled image cell replaces variant
-              photos (<code>https://…</code> URLs separated by <code>|</code>). Match is by{' '}
-              <strong>id</strong>.
+              photos (<code>https://…</code> URLs separated by <code>|</code>). Attributes:{' '}
+              <strong>update_variant_attributes</strong> adds/updates keys (
+              <code>color:Blue|storage:256 GB</code>) and creates missing defs;{' '}
+              <strong>replace_variant_attributes</strong> wipes this variant’s attrs then writes that bag.
+              Do not fill both. Match is by <strong>id</strong>.
             </>
           }
         />

@@ -310,7 +310,11 @@ export function ProductsView() {
               <strong>update_brand_name</strong>, <strong>update_category_name</strong>, or{' '}
               <strong>update_product_images</strong> only when that field should change. Blank update
               cells are left alone. A filled image cell replaces product photos (
-              <code>https://…</code> URLs separated by <code>|</code>). Match is by <strong>id</strong>.
+              <code>https://…</code> URLs separated by <code>|</code>). Attributes:{' '}
+              <strong>update_product_attributes</strong> adds/updates keys (
+              <code>color:Blue|storage:256 GB</code>) and creates missing defs;{' '}
+              <strong>replace_product_attributes</strong> wipes this product’s attrs then writes that bag.
+              Do not fill both. Match is by <strong>id</strong>.
             </>
           }
         />
