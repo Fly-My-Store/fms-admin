@@ -435,7 +435,8 @@ export default function ProductVariantsView({ product_id, productName }) {
               <strong>update_variant_attributes</strong> adds/updates keys (
               <code>color:Blue|storage:256 GB</code>) and creates missing defs;{' '}
               <strong>replace_variant_attributes</strong> wipes this variant’s attrs then writes that bag.
-              Do not fill both. Match is by <strong>id</strong>.
+              Do not fill both. Match is by <strong>id</strong>. <strong>sku</strong> and{' '}
+              <strong>product_name</strong> are labels only.
             </>
           }
         />
