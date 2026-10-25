@@ -33,7 +33,8 @@ import {
   ApiOutlined,
   ShareAltOutlined,
   FileSearchOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  MergeCellsOutlined
 } from '@ant-design/icons';
 
 const icons = {
@@ -70,7 +71,8 @@ const icons = {
   ApiOutlined,
   FileSearchOutlined,
   ShareAltOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  MergeCellsOutlined
 };
 
 // Use `perm` + `action` for gating. `anyOf` shows the item if any listed grant matches.
@@ -151,6 +153,16 @@ const platformMenuGroups = [
           { perm: 'category', action: 'modify' },
           { perm: 'product', action: 'modify' }
         ]
+      },
+      {
+        id: 'merge-products',
+        breadcrumbs: true,
+        title: 'merge-products',
+        type: 'item',
+        url: '/products/merge',
+        icon: icons.MergeCellsOutlined,
+        perm: 'product',
+        action: 'modify'
       },
       {
         id: 'attribute-defs',

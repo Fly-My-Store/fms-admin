@@ -74,6 +74,9 @@ export async function downloadCategoriesImportExample() {
 }
 
 export const listProducts = (params) => get('admin/catalog/products', params);
+export const previewProductMerge = (productIds) =>
+  post('admin/catalog/products/merge/preview', { product_ids: productIds });
+export const mergeProducts = (data) => post('admin/catalog/products/merge', data);
 export const getProduct = (id) => get(`admin/catalog/products/${id}`);
 export const createProduct = (data) => post('admin/catalog/products', data);
 export const updateProduct = (id, data) => patch(`admin/catalog/products/${id}`, data);
