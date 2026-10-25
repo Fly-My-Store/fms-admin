@@ -9,7 +9,7 @@ import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
 import FormErrorsSummary from 'components/FormErrorsSummary';
 
-import { createStore, updateStore } from 'api/sellersStores';
+import { createStore, syncStorePetpoojaMenu, updateStore } from 'api/sellersStores';
 import { uploadSingle } from 'api/upload';
 import { buildErrorSummaryMessage, normalizeValidationErrors } from 'utils/formErrors';
 import PharmacyLicenseReviewPanel from 'sections/seller-documents/PharmacyLicenseReviewPanel';
@@ -127,6 +127,11 @@ const EMPTY = {
   code: '',
   fssai_number: '',
   store_type: '',
+  petpooja_rest_id: '',
+  menu_source: 'manual',
+  gst_percent: 5,
+  service_charge_type: '',
+  service_charge_value: '',
   logo_url: '',
   logo_thumb_url: '',
   support_email: '',
@@ -182,6 +187,7 @@ export default function StoreUpsert() {
   const [logoPreview, setLogoPreview] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoProgress, setLogoProgress] = useState(0);
+  const [syncingMenu, setSyncingMenu] = useState(false);
 
   // Reset form when id is cleared (navigating to create)
   useEffect(() => {
@@ -228,6 +234,13 @@ export default function StoreUpsert() {
       code: data.code || '',
       fssai_number: data.fssai_number || '',
       store_type: data.store_type || '',
+      petpooja_rest_id: data.petpooja_rest_id || '',
+      menu_source: data.menu_source || 'manual',
+      gst_percent: data.gst_percent ?? 5,
+      service_charge_type: data.service_charge_type || '',
+      service_charge_value: data.service_charge_type === 'FLAT'
+        ? (data.service_charge_value != null ? Number(data.service_charge_value) / 100 : '')
+        : (data.service_charge_value ?? ''),
       logo_url: data.logo_url || '',
       logo_thumb_url: data.logo_thumb_url || '',
       support_email: data.support_email || '',
@@ -525,6 +538,10 @@ export default function StoreUpsert() {
         'record_status',
         'fssai_number',
         'store_type',
+        'petpooja_rest_id',
+        'menu_source',
+        'gst_percent',
+        'service_charge_type',
         'logo_url',
         'logo_thumb_url'
       ];
@@ -538,6 +555,15 @@ export default function StoreUpsert() {
         is_open: form.is_open === 'true',
         fssai_number: String(form.fssai_number || '').replace(/\D/g, '') || null,
         store_type: form.store_type || null,
+        petpooja_rest_id: form.petpooja_rest_id || null,
+        menu_source: form.store_type === 'restaurant' ? (form.menu_source || 'manual') : 'manual',
+        gst_percent: form.store_type === 'restaurant' ? toNumOrNull(form.gst_percent) ?? 5 : toNumOrNull(form.gst_percent),
+        service_charge_type: form.store_type === 'restaurant' ? (form.service_charge_type || null) : null,
+        service_charge_value: form.store_type === 'restaurant' && form.service_charge_type
+          ? (form.service_charge_type === 'FLAT'
+            ? Math.round(Number(form.service_charge_value || 0) * 100)
+            : toNumOrNull(form.service_charge_value))
+          : null,
         logo_url: form.logo_url || null,
         logo_thumb_url: form.logo_thumb_url || null
       };
@@ -743,6 +769,81 @@ export default function StoreUpsert() {
                 <MenuItem value="restaurant">Food</MenuItem>
                 <MenuItem value="pharmacy">Pharmacy</MenuItem>
               </TextField>
+              {form.store_type === 'restaurant' ? (
+                <Stack spacing={2}>
+                  <TextField
+                    select
+                    size="small"
+                    label="Menu source"
+                    fullWidth
+                    value={form.menu_source || 'manual'}
+                    onChange={(e) => handleField('menu_source', e.target.value)}
+                  >
+                    <MenuItem value="manual">Manual</MenuItem>
+                    <MenuItem value="petpooja">Petpooja</MenuItem>
+                  </TextField>
+                  <TextField
+                    size="small"
+                    label="Petpooja rest ID"
+                    fullWidth
+                    value={form.petpooja_rest_id || ''}
+                    onChange={(e) => handleField('petpooja_rest_id', e.target.value)}
+                    helperText="Unique restaurant id from Petpooja. Required for sync."
+                  />
+                  <TextField
+                    size="small"
+                    label="Default GST %"
+                    type="number"
+                    fullWidth
+                    value={form.gst_percent ?? 5}
+                    onChange={(e) => handleField('gst_percent', e.target.value)}
+                    helperText="Restaurant default is 5 (2.5 CGST + 2.5 SGST)"
+                  />
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <TextField
+                      select
+                      size="small"
+                      label="Service charge"
+                      fullWidth
+                      value={form.service_charge_type || ''}
+                      onChange={(e) => handleField('service_charge_type', e.target.value)}
+                    >
+                      <MenuItem value="">None</MenuItem>
+                      <MenuItem value="FLAT">Flat (₹)</MenuItem>
+                      <MenuItem value="PERCENT">Percent</MenuItem>
+                    </TextField>
+                    <TextField
+                      size="small"
+                      label={form.service_charge_type === 'PERCENT' ? 'Service charge %' : 'Service charge ₹'}
+                      type="number"
+                      fullWidth
+                      value={form.service_charge_value ?? ''}
+                      onChange={(e) => handleField('service_charge_value', e.target.value)}
+                      disabled={!form.service_charge_type}
+                    />
+                  </Stack>
+                  {id && form.menu_source === 'petpooja' ? (
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      disabled={syncingMenu || !form.petpooja_rest_id}
+                      onClick={async () => {
+                        setSyncingMenu(true);
+                        try {
+                          await syncStorePetpoojaMenu(id);
+                          enqueueSnackbar('Petpooja menu synced', { variant: 'success' });
+                        } catch (e) {
+                          enqueueSnackbar(e?.response?.data?.message || e.message || 'Sync failed', { variant: 'error' });
+                        } finally {
+                          setSyncingMenu(false);
+                        }
+                      }}
+                    >
+                      {syncingMenu ? 'Syncing…' : 'Sync menu'}
+                    </Button>
+                  ) : null}
+                </Stack>
+              ) : null}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   size="small"
