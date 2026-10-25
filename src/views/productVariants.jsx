@@ -10,10 +10,8 @@ import {
   Stack,
   TextField
 } from '@mui/material';
-import { PlusOutlined } from '@ant-design/icons';
-import ProductVariantsGrid from 'sections/product-variants/ProductVariantsGrid';
+import ProductVariantsTableSection from 'sections/product-variants/ProductVariantsTableSection';
 import MainCard from 'components/MainCard';
-import ListPagination from 'components/list/ListPagination';
 import CatalogCsvUpdatePanel from 'sections/catalog/CatalogCsvUpdatePanel';
 import CsvJobsList from 'sections/csv/CsvJobsList';
 import { actions as catalog } from 'store/catalog/slice';
@@ -248,174 +246,167 @@ export default function ProductVariantsView({ product_id, productName }) {
     router.push(`/product-variants/${row.id}?p=${p}&n=${encodeURIComponent(n)}`);
   };
 
-  const headerActions = (
-    <Stack
-      direction={{ xs: 'column', md: 'row' }}
-      sx={{ gap: 1, alignItems: { xs: 'stretch', md: 'center' }, flexWrap: 'wrap' }}
-    >
-      {!scoped ? (
-        <>
-          <TextField
-            size="small"
-            label="Search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="SKU, product, brand…"
-            sx={{ minWidth: 180 }}
-          />
-          <Autocomplete
-            sx={{ minWidth: 180 }}
-            size="small"
-            options={withSelectedOption(productAc.options, productSel)}
-            value={productSel}
-            loading={productAc.loading}
-            getOptionLabel={(o) => o?.name || ''}
-            getOptionKey={(o) => o?.id || String(o?.name || '')}
-            isOptionEqualToValue={(a, b) => a?.id === b?.id}
-            onChange={(_, v) => {
-              setProductSel(v);
-              // Product supersedes brand/category — clear so Search cannot AND them
-              if (v) {
-                setBrandSel(null);
-                setCategorySel(null);
-              }
-            }}
-            onInputChange={(_, v, reason) => {
-              if (reason === 'reset') return;
-              productAc.setQuery(v);
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Product"
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {productAc.loading ? <CircularProgress color="inherit" size={16} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  )
-                }}
-              />
-            )}
-            ListboxProps={{ onScroll: productAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
-          />
-          <Autocomplete
-            sx={{ minWidth: 160 }}
-            size="small"
-            options={withSelectedOption(brandAc.options, brandSel)}
-            value={brandSel}
-            loading={brandAc.loading}
-            disabled={Boolean(productSel)}
-            getOptionLabel={(o) => o?.name || ''}
-            getOptionKey={(o) => o?.id || String(o?.name || '')}
-            isOptionEqualToValue={(a, b) => a?.id === b?.id}
-            onChange={(_, v) => setBrandSel(v)}
-            onInputChange={(_, v, reason) => {
-              if (reason === 'reset') return;
-              brandAc.setQuery(v);
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Brand"
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {brandAc.loading ? <CircularProgress color="inherit" size={16} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  )
-                }}
-              />
-            )}
-            ListboxProps={{ onScroll: brandAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
-          />
-          <Autocomplete
-            sx={{ minWidth: 160 }}
-            size="small"
-            options={withSelectedOption(categoryAc.options, categorySel)}
-            value={categorySel}
-            loading={categoryAc.loading}
-            disabled={Boolean(productSel)}
-            getOptionLabel={(o) => o?.name || ''}
-            getOptionKey={(o) => o?.id || String(o?.name || '')}
-            isOptionEqualToValue={(a, b) => a?.id === b?.id}
-            onChange={(_, v) => setCategorySel(v)}
-            onInputChange={(_, v, reason) => {
-              if (reason === 'reset') return;
-              categoryAc.setQuery(v);
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Category"
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {categoryAc.loading ? <CircularProgress color="inherit" size={16} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  )
-                }}
-              />
-            )}
-            ListboxProps={{ onScroll: categoryAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
-          />
-          <TextField
-            select
-            size="small"
-            label="Status"
-            value={draft.record_status === '' ? 'all' : draft.record_status}
-            onChange={(e) => setDraft({ record_status: e.target.value })}
-            sx={{ minWidth: 120 }}
-          >
-            {RECORD_STATUS_OPTIONS.map((o) => (
-              <MenuItem key={o.value} value={o.value}>
-                {o.label}
-              </MenuItem>
-            ))}
-          </TextField>
-          <Button variant="outlined" size="small" onClick={handleSearch} disabled={loading}>
-            Search
-          </Button>
-          <Button variant="text" size="small" onClick={handleClearFilters} disabled={loading}>
-            Clear
-          </Button>
-        </>
-      ) : null}
-      <Button variant="outlined" size="small" onClick={handleDownloadCsv} disabled={loading}>
-        Download CSV
-      </Button>
-      <Button variant="contained" size="small" startIcon={<PlusOutlined />} onClick={handleAddButton}>
-        New Variant
-      </Button>
-    </Stack>
+  const topActionsLeft = () =>
+    !scoped ? (
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        sx={{ gap: 1, alignItems: { xs: 'stretch', md: 'center' }, flexWrap: 'wrap' }}
+      >
+        <TextField
+          size="small"
+          label="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="SKU, product, brand…"
+          sx={{ minWidth: 180 }}
+        />
+        <Autocomplete
+          sx={{ minWidth: 180 }}
+          size="small"
+          options={withSelectedOption(productAc.options, productSel)}
+          value={productSel}
+          loading={productAc.loading}
+          getOptionLabel={(o) => o?.name || ''}
+          getOptionKey={(o) => o?.id || String(o?.name || '')}
+          isOptionEqualToValue={(a, b) => a?.id === b?.id}
+          onChange={(_, v) => {
+            setProductSel(v);
+            if (v) {
+              setBrandSel(null);
+              setCategorySel(null);
+            }
+          }}
+          onInputChange={(_, v, reason) => {
+            if (reason === 'reset') return;
+            productAc.setQuery(v);
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Product"
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {productAc.loading ? <CircularProgress color="inherit" size={16} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                )
+              }}
+            />
+          )}
+          ListboxProps={{ onScroll: productAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
+        />
+        <Autocomplete
+          sx={{ minWidth: 160 }}
+          size="small"
+          options={withSelectedOption(brandAc.options, brandSel)}
+          value={brandSel}
+          loading={brandAc.loading}
+          disabled={Boolean(productSel)}
+          getOptionLabel={(o) => o?.name || ''}
+          getOptionKey={(o) => o?.id || String(o?.name || '')}
+          isOptionEqualToValue={(a, b) => a?.id === b?.id}
+          onChange={(_, v) => setBrandSel(v)}
+          onInputChange={(_, v, reason) => {
+            if (reason === 'reset') return;
+            brandAc.setQuery(v);
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Brand"
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {brandAc.loading ? <CircularProgress color="inherit" size={16} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                )
+              }}
+            />
+          )}
+          ListboxProps={{ onScroll: brandAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
+        />
+        <Autocomplete
+          sx={{ minWidth: 160 }}
+          size="small"
+          options={withSelectedOption(categoryAc.options, categorySel)}
+          value={categorySel}
+          loading={categoryAc.loading}
+          disabled={Boolean(productSel)}
+          getOptionLabel={(o) => o?.name || ''}
+          getOptionKey={(o) => o?.id || String(o?.name || '')}
+          isOptionEqualToValue={(a, b) => a?.id === b?.id}
+          onChange={(_, v) => setCategorySel(v)}
+          onInputChange={(_, v, reason) => {
+            if (reason === 'reset') return;
+            categoryAc.setQuery(v);
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Category"
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {categoryAc.loading ? <CircularProgress color="inherit" size={16} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                )
+              }}
+            />
+          )}
+          ListboxProps={{ onScroll: categoryAc.handleScroll, style: { maxHeight: 280, overflow: 'auto' } }}
+        />
+        <TextField
+          select
+          size="small"
+          label="Status"
+          value={draft.record_status === '' ? 'all' : draft.record_status}
+          onChange={(e) => setDraft({ record_status: e.target.value })}
+          sx={{ minWidth: 120 }}
+        >
+          {RECORD_STATUS_OPTIONS.map((o) => (
+            <MenuItem key={o.value} value={o.value}>
+              {o.label}
+            </MenuItem>
+          ))}
+        </TextField>
+        <Button variant="outlined" size="small" onClick={handleSearch} disabled={loading}>
+          Search
+        </Button>
+        <Button variant="text" size="small" onClick={handleClearFilters} disabled={loading}>
+          Clear
+        </Button>
+      </Stack>
+    ) : null;
+
+  const topActions = () => (
+    <Button variant="outlined" size="small" onClick={handleDownloadCsv} disabled={loading}>
+      Download CSV
+    </Button>
   );
 
   return (
     <Stack spacing={2}>
-      <MainCard secondary={headerActions}>
-        <Stack spacing={2}>
-          <ProductVariantsGrid
-            rows={data}
-            showProductMeta={!scoped}
-            handleEditButton={handleEditButton}
-            handleViewButton={handleViewButton}
-          />
-          <ListPagination
-            page={Number(applied.page) || 1}
-            pageSize={Number(applied.limit) || DEFAULT_PAGE_SIZE}
-            totalPages={totalPages}
-            totalCount={total}
-            onPaginationChange={handlePaginationChange}
-          />
-        </Stack>
-      </MainCard>
+      <ProductVariantsTableSection
+        rows={data}
+        showProductMeta={!scoped}
+        handleAddButton={handleAddButton}
+        handleEditButton={handleEditButton}
+        handleViewButton={handleViewButton}
+        pageIndex={(Number(applied.page) || 1) - 1}
+        pageSize={Number(applied.limit) || DEFAULT_PAGE_SIZE}
+        totalPageCount={totalPages}
+        onPaginationChange={handlePaginationChange}
+        totalCount={total}
+        topActionsLeft={topActionsLeft}
+        topActions={topActions}
+      />
 
       <MainCard
         title="Bulk update variants"

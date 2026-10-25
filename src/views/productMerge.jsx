@@ -18,6 +18,7 @@ import {
   FormControl,
   FormControlLabel,
   FormLabel,
+  MenuItem,
   Radio,
   RadioGroup,
   Stack,
@@ -47,6 +48,77 @@ function defaultAttrKeys(attributes = [], survivorId) {
     if (!chosen.has(row.attribute_code)) chosen.set(row.attribute_code, attrKey(row));
   }
   return new Set(chosen.values());
+}
+
+function formatMoney(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (Number.isNaN(n)) return String(value);
+  return `₹${n}`;
+}
+
+function variantPriceLabel(variant) {
+  const sale = formatMoney(variant?.sale_price);
+  const mrp = formatMoney(variant?.mrp);
+  if (sale && mrp) return `Price ${sale}  ·  MRP ${mrp}`;
+  if (sale) return `Price ${sale}`;
+  if (mrp) return `MRP ${mrp}`;
+  return 'No catalog price';
+}
+
+function groupChoices(groupByVariant = {}) {
+  const used = [...new Set(Object.values(groupByVariant).filter(Boolean))];
+  const max = used.reduce((next, group) => Math.max(next, Number(group) || 0), 0);
+  return Array.from({ length: max + 1 }, (_, index) => String(index + 1));
+}
+
+function GroupSelect({ variantId, value, options, onChange }) {
+  return (
+    <TextField
+      select
+      size="small"
+      label="Group"
+      value={value}
+      onChange={(e) => onChange(variantId, e.target.value)}
+      sx={{ minWidth: 140 }}
+    >
+      <MenuItem value="">None</MenuItem>
+      {options.map((group) => (
+        <MenuItem key={group} value={group}>
+          {`Group ${group}`}
+        </MenuItem>
+      ))}
+    </TextField>
+  );
+}
+
+function rankGroupAttrRows(rows, winnerId) {
+  return [...rows].sort((a, b) => {
+    if (a.variant_id === winnerId && b.variant_id !== winnerId) return -1;
+    if (b.variant_id === winnerId && a.variant_id !== winnerId) return 1;
+    if (a.source === 'variant' && b.source !== 'variant') return -1;
+    if (b.source === 'variant' && a.source !== 'variant') return 1;
+    return 0;
+  });
+}
+
+function distinctKeysForGroups(keys, cards = [], winnerByGroup = {}) {
+  const next = new Set(keys);
+  for (const card of cards) {
+    const winnerId = winnerByGroup[card.group] || card.members[0]?.id;
+    const rows = card.members.flatMap((item) => item.attributes || []);
+    const chosen = new Map();
+    for (const row of rankGroupAttrRows(rows, winnerId)) {
+      const key = variantAttrKey(row);
+      if (!next.has(key)) continue;
+      if (!chosen.has(row.attribute_code)) chosen.set(row.attribute_code, key);
+    }
+    for (const row of rows) {
+      const key = variantAttrKey(row);
+      if (chosen.get(row.attribute_code) !== key) next.delete(key);
+    }
+  }
+  return next;
 }
 
 function defaultVariantAttrKeys(variants = []) {
@@ -83,6 +155,10 @@ export default function ProductMerge() {
   const [brandId, setBrandId] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [groupByVariant, setGroupByVariant] = useState({});
+  const [winnerByGroup, setWinnerByGroup] = useState({});
+  const [groupImageIds, setGroupImageIds] = useState({});
+  const [priceByGroup, setPriceByGroup] = useState({});
 
   const selectedIds = useMemo(() => selected.map((p) => p.id).filter(Boolean), [selected]);
   const selectedKey = selectedIds.slice().sort().join(',');
@@ -110,6 +186,10 @@ export default function ProductMerge() {
         setAttrKeys(defaultAttrKeys(data.attributes || [], nextSurvivor));
         setVariantAttrKeys(defaultVariantAttrKeys(data.variants || []));
         setImageIds(new Set((data.images || []).map((img) => img.id)));
+        setGroupByVariant({});
+        setWinnerByGroup({});
+        setGroupImageIds({});
+        setPriceByGroup({});
         const categories = data.categories || [];
         const brands = data.brands || [];
         setCategoryId(categories.length === 1 ? String(categories[0].id || '') : String(keeper?.category_id || ''));
@@ -156,7 +236,8 @@ export default function ProductMerge() {
     });
   };
 
-  const toggleVariantAttr = (row, checked) => {
+  const toggleVariantAttr = (row, checked, scopeIds) => {
+    const scope = new Set(scopeIds?.length ? scopeIds : [row.variant_id]);
     setVariantAttrKeys((prev) => {
       const next = new Set(prev);
       const key = variantAttrKey(row);
@@ -164,12 +245,35 @@ export default function ProductMerge() {
         next.delete(key);
         return next;
       }
-      const variant = (preview?.variants || []).find((item) => item.id === row.variant_id);
-      for (const other of variant?.attributes || []) {
-        if (other.attribute_code === row.attribute_code) next.delete(variantAttrKey(other));
+      for (const variant of preview?.variants || []) {
+        if (!scope.has(variant.id)) continue;
+        for (const other of variant.attributes || []) {
+          if (other.attribute_code === row.attribute_code) next.delete(variantAttrKey(other));
+        }
       }
       next.add(key);
       return next;
+    });
+  };
+
+  const setVariantGroup = (variantId, group) => {
+    setGroupByVariant((prev) => ({ ...prev, [variantId]: group }));
+    if (!group) return;
+    setWinnerByGroup((prev) => (prev[group] ? prev : { ...prev, [group]: variantId }));
+    setPriceByGroup((prev) => (prev[group] ? prev : { ...prev, [group]: variantId }));
+    setGroupImageIds((prev) => {
+      if (prev[group]) return prev;
+      const variant = (preview?.variants || []).find((item) => item.id === variantId);
+      return { ...prev, [group]: new Set((variant?.images || []).map((img) => img.id)) };
+    });
+  };
+
+  const toggleGroupImage = (group, imageId, checked) => {
+    setGroupImageIds((prev) => {
+      const next = new Set(prev[group] || []);
+      if (checked) next.add(imageId);
+      else next.delete(imageId);
+      return { ...prev, [group]: next };
     });
   };
 
@@ -188,6 +292,36 @@ export default function ProductMerge() {
   const needsBrand = brands.length > 1;
   const categoryChosen = !needsCategory || categories.some((item) => String(item.id || '') === categoryId);
   const brandChosen = !needsBrand || brands.some((item) => String(item.id || '') === brandId);
+  const variantSections = useMemo(() => {
+    const variants = preview?.variants || [];
+    const grouped = new Map();
+    const ungrouped = [];
+    for (const variant of variants) {
+      const group = groupByVariant[variant.id] || '';
+      if (!group) {
+        ungrouped.push(variant);
+        continue;
+      }
+      if (!grouped.has(group)) grouped.set(group, []);
+      grouped.get(group).push(variant);
+    }
+    const cards = [...grouped.entries()]
+      .map(([group, members]) => ({ group, members }))
+      .filter((row) => row.members.length >= 2)
+      .sort((a, b) => Number(a.group) - Number(b.group));
+    const leftover = [...ungrouped];
+    for (const [, members] of grouped) {
+      if (members.length < 2) leftover.push(...members);
+    }
+    leftover.sort((a, b) => String(a.sku).localeCompare(String(b.sku)));
+    return { cards, leftover };
+  }, [preview, groupByVariant]);
+
+  useEffect(() => {
+    if (!variantSections.cards.length) return;
+    setVariantAttrKeys((prev) => distinctKeysForGroups(prev, variantSections.cards, winnerByGroup));
+  }, [variantSections, winnerByGroup]);
+
   const canSubmit =
     selectedIds.length >= 2
     && Boolean(survivorId)
@@ -207,14 +341,30 @@ export default function ProductMerge() {
         attribute_keys: (preview.attributes || [])
           .filter((row) => attrKeys.has(attrKey(row)))
           .map((row) => ({ product_id: row.product_id, attribute_code: row.attribute_code })),
-        variant_attribute_keys: (preview.variants || [])
-          .flatMap((variant) => variant.attributes || [])
-          .filter((row) => variantAttrKeys.has(variantAttrKey(row)))
-          .map((row) => ({
-            variant_id: row.variant_id,
-            source: row.source,
-            attribute_code: row.attribute_code
-          })),
+        variant_attribute_keys: (() => {
+          const selectedKeys = distinctKeysForGroups(
+            variantAttrKeys,
+            variantSections.cards,
+            winnerByGroup
+          );
+          return (preview.variants || [])
+            .flatMap((variant) => variant.attributes || [])
+            .filter((row) => selectedKeys.has(variantAttrKey(row)))
+            .map((row) => ({
+              variant_id: row.variant_id,
+              source: row.source,
+              attribute_code: row.attribute_code
+            }));
+        })(),
+        variant_merges: variantSections.cards.map((card) => {
+          const winnerId = winnerByGroup[card.group] || card.members[0].id;
+          return {
+            survivor_variant_id: winnerId,
+            source_variant_ids: card.members.filter((item) => item.id !== winnerId).map((item) => item.id),
+            price_variant_id: priceByGroup[card.group] || winnerId,
+            image_ids: [...(groupImageIds[card.group] || [])]
+          };
+        }),
         image_ids: [...imageIds],
         category_id: categoryId || null,
         brand_id: brandId || null
@@ -409,16 +559,156 @@ export default function ProductMerge() {
                   Variants
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Every variant below will move onto the product you keep. Check variant
-                  attributes and product attributes to copy onto that SKU.
+                  Every SKU moves onto the product you keep. Put two SKUs in the same group
+                  only when they are the same item, then pick the SKU, one price, images,
+                  and attributes to keep.
                 </Typography>
                 <Stack spacing={2}>
-                  {(preview.variants || []).map((variant) => (
+                  {variantSections.cards.map((card) => {
+                    const memberIds = card.members.map((item) => item.id);
+                    const winnerId = winnerByGroup[card.group] || card.members[0].id;
+                    const priceId = priceByGroup[card.group] || winnerId;
+                    const groupImages = card.members.flatMap((item) =>
+                      (item.images || []).map((image) => ({ ...image, sku: item.sku }))
+                    );
+                    const attrs = card.members.flatMap((item) => item.attributes || []);
+                    return (
+                      <Box
+                        key={`group-${card.group}`}
+                        sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2 }}
+                      >
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                          {`Group ${card.group} — same item`}
+                        </Typography>
+                        <RadioGroup
+                          value={winnerId}
+                          onChange={(e) => setWinnerByGroup((prev) => ({ ...prev, [card.group]: e.target.value }))}
+                        >
+                          {card.members.map((variant) => (
+                            <Stack key={variant.id} direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                              <FormControlLabel
+                                value={variant.id}
+                                control={<Radio />}
+                                label={`${variant.sku} · ${variant.product_name}`}
+                              />
+                              <GroupSelect
+                                variantId={variant.id}
+                                value={groupByVariant[variant.id] || ''}
+                                options={groupChoices(groupByVariant)}
+                                onChange={setVariantGroup}
+                              />
+                            </Stack>
+                          ))}
+                        </RadioGroup>
+                        <FormControl sx={{ mt: 2 }}>
+                          <FormLabel>Price to keep</FormLabel>
+                          <RadioGroup
+                            value={priceId}
+                            onChange={(e) => setPriceByGroup((prev) => ({ ...prev, [card.group]: e.target.value }))}
+                          >
+                            {card.members.map((variant) => (
+                              <FormControlLabel
+                                key={`price-${variant.id}`}
+                                value={variant.id}
+                                control={<Radio />}
+                                label={`${variant.sku} · ${variantPriceLabel(variant)}`}
+                              />
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                        <Typography variant="body2" sx={{ mt: 2, mb: 1 }}>
+                          Images from these SKUs
+                        </Typography>
+                        <Stack direction="row" flexWrap="wrap" gap={2}>
+                          {groupImages.length ? (
+                            groupImages.map((image) => (
+                              <FormControlLabel
+                                key={image.id}
+                                sx={{ alignItems: 'flex-start', m: 0 }}
+                                control={
+                                  <Checkbox
+                                    checked={(groupImageIds[card.group] || new Set()).has(image.id)}
+                                    onChange={(e) => toggleGroupImage(card.group, image.id, e.target.checked)}
+                                  />
+                                }
+                                label={
+                                  <Stack spacing={0.5} sx={{ width: 120 }}>
+                                    <Avatar
+                                      variant="rounded"
+                                      src={image.thumb_url || image.url}
+                                      alt={image.sku}
+                                      sx={{ width: 96, height: 96 }}
+                                    />
+                                    <Typography variant="caption">{image.sku}</Typography>
+                                  </Stack>
+                                }
+                              />
+                            ))
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              No variant images on these SKUs.
+                            </Typography>
+                          )}
+                        </Stack>
+                        <Typography variant="body2" sx={{ mt: 2, mb: 1 }}>
+                          Attributes on the SKU you keep
+                        </Typography>
+                        {attrs.length ? (
+                          <Stack>
+                            {attrs.map((row) => (
+                              <FormControlLabel
+                                key={variantAttrKey(row)}
+                                control={
+                                  <Checkbox
+                                    checked={variantAttrKeys.has(variantAttrKey(row))}
+                                    onChange={(e) => toggleVariantAttr(row, e.target.checked, memberIds)}
+                                  />
+                                }
+                                label={`${row.attribute_name}: ${row.display_value || '—'} (${row.source === 'product' ? 'from product' : 'variant'} · ${row.product_name})`}
+                              />
+                            ))}
+                          </Stack>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No attributes on these SKUs.
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  })}
+                  {variantSections.leftover.map((variant) => (
                     <Box key={variant.id}>
-                      <Typography variant="subtitle2">
-                        {variant.sku}
-                        {` · ${variant.product_name}`}
-                      </Typography>
+                      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" sx={{ mb: 1 }}>
+                        <Typography variant="subtitle2">
+                          {variant.sku}
+                          {` · ${variant.product_name}`}
+                        </Typography>
+                        <GroupSelect
+                          variantId={variant.id}
+                          value={groupByVariant[variant.id] || ''}
+                          options={groupChoices(groupByVariant)}
+                          onChange={setVariantGroup}
+                        />
+                      </Stack>
+                      <Stack direction="row" flexWrap="wrap" gap={2} sx={{ mb: 1 }}>
+                        {(variant.images || []).length ? (
+                          variant.images.map((image) => (
+                            <Stack key={image.id} spacing={0.5} sx={{ width: 120 }}>
+                              <Avatar
+                                variant="rounded"
+                                src={image.thumb_url || image.url}
+                                alt={variant.sku}
+                                sx={{ width: 96, height: 96 }}
+                              />
+                              <Typography variant="caption">{variant.sku}</Typography>
+                            </Stack>
+                          ))
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No variant images on this SKU.
+                          </Typography>
+                        )}
+                      </Stack>
                       {(variant.attributes || []).length ? (
                         <Stack>
                           {variant.attributes.map((row) => (
@@ -427,7 +717,7 @@ export default function ProductMerge() {
                               control={
                                 <Checkbox
                                   checked={variantAttrKeys.has(variantAttrKey(row))}
-                                  onChange={(e) => toggleVariantAttr(row, e.target.checked)}
+                                  onChange={(e) => toggleVariantAttr(row, e.target.checked, [variant.id])}
                                 />
                               }
                               label={`${row.attribute_name}: ${row.display_value || '—'} (${row.source === 'product' ? 'from product' : 'variant'})`}
@@ -465,7 +755,15 @@ export default function ProductMerge() {
         <DialogContent>
           <Typography>
             {selectedIds.length} products will become <strong>{name.trim() || 'this product'}</strong>.
-            All variants move onto it. The other products are retired.
+            {variantSections.cards.length
+              ? ` ${variantSections.cards
+                  .map((card) => {
+                    const winner = card.members.find((item) => item.id === (winnerByGroup[card.group] || card.members[0].id));
+                    return `${card.members.length} SKUs will become ${winner?.sku || 'one SKU'}`;
+                  })
+                  .join('. ')}.`
+              : ' All variants move onto it.'}{' '}
+            The other products are retired.
           </Typography>
         </DialogContent>
         <DialogActions>
