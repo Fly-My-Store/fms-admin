@@ -32,6 +32,10 @@ function attrKey(row) {
   return `${row.product_id}:${row.attribute_code}`;
 }
 
+function variantAttrKey(row) {
+  return `${row.variant_id}:${row.source}:${row.attribute_code}`;
+}
+
 function defaultAttrKeys(attributes = [], survivorId) {
   const chosen = new Map();
   const ordered = [...attributes].sort((a, b) => {
@@ -45,6 +49,24 @@ function defaultAttrKeys(attributes = [], survivorId) {
   return new Set(chosen.values());
 }
 
+function defaultVariantAttrKeys(variants = []) {
+  const next = new Set();
+  for (const variant of variants) {
+    const seen = new Set();
+    const ordered = [...(variant.attributes || [])].sort((a, b) => {
+      if (a.source === 'variant' && b.source !== 'variant') return -1;
+      if (b.source === 'variant' && a.source !== 'variant') return 1;
+      return 0;
+    });
+    for (const row of ordered) {
+      if (seen.has(row.attribute_code)) continue;
+      seen.add(row.attribute_code);
+      next.add(variantAttrKey(row));
+    }
+  }
+  return next;
+}
+
 export default function ProductMerge() {
   const router = useRouter();
   const productAc = usePagedAutocomplete(listProducts);
@@ -55,6 +77,7 @@ export default function ProductMerge() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
   const [attrKeys, setAttrKeys] = useState(new Set());
+  const [variantAttrKeys, setVariantAttrKeys] = useState(new Set());
   const [imageIds, setImageIds] = useState(new Set());
   const [categoryId, setCategoryId] = useState('');
   const [brandId, setBrandId] = useState('');
@@ -85,6 +108,7 @@ export default function ProductMerge() {
         const keeper = data.products?.find((p) => p.id === nextSurvivor);
         setName(keeper?.name || '');
         setAttrKeys(defaultAttrKeys(data.attributes || [], nextSurvivor));
+        setVariantAttrKeys(defaultVariantAttrKeys(data.variants || []));
         setImageIds(new Set((data.images || []).map((img) => img.id)));
         const categories = data.categories || [];
         const brands = data.brands || [];
@@ -111,6 +135,7 @@ export default function ProductMerge() {
     const keeper = preview?.products?.find((p) => p.id === id);
     setName(keeper?.name || '');
     if (preview?.attributes) setAttrKeys(defaultAttrKeys(preview.attributes, id));
+    if (preview?.variants) setVariantAttrKeys(defaultVariantAttrKeys(preview.variants));
     if ((preview?.categories || []).length > 1) setCategoryId(String(keeper?.category_id || ''));
     if ((preview?.brands || []).length > 1) setBrandId(String(keeper?.brand_id || ''));
   };
@@ -125,6 +150,23 @@ export default function ProductMerge() {
       }
       for (const other of preview?.attributes || []) {
         if (other.attribute_code === row.attribute_code) next.delete(attrKey(other));
+      }
+      next.add(key);
+      return next;
+    });
+  };
+
+  const toggleVariantAttr = (row, checked) => {
+    setVariantAttrKeys((prev) => {
+      const next = new Set(prev);
+      const key = variantAttrKey(row);
+      if (!checked) {
+        next.delete(key);
+        return next;
+      }
+      const variant = (preview?.variants || []).find((item) => item.id === row.variant_id);
+      for (const other of variant?.attributes || []) {
+        if (other.attribute_code === row.attribute_code) next.delete(variantAttrKey(other));
       }
       next.add(key);
       return next;
@@ -165,6 +207,14 @@ export default function ProductMerge() {
         attribute_keys: (preview.attributes || [])
           .filter((row) => attrKeys.has(attrKey(row)))
           .map((row) => ({ product_id: row.product_id, attribute_code: row.attribute_code })),
+        variant_attribute_keys: (preview.variants || [])
+          .flatMap((variant) => variant.attributes || [])
+          .filter((row) => variantAttrKeys.has(variantAttrKey(row)))
+          .map((row) => ({
+            variant_id: row.variant_id,
+            source: row.source,
+            attribute_code: row.attribute_code
+          })),
         image_ids: [...imageIds],
         category_id: categoryId || null,
         brand_id: brandId || null
@@ -288,10 +338,12 @@ export default function ProductMerge() {
 
               <Box>
                 <Typography variant="h6" sx={{ mb: 1 }}>
-                  Attributes
+                  Product attributes
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Checking a value unchecks the same attribute from another product.
+                  These stay on the product you keep. Checking a value unchecks the same
+                  attribute from another product. Copy color or pack onto a SKU in the variant
+                  list below.
                 </Typography>
                 <Stack>
                   {(preview.attributes || []).length ? (
@@ -357,15 +409,37 @@ export default function ProductMerge() {
                   Variants
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Every variant below will move onto the product you keep.
+                  Every variant below will move onto the product you keep. Check variant
+                  attributes and product attributes to copy onto that SKU.
                 </Typography>
-                <Stack spacing={0.5}>
+                <Stack spacing={2}>
                   {(preview.variants || []).map((variant) => (
-                    <Typography key={variant.id} variant="body2">
-                      {variant.sku}
-                      {variant.option_signature ? ` · ${variant.option_signature}` : ''}
-                      {` · ${variant.product_name}`}
-                    </Typography>
+                    <Box key={variant.id}>
+                      <Typography variant="subtitle2">
+                        {variant.sku}
+                        {` · ${variant.product_name}`}
+                      </Typography>
+                      {(variant.attributes || []).length ? (
+                        <Stack>
+                          {variant.attributes.map((row) => (
+                            <FormControlLabel
+                              key={variantAttrKey(row)}
+                              control={
+                                <Checkbox
+                                  checked={variantAttrKeys.has(variantAttrKey(row))}
+                                  onChange={(e) => toggleVariantAttr(row, e.target.checked)}
+                                />
+                              }
+                              label={`${row.attribute_name}: ${row.display_value || '—'} (${row.source === 'product' ? 'from product' : 'variant'})`}
+                            />
+                          ))}
+                        </Stack>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No attributes on this variant.
+                        </Typography>
+                      )}
+                    </Box>
                   ))}
                   {!(preview.variants || []).length ? (
                     <Typography variant="body2" color="text.secondary">
