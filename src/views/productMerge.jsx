@@ -28,6 +28,7 @@ import {
 import MainCard from 'components/MainCard';
 import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
 import { listProducts, mergeProducts, previewProductMerge } from 'api/catalog';
+import { RECORD_STATUS } from 'utils/constants';
 
 function attrKey(row) {
   return `${row.product_id}:${row.attribute_code}`;
@@ -141,7 +142,7 @@ function defaultVariantAttrKeys(variants = []) {
 
 export default function ProductMerge() {
   const router = useRouter();
-  const productAc = usePagedAutocomplete(listProducts);
+  const productAc = usePagedAutocomplete(listProducts, { record_status: RECORD_STATUS.ACTIVE });
   const [selected, setSelected] = useState([]);
   const [survivorId, setSurvivorId] = useState('');
   const [name, setName] = useState('');
@@ -757,11 +758,11 @@ export default function ProductMerge() {
             {selectedIds.length} products will become <strong>{name.trim() || 'this product'}</strong>.
             {variantSections.cards.length
               ? ` ${variantSections.cards
-                  .map((card) => {
-                    const winner = card.members.find((item) => item.id === (winnerByGroup[card.group] || card.members[0].id));
-                    return `${card.members.length} SKUs will become ${winner?.sku || 'one SKU'}`;
-                  })
-                  .join('. ')}.`
+                .map((card) => {
+                  const winner = card.members.find((item) => item.id === (winnerByGroup[card.group] || card.members[0].id));
+                  return `${card.members.length} SKUs will become ${winner?.sku || 'one SKU'}`;
+                })
+                .join('. ')}.`
               : ' All variants move onto it.'}{' '}
             The other products are retired.
           </Typography>
