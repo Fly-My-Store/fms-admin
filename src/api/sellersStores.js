@@ -33,6 +33,7 @@ export const downloadStoresCsv = (params) =>
 export const getStore = (id) => get(`admin/sellers-stores/stores/${id}`);
 export const createStore = (data) => post('admin/sellers-stores/stores', data);
 export const updateStore = (id, data) => patch(`admin/sellers-stores/stores/${id}`, data);
+export const syncStorePetpoojaMenu = (id) => post(`admin/sellers-stores/stores/${id}/petpooja/sync`);
 export const removeStore = (id) => del(`admin/sellers-stores/stores/${id}`);
 
 export const listServiceAreas = (storeId, params) => get(`admin/sellers-stores/stores/${storeId}/service-areas`, params);
