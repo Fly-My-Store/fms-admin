@@ -6,7 +6,8 @@ export const UPDATE_CSV_COLUMNS = [
   'mrp_rupee',
   'max_per_order',
   'stock_status',
-  'max_order_qty'
+  'max_order_qty',
+  'record_status'
 ];
 
 function escapeCsvCell(value) {
@@ -38,7 +39,8 @@ export function storeVariantToCsvRow(item) {
     mrp_rupee: centsToRupeeCsv(item?.mrp_cents),
     max_per_order: item?.max_per_order != null ? String(item.max_per_order) : '',
     stock_status: stockStatusToCsv(item?.stock_status),
-    max_order_qty: item?.max_order_qty != null ? String(item.max_order_qty) : ''
+    max_order_qty: item?.max_order_qty != null ? String(item.max_order_qty) : '',
+    record_status: item?.record_status != null ? String(item.record_status) : ''
   };
 }
 
