@@ -87,9 +87,9 @@ export default function StoreVariantsBulkUpdatePanel({ storeId, isDemo, onQueued
     <Stack spacing={2}>
       <Alert severity="info">
         Re-upload the downloaded CSV. Only <strong>price_rupee</strong>, <strong>mrp_rupee</strong>,{' '}
-        <strong>max_per_order</strong>, <strong>stock_status</strong> (in / out), and <strong>max_order_qty</strong> are
-        updated. Match is by <strong>id</strong>. Failed rows appear on the jobs list as an errors CSV — you can leave
-        this page while it runs.
+        <strong>max_per_order</strong>, <strong>stock_status</strong> (in / out), <strong>max_order_qty</strong>, and{' '}
+        <strong>record_status</strong> (1 active / 2 inactive / 3 archived) are updated. Match is by <strong>id</strong>.
+        Failed rows appear on the jobs list as an errors CSV — you can leave this page while it runs.
       </Alert>
 
       <Box

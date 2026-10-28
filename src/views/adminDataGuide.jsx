@@ -616,7 +616,7 @@ Store listing (price + stock) — seller app or admin CSV update`}
           rows={[
             ['Filter / page', 'Search, stock (in/out), listing Active/Inactive. Grid paging is for browsing only.'],
             ['Download', 'Queues a CSV of every listing matching the current filters (not just this page). Optional: download selected rows on this page only. Keep the id column — updates match by listing id, not SKU.'],
-            ['Edit', 'You may change price_rupee, mrp_rupee, max_per_order, stock_status (in/out), max_order_qty. sku and product_name are labels only.'],
+            ['Edit', 'You may change price_rupee, mrp_rupee, max_per_order, stock_status (in/out), max_order_qty, record_status (1 active / 2 inactive / 3 archived). sku and product_name are labels only.'],
             ['Reupload', 'Queues a background update. Does not create listings. No row cap. Demo stores: download only. Failed rows: Download errors on the CSV jobs list.'],
             ['Bulk add listings', 'Store → Bulk upload. CSV sku, price, mrp creates store_variant rows (does not create catalog products). Same jobs list. Demo stores: no.'],
             ['Price', 'price_rupee is required and > 0. If mrp is set, price cannot exceed MRP. max_per_order 1–50.']
