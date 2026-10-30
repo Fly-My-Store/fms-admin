@@ -535,7 +535,6 @@ export default function StoreUpsert() {
         lat: toNumOrNull(form.lat),
         lng: toNumOrNull(form.lng),
         delivery_radius_m: toNumOrNull(form.delivery_radius_m),
-        is_open: form.is_open === 'true',
         fssai_number: String(form.fssai_number || '').replace(/\D/g, '') || null,
         store_type: form.store_type || null,
         logo_url: form.logo_url || null,
