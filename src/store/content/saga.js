@@ -72,6 +72,16 @@ function* bannersUpdateWorker(action) {
   }
 }
 
+function* foodCravingsListWorker(action) {
+  try {
+    const resp = yield call(api.listFoodCravings, action.payload?.params || {});
+    yield put(actions.foodCravingsListSuccess(resp));
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Failed to load');
+    yield put(actions.foodCravingsListFailure(msg));
+  }
+}
+
 function* faqsListWorker(action) {
   try {
     const resp = yield call(api.listFaqs, action.payload?.params || {});
@@ -91,6 +101,7 @@ export default function* contentSaga() {
     takeLatest(actions.bannersGetRequest.type, bannersGetWorker),
     takeLatest(actions.bannersCreateRequest.type, bannersCreateWorker),
     takeLatest(actions.bannersUpdateRequest.type, bannersUpdateWorker),
+    takeLatest(actions.foodCravingsListRequest.type, foodCravingsListWorker),
     takeLatest(actions.faqsListRequest.type, faqsListWorker)
   ]);
 }
