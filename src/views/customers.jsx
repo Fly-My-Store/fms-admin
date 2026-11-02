@@ -25,10 +25,17 @@ const TESTER_FILTER_OPTIONS = [
   { value: 'all', label: 'All' }
 ];
 
+const ACTIVITY_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'ordered', label: 'Ordered' },
+  { value: 'in_cart', label: 'In Cart' }
+];
+
 const FILTER_DEFAULTS = {
   q: '',
   status: 'all',
   is_tester: 'false',
+  activity: 'all',
   page: 1,
   limit: 20
 };
@@ -46,13 +53,14 @@ export default function CustomersView() {
     const params = {
       type: 'CUSTOMER',
       ...(applied.q ? { q: applied.q } : {}),
-      ...(applied.status && applied.status !== 'all' ? { status: applied.status } : {})
+      ...(applied.status && applied.status !== 'all' ? { status: applied.status } : {}),
+      ...(applied.activity && applied.activity !== 'all' ? { activity: applied.activity } : {})
     };
     if (!actorIsTester) {
       if (applied.is_tester && applied.is_tester !== 'all') params.is_tester = applied.is_tester;
     }
     return params;
-  }, [applied.q, applied.status, applied.is_tester, actorIsTester]);
+  }, [applied.q, applied.status, applied.activity, applied.is_tester, actorIsTester]);
 
   const { rows, totalPages, totalCount, setPageIndex, setPageSize } = useAxiosPaginatedList('admin/iam/users', {
     params: listParams,
@@ -69,7 +77,8 @@ export default function CustomersView() {
     applySearch({
       q: searchQuery.trim(),
       status: draft.status,
-      is_tester: draft.is_tester
+      is_tester: draft.is_tester,
+      activity: draft.activity
     });
   };
 
@@ -117,6 +126,20 @@ export default function CustomersView() {
         sx={{ minWidth: 140 }}
       >
         {STATUS_OPTIONS.map((o) => (
+          <MenuItem key={o.value} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        label="Filter By"
+        value={draft.activity}
+        onChange={(e) => setDraft({ activity: e.target.value })}
+        sx={{ minWidth: 140 }}
+      >
+        {ACTIVITY_OPTIONS.map((o) => (
           <MenuItem key={o.value} value={o.value}>
             {o.label}
           </MenuItem>

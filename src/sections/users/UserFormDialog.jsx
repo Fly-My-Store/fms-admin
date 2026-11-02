@@ -18,6 +18,13 @@ import { CloseOutlined } from '@ant-design/icons';
 import { enqueueSnackbar } from 'notistack';
 import { useSelector } from 'react-redux';
 import { createUser, listRoles, updateUser } from 'api/iam';
+import { TABLE_STATUS } from 'utils/constants';
+
+const STATUS_OPTIONS = [
+  { value: TABLE_STATUS.ACTIVE, label: 'Active', description: 'Full access' },
+  { value: TABLE_STATUS.INACTIVE, label: 'Inactive', description: 'Restricted — reason required' },
+  { value: TABLE_STATUS.SUSPENDED, label: 'Suspended', description: 'Blocked — reason required' }
+];
 
 export default function UserFormDialog({ open, onClose, initialData = null, onSaved }) {
   const actorIsTester = useSelector((s) => Boolean(s.auth?.user?.is_tester));
@@ -29,7 +36,6 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
     status: 1,
     role_id: '',
     is_tester: false,
-    tester_otp: '',
     receive_order_whatsapp: false
   });
   const [saving, setSaving] = useState(false);
@@ -50,6 +56,7 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
     };
   }, [open]);
 
+
   useEffect(() => {
     if (initialData) {
       setForm({
@@ -60,7 +67,6 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         status: initialData.status ?? 1,
         role_id: initialData.role_id || initialData.role?.id || '',
         is_tester: Boolean(initialData.is_tester),
-        tester_otp: '',
         receive_order_whatsapp: Boolean(initialData.receive_order_whatsapp)
       });
     } else {
@@ -72,7 +78,6 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         status: 1,
         role_id: '',
         is_tester: actorIsTester,
-        tester_otp: '',
         receive_order_whatsapp: false
       });
     }
@@ -97,7 +102,6 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         receive_order_whatsapp: Boolean(form.receive_order_whatsapp)
       };
       if (form.password) payload.password = form.password;
-      if (form.tester_otp.trim()) payload.tester_otp = form.tester_otp.trim();
 
       if (initialData?.id) {
         await updateUser(initialData.id, payload);
@@ -124,7 +128,7 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} maxWidth="md">
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {initialData ? 'Edit admin user' : 'Add admin user'}
         <IconButton onClick={onClose}>
@@ -132,82 +136,91 @@ export default function UserFormDialog({ open, onClose, initialData = null, onSa
         </IconButton>
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={2} mt={1} minWidth="400px">
-          <Stack sx={{ gap: 1 }}>
-            <InputLabel>Name</InputLabel>
-            <TextField id="name" name="name" value={form.name} onChange={handleChange} placeholder="Full name" fullWidth />
-          </Stack>
-          <Stack sx={{ gap: 1 }}>
-            <InputLabel>Email</InputLabel>
-            <TextField id="email" name="email" value={form.email} onChange={handleChange} placeholder="Email" fullWidth />
-          </Stack>
-          <Stack sx={{ gap: 1 }}>
-            <InputLabel>Phone</InputLabel>
-            <TextField id="phone" name="phone" value={form.phone} onChange={handleChange} placeholder="Phone" fullWidth />
-          </Stack>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={Boolean(form.receive_order_whatsapp)}
-                onChange={(e) => setForm((prev) => ({ ...prev, receive_order_whatsapp: e.target.checked }))}
-              />
-            }
-            label="Receive order WhatsApp (new / cancelled)"
-          />
-          <Stack sx={{ gap: 1 }}>
-            <InputLabel>Role</InputLabel>
-            <TextField
-              select
-              id="role_id"
-              name="role_id"
-              value={form.role_id || ''}
-              onChange={handleChange}
-              fullWidth
-            >
-              <MenuItem value="">Select a role</MenuItem>
-              {roles.map((role) => (
-                <MenuItem key={role.id} value={role.id}>
-                  {role.name} ({role.code})
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
-          <Stack sx={{ gap: 1 }}>
-            <InputLabel>{initialData ? 'New password (optional)' : 'Password'}</InputLabel>
-            <TextField
-              id="password"
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder={initialData ? 'Leave blank to keep current' : 'Enter password'}
-              fullWidth
-            />
-          </Stack>
-          {!actorIsTester && (
+        <Stack direction="row" spacing={2} mt={1}>
+          <Stack spacing={2} minWidth="400px">
+            <Stack sx={{ gap: 1 }}>
+              <InputLabel>Name</InputLabel>
+              <TextField id="name" name="name" value={form.name} onChange={handleChange} placeholder="Full name" fullWidth />
+            </Stack>
+            <Stack sx={{ gap: 1 }}>
+              <InputLabel>Email</InputLabel>
+              <TextField id="email" name="email" value={form.email} onChange={handleChange} placeholder="Email" fullWidth />
+            </Stack>
+            <Stack sx={{ gap: 1 }}>
+              <InputLabel>Phone</InputLabel>
+              <TextField id="phone" name="phone" value={form.phone} onChange={handleChange} placeholder="Phone" fullWidth />
+            </Stack>
             <FormControlLabel
               control={
                 <Switch
-                  checked={Boolean(form.is_tester)}
-                  onChange={(e) => setForm((prev) => ({ ...prev, is_tester: e.target.checked }))}
+                  checked={Boolean(form.receive_order_whatsapp)}
+                  onChange={(e) => setForm((prev) => ({ ...prev, receive_order_whatsapp: e.target.checked }))}
                 />
               }
-              label="Demo admin (is_tester)"
+              label="Receive order WhatsApp (new / cancelled)"
             />
-          )}
-          {form.is_tester && (
+          </Stack>
+          <Stack spacing={2} minWidth="400px">
             <Stack sx={{ gap: 1 }}>
-              <InputLabel>Tester OTP (optional; blank keeps default 000000)</InputLabel>
+              <InputLabel>Role</InputLabel>
               <TextField
-                id="tester_otp"
-                name="tester_otp"
-                value={form.tester_otp}
+                select
+                id="role_id"
+                name="role_id"
+                value={form.role_id || ''}
                 onChange={handleChange}
-                placeholder="000000"
+                fullWidth
+              >
+                <MenuItem value="">Select a role</MenuItem>
+                {roles.map((role) => (
+                  <MenuItem key={role.id} value={role.id}>
+                    {role.name} ({role.code})
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+            <Stack sx={{ gap: 1 }}>
+              <InputLabel>{initialData ? 'New password (optional)' : 'Password'}</InputLabel>
+              <TextField
+                id="password"
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder={initialData ? 'Leave blank to keep current' : 'Enter password'}
                 fullWidth
               />
             </Stack>
-          )}
+            <Stack sx={{ gap: 1 }}>
+              <InputLabel>Account status</InputLabel>
+              <TextField
+                select
+                id="status"
+                name="status"
+                value={form.status}
+                onChange={(e) => setForm((prev) => ({ ...prev, status: Number(e.target.value) }))}
+                fullWidth
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+
+            {!actorIsTester && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(form.is_tester)}
+                    onChange={(e) => setForm((prev) => ({ ...prev, is_tester: e.target.checked }))}
+                  />
+                }
+                label="Demo admin (is_tester)"
+              />
+            )}
+          </Stack>
         </Stack>
       </DialogContent>
       <DialogActions>
