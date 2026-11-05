@@ -261,6 +261,15 @@ const platformMenuGroups = [
       { id: 'permissions', title: 'permissions', type: 'item', url: '/permissions', icon: icons.LockOutlined, perm: 'permission', action: 'read' },
       { id: 'webhook-events', title: 'webhook-events', type: 'item', url: '/webhook-events', icon: icons.ApiOutlined, perm: 'webhookEvent', action: 'read' },
       {
+        id: 'maps-usage',
+        title: 'maps-usage',
+        type: 'item',
+        url: '/maps-usage',
+        icon: icons.ApiOutlined,
+        perm: 'auditLog',
+        action: 'read'
+      },
+      {
         id: 'audit-logs',
         title: 'audit-logs',
         type: 'item',

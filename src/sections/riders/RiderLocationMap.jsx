@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Button, Stack, Typography } from '@mui/material';
 import MainCard from 'components/MainCard';
-import GoogleMapView from 'components/third-party/map/GoogleMapView';
+import DeferredGoogleMap from 'components/third-party/map/DeferredGoogleMap';
 import { listRiderLocations } from 'api/logistics';
 
 const formatDate = (iso) => {
@@ -75,7 +75,7 @@ export default function RiderLocationMap({ riderId }) {
             )}
           </Stack>
         )}
-        {hasCoords ? <GoogleMapView markers={markers} height={280} zoom={14} /> : null}
+        {hasCoords ? <DeferredGoogleMap markers={markers} height={280} zoom={14} /> : null}
       </Stack>
     </MainCard>
   );
