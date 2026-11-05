@@ -185,7 +185,7 @@ export default function ProductMerge() {
         const keeper = data.products?.find((p) => p.id === nextSurvivor);
         setName(keeper?.name || '');
         setAttrKeys(defaultAttrKeys(data.attributes || [], nextSurvivor));
-        setVariantAttrKeys(defaultVariantAttrKeys(data.variants || []));
+        // setVariantAttrKeys(defaultVariantAttrKeys(data.variants || []));
         setImageIds(new Set((data.images || []).map((img) => img.id)));
         setGroupByVariant({});
         setWinnerByGroup({});
