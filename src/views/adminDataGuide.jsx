@@ -635,6 +635,53 @@ Store listing (price + stock) — seller app or admin CSV update`}
         />
       </Section>
 
+      <Section title="8a. Restaurant menu CSV">
+        <Alert severity="info" sx={{ mb: 1.5 }}>
+          Restaurant menus are not grocery listings. Use Store → <strong>Menu</strong> tab for CSV — do not use
+          Variants bulk download/update or Bulk upload for restaurant dishes.
+        </Alert>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          One CSV row = one dish variant. Manual restaurants can import/update; Petpooja-linked stores can
+          export only (structure is sync-owned). Sellers also edit dishes in the seller app when{' '}
+          <strong>menu_source=manual</strong>.
+        </Typography>
+        <GuideTable
+          headers={['Column', 'Meaning']}
+          rows={[
+            ['listing_id', 'Store variant UUID. Required for update; leave empty on import create.'],
+            ['section', 'Menu section name (created if missing on import/update).'],
+            ['dish_name', 'Dish / product name. Import groups rows by section + dish_name.'],
+            ['variant_name', 'Half / Full / Regular / free-form name.'],
+            ['dietary', 'veg | non-veg | egg'],
+            ['price_rupee', 'Tax-inclusive selling price in ₹ (> 0).'],
+            ['packing_rupee', 'Per-variant line packing ₹ (in addition to store packing when applicable).'],
+            ['gst_percent', 'Optional GST % on the dish/variant (0–100).'],
+            ['description', 'Dish description (same across variants of a dish).'],
+            ['stock_status', 'in / out'],
+            ['record_status', '1 active / 2 inactive / 3 archived (update).']
+          ]}
+        />
+        <GuideTable
+          headers={['Action', 'Rule']}
+          rows={[
+            ['Export', 'Store → Menu → Export. Background job; download from restaurant menu CSV jobs list.'],
+            ['Update', 'Match by listing_id. Updates price, packing, GST, stock, status, names, section, dietary, description.'],
+            ['Import', 'Manual restaurants only. Creates sections/dishes/variants. Empty listing_id.'],
+            ['Store packing', 'Order/item packing rule lives on store edit → integration_meta.packing (restaurant stores), separate from per-line packing_rupee.']
+          ]}
+        />
+        <Typography variant="subtitle2" sx={{ mt: 2, mb: 0.5 }}>
+          Take care
+        </Typography>
+        <DontList
+          items={[
+            'Do not use grocery STORE_VARIANT_* CSV jobs or Bulk upload to create restaurant menu dishes.',
+            'Do not import or restructure Petpooja menus via CSV — export is for inspection only.',
+            'Prices are tax-inclusive; line packing_rupee stacks with store packing when the store rule applies.'
+          ]}
+        />
+      </Section>
+
       <Section title="9. Fare and pricing">
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
           Checkout adds platform fee, delivery, optional service/install fee, km surcharge, and payment gateway share — not only item price.{' '}

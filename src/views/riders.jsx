@@ -9,6 +9,7 @@ import { actions as logistics } from 'store/logistics/slice';
 import RidersTableSection from 'sections/riders/RidersTableSection';
 import useUrlFilters from 'hooks/useUrlFilters';
 import { ACCOUNT_STATUS } from 'utils/constants';
+import { downloadRidersCsv } from 'api/logistics';
 
 const KYC_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -62,6 +63,7 @@ export function RidersView() {
     defaults: FILTER_DEFAULTS
   });
   const [searchQuery, setSearchQuery] = useState(draft.q || '');
+  const [exporting, setExporting] = useState(false);
 
   const buildParams = (f = applied) => ({
     page: Number(f.page) || 1,
@@ -105,6 +107,20 @@ export function RidersView() {
       availability_status: draft.availability_status,
       status: draft.status
     });
+  };
+
+  const handleDownloadCsv = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await downloadRidersCsv(buildParams(applied));
+    } catch (e) {
+      enqueueSnackbar(e?.response?.data?.message || e?.message || 'CSV download failed', {
+        variant: 'error'
+      });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleAddButton = () => {
@@ -180,6 +196,12 @@ export function RidersView() {
     </Stack>
   );
 
+  const topActions = () => (
+    <Button variant="outlined" size="small" onClick={handleDownloadCsv} disabled={exporting}>
+      {exporting ? 'Downloading…' : 'Download CSV'}
+    </Button>
+  );
+
   return (
     <RidersTableSection
       rows={data}
@@ -192,6 +214,7 @@ export function RidersView() {
       totalCount={total}
       onPaginationChange={handlePaginationChange}
       topActionsLeft={topActionsLeft}
+      topActions={topActions}
     />
   );
 }

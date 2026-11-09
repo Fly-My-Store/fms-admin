@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { Alert, Box, ButtonBase, Stack, Typography } from '@mui/material';
 import MainCard from 'components/MainCard';
 import EntityLink from 'components/EntityLink';
-import GoogleMapView from 'components/third-party/map/GoogleMapView';
+import DeferredGoogleMap from 'components/third-party/map/DeferredGoogleMap';
 import { getOrderTracking } from 'api/ordersPayments';
 import { getOrderCustomerHref, getOrderRiderHref, getOrderStoreHref } from 'utils/orderLinks';
 
@@ -204,7 +204,7 @@ export default function OrderTrackingPanel({ order }) {
       <Stack spacing={1.5}>
         {markers.length ? (
           <Box sx={{ maxWidth: '100%' }}>
-            <GoogleMapView markers={markers} height={280} focusMarker={focusMarker} />
+            <DeferredGoogleMap markers={markers} height={280} focusMarker={focusMarker} />
           </Box>
         ) : (
           <Alert severity="info">No map coordinates on this order yet.</Alert>

@@ -190,6 +190,7 @@ const platformMenuGroups = [
     title: 'marketing',
     children: [
       { id: 'banners', title: 'banners', type: 'item', url: '/banners', icon: icons.PictureOutlined, perm: 'banner', action: 'read' },
+      { id: 'food-cravings', title: 'food-cravings', type: 'item', url: '/food-cravings', icon: icons.ShopOutlined, perm: 'banner', action: 'read' },
       { id: 'push-broadcasts', title: 'push-broadcasts', type: 'item', url: '/push-broadcasts', icon: icons.SendOutlined, perm: 'pushBroadcast', action: 'read' },
       { id: 'share-links', title: 'share-links', type: 'item', url: '/share-links', icon: icons.ShareAltOutlined, perm: 'shareLink', action: 'read' },
       { id: 'promotion-campaigns', title: 'campaigns', type: 'item', url: '/promotion-campaigns', icon: icons.NotificationOutlined, perm: 'promotion', action: 'read' },
@@ -259,6 +260,15 @@ const platformMenuGroups = [
       { id: 'roles', title: 'roles', type: 'item', url: '/roles', icon: icons.SafetyCertificateOutlined, perm: 'role', action: 'read' },
       { id: 'permissions', title: 'permissions', type: 'item', url: '/permissions', icon: icons.LockOutlined, perm: 'permission', action: 'read' },
       { id: 'webhook-events', title: 'webhook-events', type: 'item', url: '/webhook-events', icon: icons.ApiOutlined, perm: 'webhookEvent', action: 'read' },
+      {
+        id: 'maps-usage',
+        title: 'maps-usage',
+        type: 'item',
+        url: '/maps-usage',
+        icon: icons.ApiOutlined,
+        perm: 'auditLog',
+        action: 'read'
+      },
       {
         id: 'audit-logs',
         title: 'audit-logs',

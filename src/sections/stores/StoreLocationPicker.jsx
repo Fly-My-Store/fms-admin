@@ -2,7 +2,7 @@
 
 import PropTypes from 'prop-types';
 import { Stack, TextField, Typography } from '@mui/material';
-import GoogleMapView from 'components/third-party/map/GoogleMapView';
+import DeferredGoogleMap from 'components/third-party/map/DeferredGoogleMap';
 
 export default function StoreLocationPicker({
   address,
@@ -44,7 +44,8 @@ export default function StoreLocationPicker({
         <Typography variant="body2" color="text.secondary">
           Click the map or drag the pin to set store location
         </Typography>
-        <GoogleMapView
+        <DeferredGoogleMap
+          buttonLabel="Set location on map"
           interactive
           height={240}
           position={hasCoords ? { lat: latNum, lng: lngNum } : null}

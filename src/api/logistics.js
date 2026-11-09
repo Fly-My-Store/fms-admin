@@ -1,4 +1,5 @@
 import { get, post, patch, del } from '../utils/api';
+import { downloadCsvBlob } from 'utils/downloadCsvBlob';
 
 export const listDeliveries = (params) => get('admin/logistics/deliveries', params);
 export const getDelivery = (id) => get(`admin/logistics/deliveries/${id}`);
@@ -13,6 +14,8 @@ export const assignDeliveryJob = (id, rider_id) => post(`admin/logistics/jobs/${
 export const reassignDeliveryJob = (id, rider_id) => post(`admin/logistics/jobs/${id}/reassign`, { rider_id });
 
 export const listRiders = (params) => get('admin/logistics/riders', params);
+export const downloadRidersCsv = (params) =>
+  downloadCsvBlob('admin/logistics/riders/export.csv', params, 'riders.csv');
 export const getRider = (id) => get(`admin/logistics/riders/${id}`);
 export const createRider = (data) => post('admin/logistics/riders', data);
 export const updateRider = (id, data) => patch(`admin/logistics/riders/${id}`, data);

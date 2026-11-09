@@ -12,6 +12,12 @@ export const createBanner = (data) => post('admin/content/banners', data);
 export const updateBanner = (id, data) => patch(`admin/content/banners/${id}`, data);
 export const deleteBanner = (id) => del(`admin/content/banners/${id}`);
 
+export const listFoodCravings = (params) => get('admin/content/food-cravings', params);
+export const getFoodCraving = (id) => get(`admin/content/food-cravings/${id}`);
+export const createFoodCraving = (data) => post('admin/content/food-cravings', data);
+export const updateFoodCraving = (id, data) => patch(`admin/content/food-cravings/${id}`, data);
+export const deleteFoodCraving = (id) => del(`admin/content/food-cravings/${id}`);
+
 export const listFaqs = (params) => get('admin/content/faqs', params);
 export const getFaq = (id) => get(`admin/content/faqs/${id}`);
 export const createFaq = (data) => post('admin/content/faqs', data);

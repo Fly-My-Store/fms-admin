@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Stack, Typography } from '@mui/material';
 import MainCard from 'components/MainCard';
-import GoogleMapView from 'components/third-party/map/GoogleMapView';
+import DeferredGoogleMap from 'components/third-party/map/DeferredGoogleMap';
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
@@ -40,7 +40,7 @@ export default function StoreLocationMap({ store }) {
         {!hasCoords && (
           <Alert severity="info">No coordinates on file for this store. Address shown above.</Alert>
         )}
-        {hasCoords && <GoogleMapView markers={markers} height={280} zoom={14} />}
+        {hasCoords && <DeferredGoogleMap markers={markers} height={280} zoom={14} />}
         {mapsUrl && (
           <Typography
             component="a"
