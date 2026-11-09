@@ -137,7 +137,7 @@ function stockLabel(status) {
   return status || '—';
 }
 
-export default function StoreVariantsGrid({ storeId, isDemo = false }) {
+export default function StoreVariantsGrid({ storeId, isDemo = false, hideBulkPanels = false }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -351,10 +351,12 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
       <Button variant="outlined" size="small" onClick={handleSearch}>
         Search
       </Button>
-      <Button variant="outlined" size="small" onClick={handleDownloadAll}>
-        Download
-      </Button>
-      {selected.length > 0 ? (
+      {!hideBulkPanels ? (
+        <Button variant="outlined" size="small" onClick={handleDownloadAll}>
+          Download
+        </Button>
+      ) : null}
+      {!hideBulkPanels && selected.length > 0 ? (
         <Button variant="text" size="small" onClick={handleDownloadSelected}>
           Download selected ({selected.length})
         </Button>
@@ -510,32 +512,37 @@ export default function StoreVariantsGrid({ storeId, isDemo = false }) {
         )}
       </MainCard>
 
-      <Box>
-        <MainCard title="Update from CSV" subheader="Download listings above, edit, then re-upload the same file.">
-          <StoreVariantsBulkUpdatePanel
-            storeId={storeId}
-            isDemo={isDemo}
-            onQueued={() => {
-              setJobsTick((n) => n + 1);
-              load();
-            }}
-          />
-        </MainCard>
-      </Box>
+      {!hideBulkPanels ? (
+        <Box>
+          <MainCard title="Update from CSV" subheader="Download listings above, edit, then re-upload the same file.">
+            <StoreVariantsBulkUpdatePanel
+              storeId={storeId}
+              isDemo={isDemo}
+              onQueued={() => {
+                setJobsTick((n) => n + 1);
+                load();
+              }}
+            />
+          </MainCard>
+        </Box>
+      ) : null}
 
-      <CsvJobsList
-        title="CSV jobs"
-        loadJobs={loadStoreJobs}
-        downloadPath={(jobId, file) => storeCsvJobDownloadPath(storeId, jobId, file)}
-        abortJob={(jobId, body) => abortStoreCsvJob(storeId, jobId, body)}
-        refreshKey={jobsTick}
-        emptyText="Exports, listing updates, and bulk add jobs for this store show up here."
-      />
+      {!hideBulkPanels ? (
+        <CsvJobsList
+          title="CSV jobs"
+          loadJobs={loadStoreJobs}
+          downloadPath={(jobId, file) => storeCsvJobDownloadPath(storeId, jobId, file)}
+          abortJob={(jobId, body) => abortStoreCsvJob(storeId, jobId, body)}
+          refreshKey={jobsTick}
+          emptyText="Exports, listing updates, and bulk add jobs for this store show up here."
+        />
+      ) : null}
     </Stack>
   );
 }
 
 StoreVariantsGrid.propTypes = {
   storeId: PropTypes.string,
-  isDemo: PropTypes.bool
+  isDemo: PropTypes.bool,
+  hideBulkPanels: PropTypes.bool
 };

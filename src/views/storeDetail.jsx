@@ -23,10 +23,11 @@ import PharmacyLicenseReviewPanel from 'sections/seller-documents/PharmacyLicens
 import StoreDetailSidebar from 'sections/stores/detail/StoreDetailSidebar';
 import StoreVariantsTab from 'sections/stores/detail/StoreVariantsTab';
 import StoreBulkUploadTab from 'sections/stores/detail/StoreBulkUploadTab';
+import StoreRestaurantMenuTab from 'sections/stores/detail/StoreRestaurantMenuTab';
 import { getStore, updateStore } from 'api/sellersStores';
 import { adminOpenBlockedReason } from 'utils/storeAvailability';
 
-const TAB_IDS = ['orders', 'variants', 'bulk-upload', 'seller', 'location', 'verification', 'pharmacy', 'payouts', 'support'];
+const TAB_IDS = ['orders', 'menu', 'variants', 'bulk-upload', 'seller', 'location', 'verification', 'pharmacy', 'payouts', 'support'];
 
 const safe = (v) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
@@ -86,6 +87,18 @@ export default function StoreDetailView() {
     }
   }, [searchParams, tab]);
 
+  useEffect(() => {
+    if (!data) return;
+    const restaurant = String(data.store_type || '').toLowerCase() === 'restaurant';
+    if (restaurant && tab === 'bulk-upload') {
+      setTab('menu');
+      setVisited((prev) => new Set(prev).add('menu'));
+      const sp = new URLSearchParams(searchParams?.toString() || '');
+      sp.set('tab', 'menu');
+      router.replace(`/stores/${id}?${sp.toString()}`, { scroll: false });
+    }
+  }, [data, tab, id, router, searchParams]);
+
   const handleTabChange = (_, value) => {
     setTab(value);
     setVisited((prev) => new Set(prev).add(value));
@@ -118,6 +131,8 @@ export default function StoreDetailView() {
     : null;
 
   const showPharmacyTab = Boolean(seller?.is_pharmacy);
+  const isRestaurant = String(data?.store_type || '').toLowerCase() === 'restaurant';
+  const showMenuTab = isRestaurant;
 
   const handleToggleOpen = useCallback(
     async (is_open) => {
@@ -198,8 +213,9 @@ export default function StoreDetailView() {
                   sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}
                 >
                   <Tab label="Orders" value="orders" />
+                  {showMenuTab ? <Tab label="Menu" value="menu" /> : null}
                   <Tab label="Variants" value="variants" />
-                  <Tab label="Bulk upload" value="bulk-upload" />
+                  {!isRestaurant ? <Tab label="Bulk upload" value="bulk-upload" /> : null}
                   <Tab label="Seller" value="seller" />
                   <Tab label="Location" value="location" />
                   <Tab label="Verification" value="verification" />
@@ -215,13 +231,23 @@ export default function StoreDetailView() {
                     </Box>
                   )}
 
-                  {visited.has('variants') && (
-                    <Box hidden={tab !== 'variants'}>
-                      <StoreVariantsTab storeId={id} isDemo={isDemo} />
+                  {showMenuTab && visited.has('menu') && (
+                    <Box hidden={tab !== 'menu'}>
+                      <StoreRestaurantMenuTab
+                        storeId={id}
+                        isDemo={isDemo}
+                        menuSource={data?.menu_source}
+                      />
                     </Box>
                   )}
 
-                  {visited.has('bulk-upload') && (
+                  {visited.has('variants') && (
+                    <Box hidden={tab !== 'variants'}>
+                      <StoreVariantsTab storeId={id} isDemo={isDemo} isRestaurant={isRestaurant} />
+                    </Box>
+                  )}
+
+                  {!isRestaurant && visited.has('bulk-upload') && (
                     <Box hidden={tab !== 'bulk-upload'}>
                       <StoreBulkUploadTab storeId={id} isDemo={isDemo} />
                     </Box>

@@ -30,6 +30,12 @@ function kindLabel(kind) {
       return 'Update listings';
     case 'STORE_VARIANT_IMPORT':
       return 'Add listings';
+    case 'RESTAURANT_MENU_EXPORT':
+      return 'Export menu';
+    case 'RESTAURANT_MENU_UPDATE':
+      return 'Update menu';
+    case 'RESTAURANT_MENU_IMPORT':
+      return 'Import menu';
     case 'CATALOG_IMPORT':
       return 'Catalog import';
     case 'PRODUCT_EXPORT':

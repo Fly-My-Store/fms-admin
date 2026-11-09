@@ -132,6 +132,11 @@ const EMPTY = {
   gst_percent: 5,
   service_charge_type: '',
   service_charge_value: '',
+  packing_applicable_on: 'NONE',
+  packing_charge_type: 'FIXED',
+  packing_charge_value: '',
+  packing_calculate_tax: false,
+  packing_tax_percent: '',
   logo_url: '',
   logo_thumb_url: '',
   support_email: '',
@@ -241,6 +246,11 @@ export default function StoreUpsert() {
       service_charge_value: data.service_charge_type === 'FLAT'
         ? (data.service_charge_value != null ? Number(data.service_charge_value) / 100 : '')
         : (data.service_charge_value ?? ''),
+      packing_applicable_on: data.integration_meta?.packing?.applicable_on || 'NONE',
+      packing_charge_type: data.integration_meta?.packing?.charge_type || 'FIXED',
+      packing_charge_value: data.integration_meta?.packing?.charge_value ?? '',
+      packing_calculate_tax: Boolean(data.integration_meta?.packing?.calculate_tax),
+      packing_tax_percent: data.integration_meta?.packing?.tax_percent ?? '',
       logo_url: data.logo_url || '',
       logo_thumb_url: data.logo_thumb_url || '',
       support_email: data.support_email || '',
@@ -563,6 +573,15 @@ export default function StoreUpsert() {
             ? Math.round(Number(form.service_charge_value || 0) * 100)
             : toNumOrNull(form.service_charge_value))
           : null,
+        packing: form.store_type === 'restaurant'
+          ? {
+              applicable_on: form.packing_applicable_on || 'NONE',
+              charge_type: form.packing_charge_type || 'FIXED',
+              charge_value: toNumOrNull(form.packing_charge_value) ?? 0,
+              calculate_tax: Boolean(form.packing_calculate_tax),
+              tax_percent: toNumOrNull(form.packing_tax_percent) ?? 0,
+            }
+          : undefined,
         logo_url: form.logo_url || null,
         logo_thumb_url: form.logo_thumb_url || null
       };
@@ -821,6 +840,74 @@ export default function StoreUpsert() {
                       disabled={!form.service_charge_type}
                     />
                   </Stack>
+                  <TextField
+                    select
+                    size="small"
+                    label="Store packing"
+                    fullWidth
+                    value={form.packing_applicable_on || 'NONE'}
+                    onChange={(e) => handleField('packing_applicable_on', e.target.value)}
+                    disabled={form.menu_source === 'petpooja'}
+                    helperText={
+                      form.menu_source === 'petpooja'
+                        ? 'Synced from Petpooja for linked restaurants.'
+                        : 'ORDER = one packing charge per order. ITEM = use dish-line packing. NONE = no store packing.'
+                    }
+                  >
+                    <MenuItem value="NONE">None</MenuItem>
+                    <MenuItem value="ORDER">Order-level</MenuItem>
+                    <MenuItem value="ITEM">Item-level (dish packing)</MenuItem>
+                  </TextField>
+                  {form.packing_applicable_on === 'ORDER' ? (
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                      <TextField
+                        select
+                        size="small"
+                        label="Packing charge type"
+                        fullWidth
+                        value={form.packing_charge_type || 'FIXED'}
+                        onChange={(e) => handleField('packing_charge_type', e.target.value)}
+                        disabled={form.menu_source === 'petpooja'}
+                      >
+                        <MenuItem value="FIXED">Fixed (₹)</MenuItem>
+                        <MenuItem value="PERCENT">Percent</MenuItem>
+                      </TextField>
+                      <TextField
+                        size="small"
+                        label={form.packing_charge_type === 'PERCENT' ? 'Packing %' : 'Packing ₹'}
+                        type="number"
+                        fullWidth
+                        value={form.packing_charge_value ?? ''}
+                        onChange={(e) => handleField('packing_charge_value', e.target.value)}
+                        disabled={form.menu_source === 'petpooja'}
+                      />
+                    </Stack>
+                  ) : null}
+                  {form.packing_applicable_on === 'ORDER' ? (
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                      <TextField
+                        select
+                        size="small"
+                        label="Tax on packing"
+                        fullWidth
+                        value={form.packing_calculate_tax ? 'yes' : 'no'}
+                        onChange={(e) => handleField('packing_calculate_tax', e.target.value === 'yes')}
+                        disabled={form.menu_source === 'petpooja'}
+                      >
+                        <MenuItem value="no">No</MenuItem>
+                        <MenuItem value="yes">Yes</MenuItem>
+                      </TextField>
+                      <TextField
+                        size="small"
+                        label="Packing tax %"
+                        type="number"
+                        fullWidth
+                        value={form.packing_tax_percent ?? ''}
+                        onChange={(e) => handleField('packing_tax_percent', e.target.value)}
+                        disabled={form.menu_source === 'petpooja' || !form.packing_calculate_tax}
+                      />
+                    </Stack>
+                  ) : null}
                   {id && form.menu_source === 'petpooja' ? (
                     <Button
                       type="button"
