@@ -117,11 +117,23 @@ const defaultGatewayForm = {
 
 function ReadField({ label, value }) {
   return (
-    <Box>
+    <Box sx={{ flex: 1, minWidth: 0 }}>
       <Typography variant="caption" color="text.secondary">{label}</Typography>
       <Typography variant="body2">{value}</Typography>
     </Box>
   );
+}
+
+function FieldRow({ children }) {
+  return (
+    <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: 'wrap' }}>
+      {children}
+    </Stack>
+  );
+}
+
+function feeWithGst(amount, gstPercent) {
+  return `${amount} · GST ${fmtPct(gstPercent)}`;
 }
 
 export function FareRulesView() {
@@ -523,24 +535,81 @@ export function FareRulesView() {
         </TableContainer>
       )}
 
-      <Dialog open={!!viewRule} onClose={() => setViewRule(null)} maxWidth="sm" fullWidth>
+      <Dialog open={!!viewRule} onClose={() => setViewRule(null)} maxWidth="md" fullWidth>
         <DialogTitle>Fare details</DialogTitle>
         <DialogContent dividers>
           {viewRule?._kind === 'gateway' ? (
-            <Stack spacing={1}>
-              <ReadField label="Band" value={`${fmtRupee(viewRule.min_order_cents)} – ${fmtRupee(viewRule.max_order_cents)}`} />
-              <ReadField label="Customer gateway %" value={fmtPct(viewRule.customer_gateway_percent)} />
-              <ReadField label="Seller gateway %" value={fmtPct(viewRule.seller_gateway_percent)} />
+            <Stack spacing={2}>
+              <FieldRow>
+                <ReadField label="Min order" value={fmtRupee(viewRule.min_order_cents)} />
+                <ReadField label="Max order" value={fmtRupee(viewRule.max_order_cents)} />
+                <ReadField label="Sort" value={viewRule.sort_order ?? 0} />
+                <ReadField label="Status" value={viewRule.is_active ? 'Active' : 'Inactive'} />
+              </FieldRow>
+              <Divider />
+              <FieldRow>
+                <ReadField
+                  label="Customer gateway %"
+                  value={feeWithGst(fmtPct(viewRule.customer_gateway_percent), viewRule.customer_gateway_gst_percent)}
+                />
+                <ReadField
+                  label="Seller gateway %"
+                  value={feeWithGst(fmtPct(viewRule.seller_gateway_percent), viewRule.seller_gateway_gst_percent)}
+                />
+              </FieldRow>
             </Stack>
           ) : viewRule ? (
-            <Stack spacing={1}>
-              <ReadField label="Category" value={viewRule.category?.name || 'Default'} />
-              <ReadField label="Band" value={`${fmtRupee(viewRule.min_order_cents)} – ${fmtRupee(viewRule.max_order_cents)}`} />
-              <ReadField label="Customer platform" value={fmtRupee(viewRule.customer_platform_fee_cents)} />
-              <ReadField label="Customer delivery" value={fmtRupee(viewRule.customer_delivery_cents)} />
-              <ReadField label="Customer service (per unit)" value={fmtRupee(viewRule.customer_service_fee_cents)} />
-              <ReadField label="Seller platform %" value={fmtPct(viewRule.seller_platform_percent)} />
-              <ReadField label="Seller delivery" value={fmtRupee(viewRule.seller_delivery_cents)} />
+            <Stack spacing={2}>
+              <FieldRow>
+                <ReadField label="Category" value={viewRule.category?.name || 'Default'} />
+                <ReadField label="Status" value={viewRule.is_active ? 'Active' : 'Inactive'} />
+              </FieldRow>
+              <FieldRow>
+                <ReadField label="Min order" value={fmtRupee(viewRule.min_order_cents)} />
+                <ReadField label="Max order" value={fmtRupee(viewRule.max_order_cents)} />
+                <ReadField label="Sort" value={viewRule.sort_order ?? 0} />
+              </FieldRow>
+              <Divider />
+              <Typography variant="subtitle2">Customer</Typography>
+              <FieldRow>
+                <ReadField
+                  label="Platform fee"
+                  value={feeWithGst(fmtRupee(viewRule.customer_platform_fee_cents), viewRule.customer_platform_gst_percent)}
+                />
+                <ReadField
+                  label="Delivery fee"
+                  value={feeWithGst(fmtRupee(viewRule.customer_delivery_cents), viewRule.customer_delivery_gst_percent)}
+                />
+                <ReadField
+                  label="Service fee (per unit)"
+                  value={feeWithGst(fmtRupee(viewRule.customer_service_fee_cents), viewRule.customer_service_gst_percent)}
+                />
+              </FieldRow>
+              <Typography variant="subtitle2">Seller</Typography>
+              <FieldRow>
+                <ReadField
+                  label="Platform %"
+                  value={feeWithGst(fmtPct(viewRule.seller_platform_percent), viewRule.seller_platform_gst_percent)}
+                />
+                <ReadField
+                  label="Delivery"
+                  value={feeWithGst(fmtRupee(viewRule.seller_delivery_cents), viewRule.seller_delivery_gst_percent)}
+                />
+              </FieldRow>
+              <Divider />
+              <Typography variant="subtitle2">Km slabs</Typography>
+              {(Array.isArray(viewRule.km_surcharge) ? viewRule.km_surcharge : []).length === 0 ? (
+                <Typography variant="body2">None</Typography>
+              ) : (
+                viewRule.km_surcharge.map((slab, i) => (
+                  <FieldRow key={`${slab.min_km}-${slab.max_km}-${i}`}>
+                    <ReadField label="Min km" value={slab?.min_km ?? '—'} />
+                    <ReadField label="Max km" value={slab?.max_km ?? '—'} />
+                    <ReadField label="Amount" value={fmtRupee(slab?.surcharge_cents)} />
+                    <ReadField label="GST" value={fmtPct(slab?.gst_percent)} />
+                  </FieldRow>
+                ))
+              )}
             </Stack>
           ) : null}
         </DialogContent>
