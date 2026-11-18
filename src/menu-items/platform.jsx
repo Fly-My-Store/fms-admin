@@ -25,6 +25,7 @@ import {
   WalletOutlined,
   CalculatorOutlined,
   FileTextOutlined,
+  QrcodeOutlined,
   MobileOutlined,
   CloudSyncOutlined,
   TeamOutlined,
@@ -34,7 +35,8 @@ import {
   ShareAltOutlined,
   FileSearchOutlined,
   ThunderboltOutlined,
-  MergeCellsOutlined
+  MergeCellsOutlined,
+  TagOutlined
 } from '@ant-design/icons';
 
 const icons = {
@@ -57,12 +59,14 @@ const icons = {
   PictureOutlined,
   NotificationOutlined,
   GiftOutlined,
+  TagOutlined,
   QuestionCircleOutlined,
   CreditCardOutlined,
   RollbackOutlined,
   WalletOutlined,
   CalculatorOutlined,
   FileTextOutlined,
+  QrcodeOutlined,
   MobileOutlined,
   CloudSyncOutlined,
   TeamOutlined,
@@ -195,6 +199,7 @@ const platformMenuGroups = [
       { id: 'share-links', title: 'share-links', type: 'item', url: '/share-links', icon: icons.ShareAltOutlined, perm: 'shareLink', action: 'read' },
       { id: 'promotion-campaigns', title: 'campaigns', type: 'item', url: '/promotion-campaigns', icon: icons.NotificationOutlined, perm: 'promotion', action: 'read' },
       { id: 'promotions', title: 'promotions', type: 'item', url: '/promotions', icon: icons.GiftOutlined, perm: 'promotion', action: 'read' },
+      { id: 'offers', title: 'offers', type: 'item', url: '/offers', icon: icons.TagOutlined, perm: 'product', action: 'read' },
       { id: 'surges', title: 'surges', type: 'item', url: '/surges', icon: icons.ThunderboltOutlined, perm: 'promotion', action: 'read' },
       { id: 'faqs', title: 'faqs', type: 'item', url: '/faqs', icon: icons.QuestionCircleOutlined, perm: 'faq', action: 'read' }
     ]
@@ -223,6 +228,15 @@ const platformMenuGroups = [
         type: 'item',
         url: '/partial-order-settings',
         icon: icons.CalculatorOutlined,
+        perm: 'payment',
+        action: 'modify'
+      },
+      {
+        id: 'pod-collection-settings',
+        title: 'pod-qr',
+        type: 'item',
+        url: '/pod-collection-settings',
+        icon: icons.QrcodeOutlined,
         perm: 'payment',
         action: 'modify'
       }

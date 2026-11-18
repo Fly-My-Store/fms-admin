@@ -49,8 +49,17 @@ export function buildAdminPartialOrderView(order) {
   if (!allowPartial && !adjusted) return null;
 
   const allItems = Array.isArray(order.order_items) ? order.order_items : [];
-  const removedCount = allItems.filter((it) => it?.removed_at).length;
-  const remainingCount = allItems.filter((it) => !it?.removed_at).length;
+  const activeItems = allItems.filter((it) => !it?.removed_at);
+  const removedItems = allItems.filter((it) => it?.removed_at);
+  const removedCount = removedItems.length;
+  const remainingCount = activeItems.length;
+  const remainingUnits = activeItems.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
+  const shortUnits = activeItems.reduce(
+    (sum, it) => sum + (Number(it?.snapshot?.unavailable_qty) || 0),
+    0
+  );
+  const removedUnits = removedItems.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
+  const originalUnits = remainingUnits + shortUnits + removedUnits;
 
   const snapAdj = order?.pricing_snapshot?.partial_adjustment || {};
   const reasonLabel =
@@ -79,6 +88,8 @@ export function buildAdminPartialOrderView(order) {
     adjustedAt: order.partial_adjusted_at || null,
     removedCount,
     remainingCount,
+    remainingUnits,
+    originalUnits,
     originalTotalCents,
     newTotalCents,
     refundCents,
@@ -101,7 +112,9 @@ export function buildPartialAdjustedAlertLines(view) {
   let lead = 'Seller removed unavailable items';
   if (view.reasonLabel) lead += ` · ${view.reasonLabel}`;
   lead += '.';
-  if (view.remainingCount > 0) {
+  if (view.originalUnits > 0) {
+    lead += ` ${view.remainingUnits} of ${view.originalUnits} units still shipping.`;
+  } else if (view.remainingCount > 0) {
     lead += ` ${view.remainingCount} item${view.remainingCount === 1 ? '' : 's'} still shipping`;
     if (view.removedCount > 0) {
       lead += ` · ${view.removedCount} unavailable`;
