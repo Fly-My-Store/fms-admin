@@ -25,6 +25,7 @@ import {
   WalletOutlined,
   CalculatorOutlined,
   FileTextOutlined,
+  QrcodeOutlined,
   MobileOutlined,
   CloudSyncOutlined,
   TeamOutlined,
@@ -34,7 +35,8 @@ import {
   ShareAltOutlined,
   FileSearchOutlined,
   ThunderboltOutlined,
-  MergeCellsOutlined
+  MergeCellsOutlined,
+  TagOutlined
 } from '@ant-design/icons';
 
 const icons = {
@@ -57,12 +59,14 @@ const icons = {
   PictureOutlined,
   NotificationOutlined,
   GiftOutlined,
+  TagOutlined,
   QuestionCircleOutlined,
   CreditCardOutlined,
   RollbackOutlined,
   WalletOutlined,
   CalculatorOutlined,
   FileTextOutlined,
+  QrcodeOutlined,
   MobileOutlined,
   CloudSyncOutlined,
   TeamOutlined,
@@ -78,6 +82,8 @@ const icons = {
 // Use `perm` + `action` for gating. `anyOf` shows the item if any listed grant matches.
 // Hidden routes (carts, service-areas, addresses, etc.) stay reachable by URL.
 
+const newChip = { color: 'primary', variant: 'light', size: 'small', label: 'New' };
+
 const platformMenuGroups = [
   {
     id: 'main',
@@ -91,6 +97,16 @@ const platformMenuGroups = [
     title: 'operations',
     children: [
       { id: 'orders-list', title: 'orders', type: 'item', url: '/orders', icon: icons.ShoppingCartOutlined, perm: 'order', action: 'read' },
+      {
+        id: 'prescription-requests',
+        title: 'prescription-requests',
+        type: 'item',
+        url: '/prescription-requests',
+        icon: icons.FileTextOutlined,
+        perm: 'order',
+        action: 'read',
+        chip: newChip
+      },
       { id: 'deliveries', title: 'deliveries', type: 'item', url: '/deliveries', icon: icons.SendOutlined, perm: 'deliveryJob', action: 'read' },
       { id: 'riders', title: 'riders', type: 'item', url: '/riders', icon: icons.CarOutlined, perm: 'rider', action: 'read' },
       { id: 'support-tickets', title: 'support-tickets', type: 'item', url: '/support-tickets', icon: icons.CustomerServiceOutlined, perm: 'supportTicket', action: 'read' }
@@ -162,7 +178,8 @@ const platformMenuGroups = [
         url: '/products/merge',
         icon: icons.MergeCellsOutlined,
         perm: 'product',
-        action: 'modify'
+        action: 'modify',
+        chip: newChip
       },
       {
         id: 'attribute-defs',
@@ -190,11 +207,12 @@ const platformMenuGroups = [
     title: 'marketing',
     children: [
       { id: 'banners', title: 'banners', type: 'item', url: '/banners', icon: icons.PictureOutlined, perm: 'banner', action: 'read' },
-      { id: 'food-cravings', title: 'food-cravings', type: 'item', url: '/food-cravings', icon: icons.ShopOutlined, perm: 'banner', action: 'read' },
+      { id: 'food-cravings', title: 'food-cravings', type: 'item', url: '/food-cravings', icon: icons.ShopOutlined, perm: 'banner', action: 'read', chip: newChip },
       { id: 'push-broadcasts', title: 'push-broadcasts', type: 'item', url: '/push-broadcasts', icon: icons.SendOutlined, perm: 'pushBroadcast', action: 'read' },
       { id: 'share-links', title: 'share-links', type: 'item', url: '/share-links', icon: icons.ShareAltOutlined, perm: 'shareLink', action: 'read' },
       { id: 'promotion-campaigns', title: 'campaigns', type: 'item', url: '/promotion-campaigns', icon: icons.NotificationOutlined, perm: 'promotion', action: 'read' },
       { id: 'promotions', title: 'promotions', type: 'item', url: '/promotions', icon: icons.GiftOutlined, perm: 'promotion', action: 'read' },
+      { id: 'offers', title: 'offers', type: 'item', url: '/offers', icon: icons.TagOutlined, perm: 'product', action: 'read', chip: newChip },
       { id: 'surges', title: 'surges', type: 'item', url: '/surges', icon: icons.ThunderboltOutlined, perm: 'promotion', action: 'read' },
       { id: 'faqs', title: 'faqs', type: 'item', url: '/faqs', icon: icons.QuestionCircleOutlined, perm: 'faq', action: 'read' }
     ]
@@ -224,7 +242,18 @@ const platformMenuGroups = [
         url: '/partial-order-settings',
         icon: icons.CalculatorOutlined,
         perm: 'payment',
-        action: 'modify'
+        action: 'modify',
+        chip: newChip
+      },
+      {
+        id: 'pod-collection-settings',
+        title: 'pod-qr',
+        type: 'item',
+        url: '/pod-collection-settings',
+        icon: icons.QrcodeOutlined,
+        perm: 'payment',
+        action: 'modify',
+        chip: newChip
       }
     ]
   },

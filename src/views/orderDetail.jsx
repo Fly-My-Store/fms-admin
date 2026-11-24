@@ -309,6 +309,11 @@ export default function OrderDetailView() {
                     <Typography variant="caption" color="text.secondary">
                       {p.gateway_payment_id || p.gateway_order_id || p.id}
                     </Typography>
+                    {p.collection_mode ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Collected: {p.collection_mode === 'UPI' ? 'UPI QR' : 'Cash'}
+                      </Typography>
+                    ) : null}
                   </Stack>
                 ))
               )}

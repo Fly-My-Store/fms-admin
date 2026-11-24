@@ -15,6 +15,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControl,
   FormControlLabel,
   FormLabel,
@@ -25,9 +26,12 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import MainCard from 'components/MainCard';
 import usePagedAutocomplete from 'hooks/usePagedAutocomplete';
+import { listCategoryAttrs } from 'api/attributes';
 import { listProducts, mergeProducts, previewProductMerge } from 'api/catalog';
+import { uploadSingle } from 'api/upload';
 import { RECORD_STATUS } from 'utils/constants';
 
 function attrKey(row) {
@@ -73,16 +77,128 @@ function groupChoices(groupByVariant = {}) {
   return Array.from({ length: max + 1 }, (_, index) => String(index + 1));
 }
 
+function allowedChoices(def) {
+  if (def?.data_type === 'bool') return ['true', 'false'];
+  if (Array.isArray(def?.allowed_values) && def.allowed_values.length) {
+    return def.allowed_values.map((value) => (value != null && typeof value === 'object' ? JSON.stringify(value) : String(value)));
+  }
+  return null;
+}
+
+function AddAttributeForm({ defs, loading, onAdd }) {
+  const [def, setDef] = useState(null);
+  const [value, setValue] = useState('');
+  const choices = allowedChoices(def);
+
+  const add = () => {
+    const code = String(def?.code || '').trim();
+    const next = String(value || '').trim();
+    if (!code || !next) return;
+    onAdd({
+      attribute_code: code,
+      attribute_name: def?.name || code,
+      value_text: next
+    });
+    setValue('');
+  };
+
+  return (
+    <Stack direction="row" spacing={1} alignItems="flex-start" flexWrap="wrap">
+      <Autocomplete
+        options={defs}
+        loading={loading}
+        value={def}
+        onChange={(_, next) => {
+          setDef(next);
+          setValue('');
+        }}
+        getOptionLabel={(opt) => (opt?.name ? `${opt.name} (${opt.code})` : opt?.code || '')}
+        isOptionEqualToValue={(a, b) => a?.code === b?.code}
+        sx={{ width: 280, maxWidth: '100%' }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            size="small"
+            label="Attribute"
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {loading ? <CircularProgress size={16} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              )
+            }}
+          />
+        )}
+      />
+      {choices ? (
+        <TextField
+          select
+          size="small"
+          label="Value"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          sx={{ width: 200, maxWidth: '100%' }}
+        >
+          {choices.map((item) => (
+            <MenuItem key={item} value={item}>
+              {item}
+            </MenuItem>
+          ))}
+        </TextField>
+      ) : (
+        <TextField
+          size="small"
+          label="Value"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          sx={{ width: 200, maxWidth: '100%' }}
+        />
+      )}
+      <Button variant="outlined" onClick={add} disabled={!def?.code || !String(value).trim()} sx={{ height: 32 }}>
+        Add
+      </Button>
+    </Stack>
+  );
+}
+
+function AddedAttributes({ rows, onRemove }) {
+  if (!rows.length) return null;
+  return rows.map((row) => (
+    <Grid key={`${row.variant_id || 'product'}:${row.attribute_code}`} size={{ xs: 12, sm: 6 }}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Typography variant="body2">{`${row.attribute_name || row.attribute_code}: ${row.value_text} (new)`}</Typography>
+        <Button size="small" onClick={() => onRemove(row)}>
+          Remove
+        </Button>
+      </Stack>
+    </Grid>
+  ));
+}
+
+function ImageUploadButton({ label, disabled, onFiles }) {
+  return (
+    <Button component="label" variant="outlined" size="small" disabled={disabled}>
+      {label}
+      <input
+        type="file"
+        accept="image/*"
+        hidden
+        multiple
+        onChange={(e) => {
+          const { files } = e.target;
+          if (files?.length) onFiles(files);
+          e.target.value = '';
+        }}
+      />
+    </Button>
+  );
+}
+
 function GroupSelect({ variantId, value, options, onChange }) {
   return (
-    <TextField
-      select
-      size="small"
-      label="Group"
-      value={value}
-      onChange={(e) => onChange(variantId, e.target.value)}
-      sx={{ minWidth: 140 }}
-    >
+    <TextField select size="small" label="Group" value={value} onChange={(e) => onChange(variantId, e.target.value)} sx={{ minWidth: 140 }}>
       <MenuItem value="">None</MenuItem>
       {options.map((group) => (
         <MenuItem key={group} value={group}>
@@ -122,24 +238,6 @@ function distinctKeysForGroups(keys, cards = [], winnerByGroup = {}) {
   return next;
 }
 
-function defaultVariantAttrKeys(variants = []) {
-  const next = new Set();
-  for (const variant of variants) {
-    const seen = new Set();
-    const ordered = [...(variant.attributes || [])].sort((a, b) => {
-      if (a.source === 'variant' && b.source !== 'variant') return -1;
-      if (b.source === 'variant' && a.source !== 'variant') return 1;
-      return 0;
-    });
-    for (const row of ordered) {
-      if (seen.has(row.attribute_code)) continue;
-      seen.add(row.attribute_code);
-      next.add(variantAttrKey(row));
-    }
-  }
-  return next;
-}
-
 export default function ProductMerge() {
   const router = useRouter();
   const productAc = usePagedAutocomplete(listProducts, { record_status: RECORD_STATUS.ACTIVE });
@@ -160,6 +258,13 @@ export default function ProductMerge() {
   const [winnerByGroup, setWinnerByGroup] = useState({});
   const [groupImageIds, setGroupImageIds] = useState({});
   const [priceByGroup, setPriceByGroup] = useState({});
+  const [newAttrs, setNewAttrs] = useState([]);
+  const [newImages, setNewImages] = useState([]);
+  const [newVariantAttrs, setNewVariantAttrs] = useState([]);
+  const [newVariantImages, setNewVariantImages] = useState([]);
+  const [attrDefs, setAttrDefs] = useState([]);
+  const [attrDefsLoading, setAttrDefsLoading] = useState(false);
+  const [uploading, setUploading] = useState('');
 
   const selectedIds = useMemo(() => selected.map((p) => p.id).filter(Boolean), [selected]);
   const selectedKey = selectedIds.slice().sort().join(',');
@@ -168,6 +273,10 @@ export default function ProductMerge() {
     if (selectedIds.length < 2) {
       setPreview(null);
       setPreviewError('');
+      setNewAttrs([]);
+      setNewImages([]);
+      setNewVariantAttrs([]);
+      setNewVariantImages([]);
       return undefined;
     }
     let cancelled = false;
@@ -178,19 +287,21 @@ export default function ProductMerge() {
         if (cancelled) return;
         const data = res?.data || res;
         setPreview(data);
-        const nextSurvivor = data.products?.some((p) => p.id === survivorId)
-          ? survivorId
-          : data.products?.[0]?.id || '';
+        const nextSurvivor = data.products?.some((p) => p.id === survivorId) ? survivorId : data.products?.[0]?.id || '';
         setSurvivorId(nextSurvivor);
         const keeper = data.products?.find((p) => p.id === nextSurvivor);
         setName(keeper?.name || '');
         setAttrKeys(defaultAttrKeys(data.attributes || [], nextSurvivor));
-        // setVariantAttrKeys(defaultVariantAttrKeys(data.variants || []));
+        setVariantAttrKeys(new Set());
         setImageIds(new Set((data.images || []).map((img) => img.id)));
         setGroupByVariant({});
         setWinnerByGroup({});
         setGroupImageIds({});
         setPriceByGroup({});
+        setNewAttrs([]);
+        setNewImages([]);
+        setNewVariantAttrs([]);
+        setNewVariantImages([]);
         const categories = data.categories || [];
         const brands = data.brands || [];
         setCategoryId(categories.length === 1 ? String(categories[0].id || '') : String(keeper?.category_id || ''));
@@ -211,17 +322,51 @@ export default function ProductMerge() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey]);
 
+  useEffect(() => {
+    if (!categoryId) {
+      setAttrDefs([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setAttrDefsLoading(true);
+    listCategoryAttrs({ category_id: categoryId, limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        const rows = res?.data || [];
+        const defs = [];
+        const seen = new Set();
+        for (const row of rows) {
+          const def = row?.attributeDef;
+          if (!def?.code || seen.has(def.code)) continue;
+          seen.add(def.code);
+          defs.push(def);
+        }
+        setAttrDefs(defs);
+      })
+      .catch(() => {
+        if (!cancelled) setAttrDefs([]);
+      })
+      .finally(() => {
+        if (!cancelled) setAttrDefsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId]);
+
   const handleSurvivorChange = (id) => {
     setSurvivorId(id);
     const keeper = preview?.products?.find((p) => p.id === id);
     setName(keeper?.name || '');
     if (preview?.attributes) setAttrKeys(defaultAttrKeys(preview.attributes, id));
-    if (preview?.variants) setVariantAttrKeys(defaultVariantAttrKeys(preview.variants));
     if ((preview?.categories || []).length > 1) setCategoryId(String(keeper?.category_id || ''));
     if ((preview?.brands || []).length > 1) setBrandId(String(keeper?.brand_id || ''));
   };
 
   const toggleAttr = (row, checked) => {
+    if (checked) {
+      setNewAttrs((prev) => prev.filter((item) => item.attribute_code !== row.attribute_code));
+    }
     setAttrKeys((prev) => {
       const next = new Set(prev);
       const key = attrKey(row);
@@ -237,8 +382,22 @@ export default function ProductMerge() {
     });
   };
 
+  const addProductAttr = (row) => {
+    setAttrKeys((prev) => {
+      const next = new Set(prev);
+      for (const existing of preview?.attributes || []) {
+        if (existing.attribute_code === row.attribute_code) next.delete(attrKey(existing));
+      }
+      return next;
+    });
+    setNewAttrs((prev) => [...prev.filter((item) => item.attribute_code !== row.attribute_code), row]);
+  };
+
   const toggleVariantAttr = (row, checked, scopeIds) => {
     const scope = new Set(scopeIds?.length ? scopeIds : [row.variant_id]);
+    if (checked) {
+      setNewVariantAttrs((prev) => prev.filter((item) => !(scope.has(item.variant_id) && item.attribute_code === row.attribute_code)));
+    }
     setVariantAttrKeys((prev) => {
       const next = new Set(prev);
       const key = variantAttrKey(row);
@@ -255,6 +414,56 @@ export default function ProductMerge() {
       next.add(key);
       return next;
     });
+  };
+
+  const addVariantAttr = (scopeIds, row) => {
+    const scope = new Set(scopeIds);
+    setVariantAttrKeys((prev) => {
+      const next = new Set(prev);
+      for (const variant of preview?.variants || []) {
+        if (!scope.has(variant.id)) continue;
+        for (const other of variant.attributes || []) {
+          if (other.attribute_code === row.attribute_code) next.delete(variantAttrKey(other));
+        }
+      }
+      return next;
+    });
+    const ownerId = scope.has(row.variant_id) ? row.variant_id : scopeIds[0];
+    setNewVariantAttrs((prev) => [
+      ...prev.filter((item) => !(scope.has(item.variant_id) && item.attribute_code === row.attribute_code)),
+      { ...row, variant_id: ownerId }
+    ]);
+  };
+
+  const uploadImages = async (files, { purpose, variantId }) => {
+    const list = Array.from(files || []);
+    if (!list.length || uploading) return;
+    setUploading(variantId || 'product');
+    try {
+      const uploaded = [];
+      for (const file of list) {
+        const res = await uploadSingle(file, undefined, {
+          purpose,
+          product_id: survivorId || undefined,
+          variant_id: variantId || undefined
+        });
+        const url = res?.url || res?.data?.url || res?.result?.url || '';
+        const thumb = res?.thumb_url || res?.data?.thumb_url || res?.result?.thumb_url || null;
+        if (!url) throw new Error('Upload did not return a URL');
+        uploaded.push({
+          localId: `${url}-${uploaded.length}-${Date.now()}`,
+          url,
+          thumb_url: thumb,
+          variant_id: variantId || null
+        });
+      }
+      if (variantId) setNewVariantImages((prev) => [...prev, ...uploaded]);
+      else setNewImages((prev) => [...prev, ...uploaded]);
+    } catch (err) {
+      enqueueSnackbar(err?.response?.data?.message || err?.message || 'Image upload failed', { variant: 'error' });
+    } finally {
+      setUploading('');
+    }
   };
 
   const setVariantGroup = (variantId, group) => {
@@ -324,17 +533,36 @@ export default function ProductMerge() {
   }, [variantSections, winnerByGroup]);
 
   const canSubmit =
-    selectedIds.length >= 2
-    && Boolean(survivorId)
-    && Boolean(name.trim())
-    && Boolean(preview)
-    && categoryChosen
-    && brandChosen;
+    selectedIds.length >= 2 &&
+    Boolean(survivorId) &&
+    Boolean(name.trim()) &&
+    Boolean(preview) &&
+    categoryChosen &&
+    brandChosen &&
+    !uploading;
+
+  const variantTargetId = (variantId) => {
+    const group = groupByVariant[variantId];
+    if (!group) return variantId;
+    const card = variantSections.cards.find((item) => item.group === group);
+    if (!card) return variantId;
+    return winnerByGroup[card.group] || card.members[0].id;
+  };
 
   const handleMerge = async () => {
     if (!canSubmit || saving) return;
     setSaving(true);
     try {
+      const freshVariantAttrs = new Map();
+      for (const row of newVariantAttrs) {
+        const variantId = variantTargetId(row.variant_id);
+        freshVariantAttrs.set(`${variantId}:${row.attribute_code}`, {
+          variant_id: variantId,
+          attribute_code: row.attribute_code,
+          value_text: row.value_text
+        });
+      }
+      const selectedVariantKeys = distinctKeysForGroups(variantAttrKeys, variantSections.cards, winnerByGroup);
       const result = await mergeProducts({
         survivor_id: survivorId,
         name: name.trim(),
@@ -342,21 +570,20 @@ export default function ProductMerge() {
         attribute_keys: (preview.attributes || [])
           .filter((row) => attrKeys.has(attrKey(row)))
           .map((row) => ({ product_id: row.product_id, attribute_code: row.attribute_code })),
-        variant_attribute_keys: (() => {
-          const selectedKeys = distinctKeysForGroups(
-            variantAttrKeys,
-            variantSections.cards,
-            winnerByGroup
-          );
-          return (preview.variants || [])
-            .flatMap((variant) => variant.attributes || [])
-            .filter((row) => selectedKeys.has(variantAttrKey(row)))
-            .map((row) => ({
-              variant_id: row.variant_id,
-              source: row.source,
-              attribute_code: row.attribute_code
-            }));
-        })(),
+        new_attributes: newAttrs.map((row) => ({
+          attribute_code: row.attribute_code,
+          value_text: row.value_text
+        })),
+        variant_attribute_keys: (preview.variants || [])
+          .flatMap((variant) => variant.attributes || [])
+          .filter((row) => selectedVariantKeys.has(variantAttrKey(row)))
+          .filter((row) => !freshVariantAttrs.has(`${variantTargetId(row.variant_id)}:${row.attribute_code}`))
+          .map((row) => ({
+            variant_id: row.variant_id,
+            source: row.source,
+            attribute_code: row.attribute_code
+          })),
+        new_variant_attributes: [...freshVariantAttrs.values()],
         variant_merges: variantSections.cards.map((card) => {
           const winnerId = winnerByGroup[card.group] || card.members[0].id;
           return {
@@ -367,6 +594,15 @@ export default function ProductMerge() {
           };
         }),
         image_ids: [...imageIds],
+        new_images: newImages.map((image) => ({
+          url: image.url,
+          thumb_url: image.thumb_url || null
+        })),
+        new_variant_images: newVariantImages.map((image) => ({
+          variant_id: variantTargetId(image.variant_id),
+          url: image.url,
+          thumb_url: image.thumb_url || null
+        })),
         category_id: categoryId || null,
         brand_id: brandId || null
       });
@@ -385,10 +621,7 @@ export default function ProductMerge() {
     <>
       <MainCard border={false} boxShadow showTitle={false}>
         <Stack spacing={3}>
-          <Alert severity="info">
-            Keep one product. Every variant from the others moves onto it. Store prices stay on their
-            listings.
-          </Alert>
+          <Alert severity="info">Keep one product. Every variant from the others moves onto it. Store prices stay on their listings.</Alert>
 
           <Autocomplete
             multiple
@@ -432,108 +665,124 @@ export default function ProductMerge() {
           {previewError ? <Alert severity="error">{previewError}</Alert> : null}
 
           {preview ? (
-            <>
-              <FormControl>
-                <FormLabel>Product to keep</FormLabel>
-                <RadioGroup value={survivorId} onChange={(e) => handleSurvivorChange(e.target.value)}>
-                  {(preview.products || []).map((product) => (
-                    <FormControlLabel
-                      key={product.id}
-                      value={product.id}
-                      control={<Radio />}
-                      label={`${product.name}${product.category?.name ? ` · ${product.category.name}` : ''}`}
-                    />
-                  ))}
-                </RadioGroup>
-              </FormControl>
-
-              <TextField
-                label="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                fullWidth
-              />
-
-              {needsCategory ? (
-                <FormControl>
-                  <FormLabel>Category</FormLabel>
-                  <RadioGroup value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                    {categories.map((category) => (
-                      <FormControlLabel
-                        key={category.id || 'none'}
-                        value={String(category.id || '')}
-                        control={<Radio />}
-                        label={category.name}
-                      />
-                    ))}
+            <Stack spacing={2.5}>
+              <Box>
+                <FormControl sx={{ width: '100%' }}>
+                  <FormLabel>Product to keep</FormLabel>
+                  <RadioGroup value={survivorId} onChange={(e) => handleSurvivorChange(e.target.value)}>
+                    <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                      {(preview.products || []).map((product) => (
+                        <Grid key={product.id} size={{ xs: 12, sm: 6 }}>
+                          <FormControlLabel
+                            value={product.id}
+                            control={<Radio />}
+                            sx={{ m: 0, alignItems: 'flex-start', width: '100%' }}
+                            label={`${product.name}${product.category?.name ? ` · ${product.category.name}` : ''}`}
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
                   </RadioGroup>
                 </FormControl>
-              ) : null}
 
-              {needsBrand ? (
-                <FormControl>
-                  <FormLabel>Brand</FormLabel>
-                  <RadioGroup value={brandId} onChange={(e) => setBrandId(e.target.value)}>
-                    {brands.map((brand) => (
-                      <FormControlLabel
-                        key={brand.id || 'none'}
-                        value={String(brand.id || '')}
-                        control={<Radio />}
-                        label={brand.name}
-                      />
-                    ))}
-                  </RadioGroup>
-                </FormControl>
-              ) : null}
+                <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} required fullWidth sx={{ mt: 2 }} />
+
+                {needsCategory ? (
+                  <FormControl sx={{ mt: 2, width: '100%' }}>
+                    <FormLabel>Category</FormLabel>
+                    <RadioGroup value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                      <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                        {categories.map((category) => (
+                          <Grid key={category.id || 'none'} size={{ xs: 12, sm: 6 }}>
+                            <FormControlLabel
+                              value={String(category.id || '')}
+                              control={<Radio />}
+                              sx={{ m: 0, alignItems: 'flex-start', width: '100%' }}
+                              label={category.name}
+                            />
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </RadioGroup>
+                  </FormControl>
+                ) : null}
+
+                {needsBrand ? (
+                  <FormControl sx={{ mt: 2, width: '100%' }}>
+                    <FormLabel>Brand</FormLabel>
+                    <RadioGroup value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+                      <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                        {brands.map((brand) => (
+                          <Grid key={brand.id || 'none'} size={{ xs: 12, sm: 6 }}>
+                            <FormControlLabel
+                              value={String(brand.id || '')}
+                              control={<Radio />}
+                              sx={{ m: 0, alignItems: 'flex-start', width: '100%' }}
+                              label={brand.name}
+                            />
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </RadioGroup>
+                  </FormControl>
+                ) : null}
+              </Box>
+
+              <Divider />
 
               <Box>
                 <Typography variant="h6" sx={{ mb: 1 }}>
                   Product attributes
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  These stay on the product you keep. Checking a value unchecks the same
-                  attribute from another product. Copy color or pack onto a SKU in the variant
-                  list below.
+                  These stay on the product you keep. Checking a value unchecks the same attribute from another product. Copy color or pack
+                  onto a SKU in the variant list below.
                 </Typography>
-                <Stack>
+                <Grid container spacing={1}>
                   {(preview.attributes || []).length ? (
                     preview.attributes.map((row) => (
-                      <FormControlLabel
-                        key={attrKey(row)}
-                        control={
-                          <Checkbox
-                            checked={attrKeys.has(attrKey(row))}
-                            onChange={(e) => toggleAttr(row, e.target.checked)}
-                          />
-                        }
-                        label={`${row.attribute_name}: ${row.display_value || '—'} (${row.product_name})`}
-                      />
+                      <Grid key={attrKey(row)} size={{ xs: 12, sm: 6 }}>
+                        <FormControlLabel
+                          sx={{ m: 0, alignItems: 'flex-start', width: '100%' }}
+                          control={<Checkbox checked={attrKeys.has(attrKey(row))} onChange={(e) => toggleAttr(row, e.target.checked)} />}
+                          label={`${row.attribute_name}: ${row.display_value || '—'} (${row.product_name})`}
+                        />
+                      </Grid>
                     ))
                   ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      No product attributes on the selected products.
-                    </Typography>
+                    <Grid size={12}>
+                      <Typography variant="body2" color="text.secondary">
+                        No product attributes on the selected products.
+                      </Typography>
+                    </Grid>
                   )}
-                </Stack>
+                  <AddedAttributes
+                    rows={newAttrs}
+                    onRemove={(row) => setNewAttrs((prev) => prev.filter((item) => item.attribute_code !== row.attribute_code))}
+                  />
+                </Grid>
+                {categoryId ? (
+                  <AddAttributeForm defs={attrDefs} loading={attrDefsLoading} onAdd={addProductAttr} />
+                ) : (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Choose a category before adding an attribute.
+                  </Typography>
+                )}
               </Box>
+
+              <Divider />
 
               <Box>
                 <Typography variant="h6" sx={{ mb: 1 }}>
                   Images
                 </Typography>
                 <Stack direction="row" flexWrap="wrap" gap={2}>
-                  {(preview.images || []).length ? (
-                    preview.images.map((image) => (
+                  {(preview.images || []).length
+                    ? preview.images.map((image) => (
                       <FormControlLabel
                         key={image.id}
                         sx={{ alignItems: 'flex-start', m: 0 }}
-                        control={
-                          <Checkbox
-                            checked={imageIds.has(image.id)}
-                            onChange={(e) => toggleImage(image.id, e.target.checked)}
-                          />
-                        }
+                        control={<Checkbox checked={imageIds.has(image.id)} onChange={(e) => toggleImage(image.id, e.target.checked)} />}
                         label={
                           <Stack spacing={0.5} sx={{ width: 120 }}>
                             <Avatar
@@ -547,37 +796,52 @@ export default function ProductMerge() {
                         }
                       />
                     ))
-                  ) : (
+                    : null}
+                  {newImages.map((image) => (
+                    <Stack key={image.localId} spacing={0.5} sx={{ width: 120 }}>
+                      <Avatar variant="rounded" src={image.thumb_url || image.url} alt="New product" sx={{ width: 96, height: 96 }} />
+                      <Typography variant="caption">New</Typography>
+                      <Button size="small" onClick={() => setNewImages((prev) => prev.filter((item) => item.localId !== image.localId))}>
+                        Remove
+                      </Button>
+                    </Stack>
+                  ))}
+                  {!(preview.images || []).length && !newImages.length ? (
                     <Typography variant="body2" color="text.secondary">
                       No product images on the selected products.
                     </Typography>
-                  )}
+                  ) : null}
                 </Stack>
+                <Box sx={{ mt: 1 }}>
+                  <ImageUploadButton
+                    label={uploading === 'product' ? 'Uploading…' : 'Add image'}
+                    disabled={Boolean(uploading)}
+                    onFiles={(files) => uploadImages(files, { purpose: 'product' })}
+                  />
+                </Box>
               </Box>
+
+              <Divider />
 
               <Box>
                 <Typography variant="h6" sx={{ mb: 1 }}>
                   Variants
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Every SKU moves onto the product you keep. Put two SKUs in the same group
-                  only when they are the same item, then pick the SKU, one price, images,
-                  and attributes to keep.
+                  Every SKU moves onto the product you keep. Put two SKUs in the same group only when they are the same item, then pick the
+                  SKU, one price, images, and attributes to keep.
                 </Typography>
-                <Stack spacing={2}>
+                <Stack spacing={3} divider={<Divider />}>
                   {variantSections.cards.map((card) => {
                     const memberIds = card.members.map((item) => item.id);
                     const winnerId = winnerByGroup[card.group] || card.members[0].id;
                     const priceId = priceByGroup[card.group] || winnerId;
-                    const groupImages = card.members.flatMap((item) =>
-                      (item.images || []).map((image) => ({ ...image, sku: item.sku }))
-                    );
+                    const groupImages = card.members.flatMap((item) => (item.images || []).map((image) => ({ ...image, sku: item.sku })));
                     const attrs = card.members.flatMap((item) => item.attributes || []);
+                    const addedAttrs = newVariantAttrs.filter((row) => memberIds.includes(row.variant_id));
+                    const addedImages = newVariantImages.filter((image) => memberIds.includes(image.variant_id));
                     return (
-                      <Box
-                        key={`group-${card.group}`}
-                        sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2 }}
-                      >
+                      <Box key={`group-${card.group}`} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2 }}>
                         <Typography variant="subtitle2" sx={{ mb: 1 }}>
                           {`Group ${card.group} — same item`}
                         </Typography>
@@ -587,11 +851,7 @@ export default function ProductMerge() {
                         >
                           {card.members.map((variant) => (
                             <Stack key={variant.id} direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                              <FormControlLabel
-                                value={variant.id}
-                                control={<Radio />}
-                                label={`${variant.sku} · ${variant.product_name}`}
-                              />
+                              <FormControlLabel value={variant.id} control={<Radio />} label={`${variant.sku} · ${variant.product_name}`} />
                               <GroupSelect
                                 variantId={variant.id}
                                 value={groupByVariant[variant.id] || ''}
@@ -601,7 +861,8 @@ export default function ProductMerge() {
                             </Stack>
                           ))}
                         </RadioGroup>
-                        <FormControl sx={{ mt: 2 }}>
+                        <Divider sx={{ my: 2 }} />
+                        <FormControl>
                           <FormLabel>Price to keep</FormLabel>
                           <RadioGroup
                             value={priceId}
@@ -617,12 +878,13 @@ export default function ProductMerge() {
                             ))}
                           </RadioGroup>
                         </FormControl>
-                        <Typography variant="body2" sx={{ mt: 2, mb: 1 }}>
+                        <Divider sx={{ my: 2 }} />
+                        <Typography variant="body2" sx={{ mb: 1 }}>
                           Images from these SKUs
                         </Typography>
                         <Stack direction="row" flexWrap="wrap" gap={2}>
-                          {groupImages.length ? (
-                            groupImages.map((image) => (
+                          {groupImages.length
+                            ? groupImages.map((image) => (
                               <FormControlLabel
                                 key={image.id}
                                 sx={{ alignItems: 'flex-start', m: 0 }}
@@ -645,20 +907,46 @@ export default function ProductMerge() {
                                 }
                               />
                             ))
-                          ) : (
+                            : null}
+                          {addedImages.map((image) => (
+                            <Stack key={image.localId} spacing={0.5} sx={{ width: 120 }}>
+                              <Avatar
+                                variant="rounded"
+                                src={image.thumb_url || image.url}
+                                alt="New variant"
+                                sx={{ width: 96, height: 96 }}
+                              />
+                              <Typography variant="caption">New</Typography>
+                              <Button
+                                size="small"
+                                onClick={() => setNewVariantImages((prev) => prev.filter((item) => item.localId !== image.localId))}
+                              >
+                                Remove
+                              </Button>
+                            </Stack>
+                          ))}
+                          {!groupImages.length && !addedImages.length ? (
                             <Typography variant="body2" color="text.secondary">
                               No variant images on these SKUs.
                             </Typography>
-                          )}
+                          ) : null}
                         </Stack>
-                        <Typography variant="body2" sx={{ mt: 2, mb: 1 }}>
+                        <Box sx={{ mt: 1 }}>
+                          <ImageUploadButton
+                            label={uploading === winnerId ? 'Uploading…' : 'Add image'}
+                            disabled={Boolean(uploading)}
+                            onFiles={(files) => uploadImages(files, { purpose: 'variant', variantId: winnerId })}
+                          />
+                        </Box>
+                        <Divider sx={{ my: 2 }} />
+                        <Typography variant="body2" sx={{ mb: 1 }}>
                           Attributes on the SKU you keep
                         </Typography>
-                        {attrs.length ? (
-                          <Stack>
-                            {attrs.map((row) => (
+                        <Grid container spacing={1}>
+                          {attrs.map((row) => (
+                            <Grid key={variantAttrKey(row)} size={{ xs: 12, sm: 6 }}>
                               <FormControlLabel
-                                key={variantAttrKey(row)}
+                                sx={{ m: 0, alignItems: 'flex-start', width: '100%' }}
                                 control={
                                   <Checkbox
                                     checked={variantAttrKeys.has(variantAttrKey(row))}
@@ -667,71 +955,132 @@ export default function ProductMerge() {
                                 }
                                 label={`${row.attribute_name}: ${row.display_value || '—'} (${row.source === 'product' ? 'from product' : 'variant'} · ${row.product_name})`}
                               />
-                            ))}
-                          </Stack>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            No attributes on these SKUs.
-                          </Typography>
-                        )}
+                            </Grid>
+                          ))}
+                          <AddedAttributes
+                            rows={addedAttrs}
+                            onRemove={(row) =>
+                              setNewVariantAttrs((prev) =>
+                                prev.filter((item) => item.attribute_code !== row.attribute_code || item.variant_id !== row.variant_id)
+                              )
+                            }
+                          />
+                          {!attrs.length && !addedAttrs.length ? (
+                            <Grid size={12}>
+                              <Typography variant="body2" color="text.secondary">
+                                No attributes on these SKUs.
+                              </Typography>
+                            </Grid>
+                          ) : null}
+                        </Grid>
+                        {categoryId ? (
+                          <AddAttributeForm
+                            defs={attrDefs}
+                            loading={attrDefsLoading}
+                            onAdd={(row) => addVariantAttr(memberIds, { ...row, variant_id: winnerId })}
+                          />
+                        ) : null}
                       </Box>
                     );
                   })}
-                  {variantSections.leftover.map((variant) => (
-                    <Box key={variant.id}>
-                      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" sx={{ mb: 1 }}>
-                        <Typography variant="subtitle2">
-                          {variant.sku}
-                          {` · ${variant.product_name}`}
-                        </Typography>
-                        <GroupSelect
-                          variantId={variant.id}
-                          value={groupByVariant[variant.id] || ''}
-                          options={groupChoices(groupByVariant)}
-                          onChange={setVariantGroup}
-                        />
-                      </Stack>
-                      <Stack direction="row" flexWrap="wrap" gap={2} sx={{ mb: 1 }}>
-                        {(variant.images || []).length ? (
-                          variant.images.map((image) => (
-                            <Stack key={image.id} spacing={0.5} sx={{ width: 120 }}>
+                  {variantSections.leftover.map((variant) => {
+                    const addedAttrs = newVariantAttrs.filter((row) => row.variant_id === variant.id);
+                    const addedImages = newVariantImages.filter((image) => image.variant_id === variant.id);
+                    return (
+                      <Box key={variant.id}>
+                        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" sx={{ mb: 1 }}>
+                          <Typography variant="subtitle2">
+                            {variant.sku}
+                            {` · ${variant.product_name}`}
+                          </Typography>
+                          <GroupSelect
+                            variantId={variant.id}
+                            value={groupByVariant[variant.id] || ''}
+                            options={groupChoices(groupByVariant)}
+                            onChange={setVariantGroup}
+                          />
+                        </Stack>
+                        <Divider sx={{ my: 2 }} />
+                        <Stack direction="row" flexWrap="wrap" gap={2} sx={{ mb: 1 }}>
+                          {(variant.images || []).length
+                            ? variant.images.map((image) => (
+                              <Stack key={image.id} spacing={0.5} sx={{ width: 120 }}>
+                                <Avatar
+                                  variant="rounded"
+                                  src={image.thumb_url || image.url}
+                                  alt={variant.sku}
+                                  sx={{ width: 96, height: 96 }}
+                                />
+                                <Typography variant="caption">{variant.sku}</Typography>
+                              </Stack>
+                            ))
+                            : null}
+                          {addedImages.map((image) => (
+                            <Stack key={image.localId} spacing={0.5} sx={{ width: 120 }}>
                               <Avatar
                                 variant="rounded"
                                 src={image.thumb_url || image.url}
                                 alt={variant.sku}
                                 sx={{ width: 96, height: 96 }}
                               />
-                              <Typography variant="caption">{variant.sku}</Typography>
+                              <Typography variant="caption">New</Typography>
+                              <Button
+                                size="small"
+                                onClick={() => setNewVariantImages((prev) => prev.filter((item) => item.localId !== image.localId))}
+                              >
+                                Remove
+                              </Button>
                             </Stack>
-                          ))
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            No variant images on this SKU.
-                          </Typography>
-                        )}
-                      </Stack>
-                      {(variant.attributes || []).length ? (
-                        <Stack>
-                          {variant.attributes.map((row) => (
-                            <FormControlLabel
-                              key={variantAttrKey(row)}
-                              control={
-                                <Checkbox
-                                  checked={variantAttrKeys.has(variantAttrKey(row))}
-                                  onChange={(e) => toggleVariantAttr(row, e.target.checked, [variant.id])}
-                                />
-                              }
-                              label={`${row.attribute_name}: ${row.display_value || '—'} (${row.source === 'product' ? 'from product' : 'variant'})`}
-                            />
                           ))}
+                          {!(variant.images || []).length && !addedImages.length ? (
+                            <Typography variant="body2" color="text.secondary">
+                              No variant images on this SKU.
+                            </Typography>
+                          ) : null}
                         </Stack>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          No attributes on this variant.
-                        </Typography>
-                      )}
-                    </Box>
-                  ))}
+                        <ImageUploadButton
+                          label={uploading === variant.id ? 'Uploading…' : 'Add image'}
+                          disabled={Boolean(uploading)}
+                          onFiles={(files) => uploadImages(files, { purpose: 'variant', variantId: variant.id })}
+                        />
+                        <Divider sx={{ my: 2 }} />
+                        <Grid container spacing={1}>
+                          {(variant.attributes || []).map((row) => (
+                            <Grid key={variantAttrKey(row)} size={{ xs: 12, sm: 6 }}>
+                              <FormControlLabel
+                                sx={{ m: 0, alignItems: 'flex-start', width: '100%' }}
+                                control={
+                                  <Checkbox
+                                    checked={variantAttrKeys.has(variantAttrKey(row))}
+                                    onChange={(e) => toggleVariantAttr(row, e.target.checked, [variant.id])}
+                                  />
+                                }
+                                label={`${row.attribute_name}: ${row.display_value || '—'} (${row.source === 'product' ? 'from product' : 'variant'})`}
+                              />
+                            </Grid>
+                          ))}
+                          <AddedAttributes
+                            rows={addedAttrs}
+                            onRemove={(row) =>
+                              setNewVariantAttrs((prev) =>
+                                prev.filter((item) => item.attribute_code !== row.attribute_code || item.variant_id !== row.variant_id)
+                              )
+                            }
+                          />
+                          {!(variant.attributes || []).length && !addedAttrs.length ? (
+                            <Grid size={12}>
+                              <Typography variant="body2" color="text.secondary">
+                                No attributes on this variant.
+                              </Typography>
+                            </Grid>
+                          ) : null}
+                        </Grid>
+                        {categoryId ? (
+                          <AddAttributeForm defs={attrDefs} loading={attrDefsLoading} onAdd={(row) => addVariantAttr([variant.id], row)} />
+                        ) : null}
+                      </Box>
+                    );
+                  })}
                   {!(preview.variants || []).length ? (
                     <Typography variant="body2" color="text.secondary">
                       No variants on the selected products.
@@ -740,13 +1089,17 @@ export default function ProductMerge() {
                 </Stack>
               </Box>
 
+              {variantAttrKeys.size === 0 && newVariantAttrs.length === 0 ? (
+                <Alert severity="warning">No variant attributes are selected.</Alert>
+              ) : null}
+
               <Stack direction="row" spacing={1} justifyContent="flex-end">
                 <Button onClick={() => router.push('/products')}>Cancel</Button>
                 <Button variant="contained" disabled={!canSubmit || saving} onClick={() => setConfirmOpen(true)}>
                   Merge
                 </Button>
               </Stack>
-            </>
+            </Stack>
           ) : null}
         </Stack>
       </MainCard>
