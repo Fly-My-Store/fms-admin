@@ -1,4 +1,4 @@
-import View from 'views/prescriptionRequestDetail';
+import View from 'views/quoteRequestDetail';
 
 export default function Page() {
   return <View />;

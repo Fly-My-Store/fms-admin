@@ -7,7 +7,7 @@ import { Alert, Box, Chip, Link as MuiLink, Stack, Typography } from '@mui/mater
 import Grid from '@mui/material/Grid2';
 import Breadcrumbs from 'components/@extended/Breadcrumbs';
 import MainCard from 'components/MainCard';
-import { getPrescriptionRequest } from 'api/prescriptionRequests';
+import { getQuoteRequest } from 'api/quoteRequests';
 
 const safe = (value) => (value === null || value === undefined || value === '' ? '—' : String(value));
 
@@ -53,7 +53,12 @@ function addressText(address) {
   ].filter(Boolean).join(', ');
 }
 
-export default function PrescriptionRequestDetailView() {
+function cartHeading(row, quote) {
+  if (quote?.store_name) return quote.store_name;
+  return row?.store_type === 'grocery' ? 'Grocery cart' : 'Pharmacy cart';
+}
+
+export default function QuoteRequestDetailView() {
   const { id } = useParams();
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,12 +69,12 @@ export default function PrescriptionRequestDetailView() {
     setLoading(true);
     setError('');
     try {
-      const body = await getPrescriptionRequest(id);
+      const body = await getQuoteRequest(id);
       setRow(body?.data || null);
-      if (!body?.data) setError('Prescription request not found.');
+      if (!body?.data) setError('Quote request not found.');
     } catch {
       setRow(null);
-      setError('Could not load this prescription request.');
+      setError('Could not load this quote request.');
     } finally {
       setLoading(false);
     }
@@ -81,10 +86,10 @@ export default function PrescriptionRequestDetailView() {
 
   const breadcrumb = useMemo(
     () => ({
-      heading: 'prescription-request',
+      heading: 'quote-request',
       links: [
         { title: 'home', to: '/dashboard' },
-        { title: 'prescription-requests', to: '/prescription-requests' },
+        { title: 'quote-requests', to: '/quote-requests' },
         { title: shortId(id), i18n: false }
       ]
     }),
@@ -96,7 +101,7 @@ export default function PrescriptionRequestDetailView() {
   return (
     <>
       <Breadcrumbs custom heading={breadcrumb.heading} links={breadcrumb.links} />
-      {loading ? <Alert severity="info">Loading prescription…</Alert> : null}
+      {loading ? <Alert severity="info">Loading quote…</Alert> : null}
       {!loading && error ? <Alert severity="error">{error}</Alert> : null}
       {!loading && row ? (
         <Grid container spacing={2}>
@@ -104,6 +109,7 @@ export default function PrescriptionRequestDetailView() {
             <MainCard title="Request">
               <Stack spacing={1}>
                 <KV label="Status" value={row.status} />
+                <KV label="Type" value={row.store_type === 'grocery' ? 'Grocery' : 'Pharmacy'} />
                 <KV label="Customer" value={row.customer?.name} />
                 <KV label="Phone" value={row.customer?.phone} />
                 <KV label="Email" value={row.customer?.email} />
@@ -119,10 +125,10 @@ export default function PrescriptionRequestDetailView() {
           <Grid size={12}>
             <MainCard title="Files">
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                {(row.prescription_urls || []).map((url) => (
+                {(row.file_urls || []).map((url) => (
                   isPdf(url) ? (
                     <MuiLink key={url} href={url} target="_blank" rel="noreferrer">
-                      {row.prescription_file_name || 'Open PDF'}
+                      {row.file_name || 'Open PDF'}
                     </MuiLink>
                   ) : (
                     <Box
@@ -136,19 +142,19 @@ export default function PrescriptionRequestDetailView() {
                       <Box
                         component="img"
                         src={url}
-                        alt={row.prescription_file_name || 'Prescription'}
+                        alt={row.file_name || 'Photo'}
                         sx={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 1 }}
                       />
                     </Box>
                   )
                 ))}
-                {!row.prescription_urls?.length ? <Typography variant="body2">—</Typography> : null}
+                {!row.file_urls?.length ? <Typography variant="body2">—</Typography> : null}
               </Stack>
             </MainCard>
           </Grid>
 
           <Grid size={12}>
-            <MainCard title="Notified pharmacies">
+            <MainCard title="Notified stores">
               <Stack spacing={0.75}>
                 {(row.notified_stores || []).map((store) => (
                   <Typography key={store.store_id} variant="body2">
@@ -167,7 +173,7 @@ export default function PrescriptionRequestDetailView() {
             return (
               <Grid key={quote.cart_id} size={12}>
                 <MainCard
-                  title={quote.store_name || 'Pharmacy cart'}
+                  title={cartHeading(row, quote)}
                   secondary={<Chip size="small" color={state.color} label={state.label} />}
                 >
                   <Stack spacing={0.75}>
