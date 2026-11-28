@@ -33,7 +33,16 @@ function statusChip(status) {
   return <Chip size="small" color={color} label={status || '—'} variant="light" />;
 }
 
-export default function StoreListingCsvQueue({ storeId, isDemo }) {
+export default function StoreListingCsvQueue({
+  storeId,
+  isDemo,
+  kind = 'LISTING',
+  title = 'Store listing CSVs',
+  subheader = 'Seller uploads for you to download, then bulk-add. Approving does not create listings.',
+  emptyText = 'No listing CSVs uploaded by this store yet.',
+  approveMessage = 'Listing CSV approved — download it and bulk-add on this store',
+  rejectTitle = 'Reject listing CSV'
+}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState(null);
@@ -44,7 +53,7 @@ export default function StoreListingCsvQueue({ storeId, isDemo }) {
     if (!storeId || isDemo) return;
     setLoading(true);
     try {
-      const resp = await listStoreListingCsv(storeId, { page: 1, limit: PAGE_SIZE });
+      const resp = await listStoreListingCsv(storeId, { page: 1, limit: PAGE_SIZE, kind });
       setItems(Array.isArray(resp?.data) ? resp.data : []);
     } catch (e) {
       enqueueSnackbar(e?.response?.data?.message || e?.message || 'Failed to load listing CSVs', { variant: 'error' });
@@ -52,7 +61,7 @@ export default function StoreListingCsvQueue({ storeId, isDemo }) {
     } finally {
       setLoading(false);
     }
-  }, [storeId, isDemo]);
+  }, [storeId, isDemo, kind]);
 
   useEffect(() => {
     load();
@@ -62,7 +71,7 @@ export default function StoreListingCsvQueue({ storeId, isDemo }) {
     setBusyId(row.id);
     try {
       await approveStoreListingCsv(storeId, row.id);
-      enqueueSnackbar('Listing CSV approved — download it and bulk-add on this store', { variant: 'success' });
+      enqueueSnackbar(approveMessage, { variant: 'success' });
       await load();
     } catch (e) {
       enqueueSnackbar(e?.response?.data?.message || e?.message || 'Approve failed', { variant: 'error' });
@@ -96,20 +105,20 @@ export default function StoreListingCsvQueue({ storeId, isDemo }) {
 
   if (isDemo) {
     return (
-      <MainCard title="Store listing CSVs">
-        <Alert severity="info">Listing CSV review is only available for live stores.</Alert>
+      <MainCard title={title}>
+        <Alert severity="info">CSV review is only available for live stores.</Alert>
       </MainCard>
     );
   }
 
   return (
-    <MainCard title="Store listing CSVs" subheader="Seller uploads for you to download, then bulk-add. Approving does not create listings.">
+    <MainCard title={title} subheader={subheader}>
       {loading && (
         <Stack alignItems="center" py={2}>
           <CircularProgress size={22} />
         </Stack>
       )}
-      {!loading && items.length === 0 && <Alert severity="info">No listing CSVs uploaded by this store yet.</Alert>}
+      {!loading && items.length === 0 && <Alert severity="info">{emptyText}</Alert>}
       {!loading && items.length > 0 && (
         <Table size="small">
           <TableHead>
@@ -177,7 +186,7 @@ export default function StoreListingCsvQueue({ storeId, isDemo }) {
       )}
 
       <Dialog open={Boolean(rejectRow)} onClose={() => !busyId && setRejectRow(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Reject listing CSV</DialogTitle>
+        <DialogTitle>{rejectTitle}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -205,5 +214,11 @@ export default function StoreListingCsvQueue({ storeId, isDemo }) {
 
 StoreListingCsvQueue.propTypes = {
   storeId: PropTypes.string,
-  isDemo: PropTypes.bool
+  isDemo: PropTypes.bool,
+  kind: PropTypes.string,
+  title: PropTypes.string,
+  subheader: PropTypes.string,
+  emptyText: PropTypes.string,
+  approveMessage: PropTypes.string,
+  rejectTitle: PropTypes.string
 };

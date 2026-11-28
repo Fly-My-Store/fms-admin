@@ -9,6 +9,7 @@ import CsvJobsList from 'sections/csv/CsvJobsList';
 import RestaurantMenuExportPanel from 'sections/stores/restaurant/RestaurantMenuExportPanel';
 import RestaurantMenuImportPanel from 'sections/stores/restaurant/RestaurantMenuImportPanel';
 import RestaurantMenuUpdatePanel from 'sections/stores/restaurant/RestaurantMenuUpdatePanel';
+import StoreListingCsvQueue from 'sections/stores/StoreListingCsvQueue';
 import {
   abortRestaurantMenuCsvJob,
   listRestaurantMenuCsvJobs,
@@ -61,6 +62,17 @@ export default function StoreRestaurantMenuTab({ storeId, isDemo, menuSource }) 
           onQueued={() => setJobsTick((n) => n + 1)}
         />
       </MainCard>
+
+      <StoreListingCsvQueue
+        storeId={storeId}
+        isDemo={isDemo}
+        kind="RESTAURANT_MENU"
+        title="Seller menu CSV submissions"
+        subheader="Seller uploads. Approving imports dishes and variants into this menu."
+        emptyText="No menu CSVs uploaded by this restaurant yet."
+        approveMessage="Menu CSV approved and imported"
+        rejectTitle="Reject menu CSV"
+      />
 
       <CsvJobsList
         title="Restaurant menu CSV jobs"
