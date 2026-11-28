@@ -98,10 +98,10 @@ const platformMenuGroups = [
     children: [
       { id: 'orders-list', title: 'orders', type: 'item', url: '/orders', icon: icons.ShoppingCartOutlined, perm: 'order', action: 'read' },
       {
-        id: 'prescription-requests',
-        title: 'prescription-requests',
+        id: 'quote-requests',
+        title: 'quote-requests',
         type: 'item',
-        url: '/prescription-requests',
+        url: '/quote-requests',
         icon: icons.FileTextOutlined,
         perm: 'order',
         action: 'read',

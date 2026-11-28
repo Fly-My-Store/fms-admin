@@ -37,7 +37,7 @@ export default function StoreBulkUploadTab({ storeId, isDemo }) {
         emptyText="Exports, listing updates, and bulk add jobs for this store show up here."
       />
 
-      <StoreListingCsvQueue storeId={storeId} isDemo={isDemo} />
+      <StoreListingCsvQueue storeId={storeId} isDemo={isDemo} kind="LISTING" />
     </Stack>
   );
 }

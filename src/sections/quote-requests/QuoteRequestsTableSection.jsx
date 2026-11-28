@@ -9,7 +9,7 @@ function when(value) {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
 }
 
-export default function PrescriptionRequestsTableSection({
+export default function QuoteRequestsTableSection({
   rows,
   pageIndex,
   pageSize,
@@ -27,10 +27,14 @@ export default function PrescriptionRequestsTableSection({
       },
       { header: 'Status', accessorKey: 'status' },
       {
+        header: 'Type',
+        accessorFn: (row) => (row.store_type === 'grocery' ? 'Grocery' : 'Pharmacy')
+      },
+      {
         header: 'Area',
         accessorFn: (row) => [row.city, row.postal_code].filter(Boolean).join(' ') || '—'
       },
-      { header: 'Pharmacies', accessorKey: 'notified_store_count' },
+      { header: 'Stores', accessorKey: 'notified_store_count' },
       {
         header: 'Created',
         accessorFn: (row) => when(row.created_at)
@@ -43,8 +47,8 @@ export default function PrescriptionRequestsTableSection({
     <BasicReactTable
       columns={columns}
       data={rows}
-      title="Prescriptions"
-      ariaLebel="Prescription requests"
+      title="Quote requests"
+      ariaLebel="Quote requests"
       handleViewButton={onView}
       pageIndex={pageIndex}
       pageSize={pageSize}
